@@ -21,9 +21,13 @@
 
 #include <cstring>
 #include <iostream>
+
+
 #include "isaac/kernels/stream.h"
 #include "isaac/kernels/keywords.h"
 #include "isaac/kernels/templates/reduce_2d.h"
+
+#include "../parse/extract.hpp"
 
 #include "tools/arguments.hpp"
 #include "tools/loop.hpp"
@@ -64,16 +68,12 @@ unsigned int reduce_2d::temporary_workspace(expression_tree const & expressions)
     return 0;
 }
 
-std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree const & expression, driver::Device const & device, mapping_type const & mapping) const
+std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree const & expression, driver::Device const & device, symbolic::mapping_type const & mapping) const
 {
   using tools::to_string;
 
 
-  std::vector<mapped_reduce_2d*> reduce_1ds;
-  std::vector<size_t> idx = filter_nodes(&is_reduce_1d, expression, expression.root(), false);
-  for (auto & elem : idx)
-    reduce_1ds.push_back((mapped_reduce_2d*)(mapping.at(mapping_key(elem, PARENT_NODE_TYPE)).get()));
-
+  std::vector<symbolic::reduce_2d*> reductions = extract<symbolic::reduce_2d>(expression, mapping);
   kernel_generation_stream stream;
   driver::backend_type backend = device.backend();
   std::string _size_t = size_type(device);
@@ -86,19 +86,19 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   auto unroll_tmp = [&]()
   {
       unsigned int offset = 0;
-      for (const auto & e : reduce_1ds)
+      for (symbolic::reduce_2d* rd : reductions)
       {
-        numeric_type dtype = lhs_most(e->expression_tree().tree(),  e->expression_tree().root()).lhs.dtype;
+        numeric_type dtype = lhs_most(expression.tree(),  expression.root()).lhs.dtype;
         std::string sdtype = to_string(dtype);
-        if (e->is_index_reduction())
+        if (is_index_reduction(rd->op()))
         {
-          stream << e->process(_global + " uint* #name_temp = (" + _global + " uint*)(tmp + " + tools::to_string(offset) + "*M);");
+          stream << rd->process(_global + " uint* #name_temp = (" + _global + " uint*)(tmp + " + tools::to_string(offset) + "*M);");
           offset += 4*p_.num_groups_0;
-          stream << e->process(_global + " " + sdtype + "* #name_temp_value = (" + _global + " " + sdtype + "*)(tmp + " + tools::to_string(offset) + "*M);");
+          stream << rd->process(_global + " " + sdtype + "* #name_temp_value = (" + _global + " " + sdtype + "*)(tmp + " + tools::to_string(offset) + "*M);");
           offset += size_of(dtype)*p_.num_groups_0;
         }
         else{
-          stream << e->process(_global + " " + sdtype + "* #name_temp = (" + _global + " " + sdtype + "*)(tmp + " + tools::to_string(offset) + "*M);");
+          stream << rd->process(_global + " " + sdtype + "* #name_temp = (" + _global + " " + sdtype + "*)(tmp + " + tools::to_string(offset) + "*M);");
           offset += size_of(dtype)*p_.num_groups_0;
         }
       }
@@ -113,7 +113,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
       stream << " __attribute__((reqd_work_group_size(" << p_.local_size_0 << "," << p_.local_size_1 << ",1)))" << std::endl; break;
   }
 
-  stream << KernelPrefix(backend) << " void " << name[0] << "(" << _size_t << " M, " << _size_t << " N, " << _global << " char* tmp, " << generate_arguments("#scalartype", device, mapping, expression) << ")" << std::endl;
+  stream << KernelPrefix(backend) << " void " << name[0] << "(" << _size_t << " M, " << _size_t << " N, " << _global << " char* tmp, " << tools::join(kernel_arguments(device, mapping, expression), ", ") << ")" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
 
@@ -127,8 +127,8 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   unsigned int local_size_0_ld = p_.local_size_0;
   std::string local_size_0_ld_str = to_string(local_size_0_ld);
 
-  for (const auto & e : reduce_1ds)
-    stream << e->process(Local(backend).get() + " " + append_width("#scalartype", col_simd_width) + " #name_buf[" + to_string(p_.local_size_1*local_size_0_ld) + "];") << std::endl;
+  for (symbolic::reduce_2d* rd : reductions)
+    stream << rd->process(Local(backend).get() + " " + append_width("#scalartype", col_simd_width) + " #name_buf[" + to_string(p_.local_size_1*local_size_0_ld) + "];") << std::endl;
 
   stream << "for(" << _size_t << " r = " << GlobalIdx1(backend) << "*" << col_simd_width << "; r < (M +" << p_.local_size_1 - 1 << ")/" << p_.local_size_1 << "*" << p_.local_size_1*col_simd_width << "; r += " << GlobalSize1(backend) << "*" << col_simd_width << ")" << std::endl;
   stream << "{" << std::endl;
@@ -137,10 +137,10 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   stream << "" << _size_t << " lidx = " << LocalIdx0(backend) << ";" << std::endl;
   stream << "" << _size_t << " lidy = " << LocalIdx1(backend) <<";" << std::endl;
 
-  for (const auto & e : reduce_1ds){
+  for (symbolic::reduce_2d* rd : reductions){
     std::string data_type = append_width("#scalartype",col_simd_width);
 
-    stream << e->process(data_type + " #name_acc = " + InitPrefix(backend, data_type).get()  + "(" + neutral_element((e)->root_op(), backend, "#scalartype") + ");") << std::endl;
+    stream << rd->process(data_type + " #name_acc = " + InitPrefix(backend, data_type).get()  + "(" + neutral_element((rd)->op(), backend, "#scalartype") + ");") << std::endl;
   }
 
   stream << "if (r < M)" << std::endl;
@@ -149,24 +149,32 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
 
   element_wise_loop_1D(stream, p_.fetch_policy, (reduce_1d_type_==REDUCE_COLUMNS)?p_.simd_width:1, "c", "N", GlobalIdx0(backend).get(), GlobalSize0(backend).get(), device, [&](unsigned int row_simd_width)
   {
+    std::string rdtype = append_width("#scalartype", row_simd_width);
+    std::string cdtype = append_width("#scalartype", col_simd_width);
 
-    std::set<std::string> already_fetched;
-    for (const auto & e : reduce_1ds)
+    std::set<std::string> fetched;
+    for (symbolic::reduce_2d* rd : reductions)
     {
-      std::map<std::string, std::string> accessors;
-      if(reduce_1d_type_==REDUCE_COLUMNS)
-      {
-        std::string data_type = append_width("#scalartype",row_simd_width);
-        accessors["arraynn"] = data_type + " #namereg = " + vload(row_simd_width, "#scalartype", "c*#stride", "#pointer + r*#ld", "1", backend,false)+";";
-        accessors["repeat"] = data_type + " #namereg = " + vload(row_simd_width, "#scalartype", "(c%#sub0)*#stride", "#pointer + (r%#sub1)*#stride ", "1", backend,false)+";";
+      //Array
+      for(symbolic::buffer* sym: extract<symbolic::buffer>(expression, mapping, rd->index(), PARENT_NODE_TYPE)){
+        if(sym->dim()==2 && fetched.insert(sym->process("#name")).second){
+          if(reduce_1d_type_==REDUCE_COLUMNS)
+            stream << sym->process(rdtype + " #namereg = " + vload(row_simd_width, "#scalartype", "c*#stride", "#pointer + r*#ld", "1", backend,false)+";") << std::endl;
+          else
+            stream << sym->process(cdtype + " #namereg = " + vload(col_simd_width, "#scalartype", "0", "#pointer + r*#stride + c*#ld", "1", backend,false) + ";") << std::endl;
+        }
       }
-      else
-      {
-        std::string data_type = append_width("#scalartype",col_simd_width);
-        accessors["arraynn"] = data_type + " #namereg = " + vload(col_simd_width, "#scalartype", "0", "#pointer + r*#stride + c*#ld", "1", backend,false) + ";";
-        accessors["repeat"] = "#scalartype #namereg = $VALUE{(r%#sub0)*#stride, (c%#sub1)*#stride};";
+
+
+      //Repeat
+      for(symbolic::repeat* sym: extract<symbolic::repeat>(expression, mapping, rd->index(), PARENT_NODE_TYPE)){
+        if(fetched.insert(sym->process("#name")).second){
+          if(reduce_1d_type_==REDUCE_COLUMNS)
+            stream << sym->process(rdtype + " #namereg = " + vload(row_simd_width, "#scalartype", "(c%#sub0)*#stride", "#pointer + (r%#sub1)*#stride ", "1", backend,false)+";") << std::endl;
+          else
+            stream << sym->process("#scalartype #namereg = $VALUE{(r%#sub0)*#stride, (c%#sub1)*#stride};") << std::endl;
+        }
       }
-      e->process_recursive(stream, PARENT_NODE_TYPE, accessors, already_fetched);
     }
 
     //Update accumulators
@@ -178,21 +186,21 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
         str[a] = access_vector_type("#namereg",a);
 
 
-    for (auto & elem : reduce_1ds)
+    for (symbolic::reduce_2d* rd : reductions)
       for (unsigned int a = 0; a < row_simd_width; ++a)
       {
-        std::string value = elem->evaluate_recursive(LHS_NODE_TYPE, {{"arraynn", str[a]}, {"repeat", str[a]}, {"array1", "#namereg"}});
-        if (elem->is_index_reduction())
-          compute_index_reduce_1d(stream, elem->process("#name_acc"), "c*"+to_string(row_simd_width) + to_string(a), elem->process("#name_acc_value"), value, elem->root_op());
+        std::string value = evaluate(LHS_NODE_TYPE, {{"arraynn", str[a]}, {"repeat", str[a]}, {"array1", "#namereg"}}, expression, rd->index(), mapping);
+        if (is_index_reduction(rd->op()))
+          compute_index_reduce_1d(stream, rd->process("#name_acc"), "c*"+to_string(row_simd_width) + to_string(a), rd->process("#name_acc_value"), value, rd->op());
         else
-          compute_reduce_1d(stream, elem->process("#name_acc"), value,elem->root_op());
+          compute_reduce_1d(stream, rd->process("#name_acc"), value,rd->op());
       }
   });
   stream.dec_tab();
   stream << "}" << std::endl;
 
-  for (auto & expr : reduce_1ds)
-    stream << expr->process("#name_buf[lidy*" + local_size_0_ld_str + "+ lidx] = #name_acc;") << std::endl;
+  for (symbolic::reduce_2d* rd : reductions)
+    stream << rd->process("#name_buf[lidy*" + local_size_0_ld_str + "+ lidx] = #name_acc;") << std::endl;
 
   stream << "#pragma unroll" << std::endl;
   stream << "for(" << _size_t << " stride = " << p_.local_size_0/2 << "; stride >0; stride /=2)" << std::endl;
@@ -204,13 +212,13 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   stream << "{" << std::endl;
   stream.inc_tab();
 
-  for (auto & e : reduce_1ds)
-    if (e->is_index_reduction())
-      compute_index_reduce_1d(stream, e->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx]"), e->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx + stride]")
-                                    , e->process("#name_buf_value[lidy*" + local_size_0_ld_str + " + lidx]"), e->process("#name_buf_value[lidy*" + local_size_0_ld_str + " + lidx + stride]")
-                                    , e->root_op());
+  for (symbolic::reduce_2d* rd : reductions)
+    if (is_index_reduction(rd->op()))
+      compute_index_reduce_1d(stream, rd->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx]"), rd->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx + stride]")
+                                    , rd->process("#name_buf_value[lidy*" + local_size_0_ld_str + " + lidx]"), rd->process("#name_buf_value[lidy*" + local_size_0_ld_str + " + lidx + stride]")
+                                    , rd->op());
     else
-      compute_reduce_1d(stream,e->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx]"), e->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx + stride]"), e->root_op());
+      compute_reduce_1d(stream,rd->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx]"), rd->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx + stride]"), rd->op());
 
   stream.dec_tab();
   stream << "}" << std::endl;
@@ -238,22 +246,22 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   }
   else
   {
-    for (mapped_reduce const * e : reduce_1ds)
+    for (symbolic::reduction const * rd : reductions)
     {
       if(col_simd_width > 1)
           stream << "if(M - r > " << col_simd_width << "){" << std::endl;
-      if (e->is_index_reduction())
-          stream << e->process(vstore(col_simd_width,"uint", "#name_buf_value[lidy*" + local_size_0_ld_str + "]", "0", "#name_temp_value + r + M*" + GroupIdx0(backend).get(), "1", backend, false)) << ";" << std::endl;
-      stream << e->process(vstore(col_simd_width,"#scalartype", "#name_buf[lidy*" + local_size_0_ld_str + "]", "0", "#name_temp + r + M*" + GroupIdx0(backend).get(), "1", backend, false)) << ";" << std::endl;
+      if (is_index_reduction(rd->op()))
+          stream << rd->process(vstore(col_simd_width,"uint", "#name_buf_value[lidy*" + local_size_0_ld_str + "]", "0", "#name_temp_value + r + M*" + GroupIdx0(backend).get(), "1", backend, false)) << ";" << std::endl;
+      stream << rd->process(vstore(col_simd_width,"#scalartype", "#name_buf[lidy*" + local_size_0_ld_str + "]", "0", "#name_temp + r + M*" + GroupIdx0(backend).get(), "1", backend, false)) << ";" << std::endl;
       if(col_simd_width > 1)
       {
           stream << "}" << std::endl;
           stream << "else{" << std::endl;
           stream.inc_tab();
           for(int s = 0 ; s < col_simd_width ; ++s){
-              if (e->is_index_reduction())
-                  stream << "if(r + " << s << "< M) " << e->process("#name_temp_value[r + " + to_string(s) + " + M*" + GroupIdx0(backend).get() + "] = " + access_vector_type("#name_buf_value[lidy*" + local_size_0_ld_str + "]", s)) << ";" << std::endl;
-              stream << "if(r + " << s << "< M) " << e->process("#name_temp[r + " + to_string(s) + " + M*" + GroupIdx0(backend).get() + "] = " + access_vector_type("#name_buf[lidy*" + local_size_0_ld_str + "]", s)) << ";" << std::endl;
+              if (is_index_reduction(rd->op()))
+                  stream << "if(r + " << s << "< M) " << rd->process("#name_temp_value[r + " + to_string(s) + " + M*" + GroupIdx0(backend).get() + "] = " + access_vector_type("#name_buf_value[lidy*" + local_size_0_ld_str + "]", s)) << ";" << std::endl;
+              stream << "if(r + " << s << "< M) " << rd->process("#name_temp[r + " + to_string(s) + " + M*" + GroupIdx0(backend).get() + "] = " + access_vector_type("#name_buf[lidy*" + local_size_0_ld_str + "]", s)) << ";" << std::endl;
           }
           stream.dec_tab();
           stream << "}" << std::endl;
@@ -280,7 +288,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   if(backend==driver::OPENCL)
     stream << " __attribute__((reqd_work_group_size(" << p_.local_size_0 << "," << p_.local_size_1 << ",1)))" << std::endl;
 
-  stream << KernelPrefix(backend) << " void " << name[1] << "(" << _size_t << " M, " << _size_t << " N , " << _global << " char* tmp, " << generate_arguments("#scalartype", device, mapping, expression) << ")" << std::endl;
+  stream << KernelPrefix(backend) << " void " << name[1] << "(" << _size_t << " M, " << _size_t << " N , " << _global << " char* tmp, " << tools::join(kernel_arguments(device, mapping, expression), ", ") << ")" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
 
@@ -293,16 +301,16 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
                          {"arrayn1", "#pointer += #start;"},
                          {"arraynn", "#pointer += #start; "}}, expression, mapping);
 
-  for (const auto & e : reduce_1ds)
-    stream << e->process(Local(backend).get() + " #scalartype #name_buf[" + to_string(p_.local_size_1*local_size_0_ld) + "];") << std::endl;
+  for (symbolic::reduce_2d* rd : reductions)
+    stream << rd->process(Local(backend).get() + " #scalartype #name_buf[" + to_string(p_.local_size_1*local_size_0_ld) + "];") << std::endl;
 
   stream << "for(" << _size_t << " r = " << GlobalIdx1(backend) << "; r < (M +" << p_.local_size_1 - 1 << ")/" << p_.local_size_1 << "*" << p_.local_size_1 << "; r += " << GlobalSize1(backend) << "){" << std::endl;
   stream.inc_tab();
   stream << _size_t << " lidx = " << LocalIdx0(backend) << ";" << std::endl;
   stream << _size_t << " lidy = " << LocalIdx1(backend) <<";" << std::endl;
 
-  for (const auto & e : reduce_1ds)
-    stream << e->process("#scalartype #name_acc = " + neutral_element((e)->root_op(), backend, "#scalartype") + ";") << std::endl;
+  for (symbolic::reduce_2d* rd : reductions)
+    stream << rd->process("#scalartype #name_acc = " + neutral_element((rd)->op(), backend, "#scalartype") + ";") << std::endl;
 
   stream << "if (r < M)" << std::endl;
   stream << "{" << std::endl;
@@ -311,8 +319,8 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   stream << "for(" << _size_t << " c = lidx; c < " << p_.num_groups_0 << "; c += " << LocalSize0(backend) << "){" << std::endl;
   stream.inc_tab();
 
-  for (mapped_reduce* e: reduce_1ds)
-    compute_reduce_1d(stream, e->process("#name_acc"), e->process("#name_temp[r + M*c]"), e->root_op());
+  for (symbolic::reduce_2d* rd: reductions)
+    compute_reduce_1d(stream, rd->process("#name_acc"), rd->process("#name_temp[r + M*c]"), rd->op());
 
   stream.dec_tab();
   stream << "}" << std::endl;
@@ -321,8 +329,8 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   stream.dec_tab();
   stream << "}" << std::endl;
 
-  for (auto & expr : reduce_1ds)
-    stream << expr->process("#name_buf[lidy*" + local_size_0_ld_str + "+ lidx] = #name_acc;") << std::endl;
+  for (symbolic::reduce_2d* rd : reductions)
+    stream << rd->process("#name_buf[lidy*" + local_size_0_ld_str + "+ lidx] = #name_acc;") << std::endl;
 
   stream << "#pragma unroll" << std::endl;
   stream << "for(" << _size_t << " stride = " << p_.local_size_0/2 << "; stride >0; stride /=2)" << std::endl;
@@ -334,13 +342,13 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   stream << "{" << std::endl;
   stream.inc_tab();
 
-  for (auto & e : reduce_1ds)
-    if (e->is_index_reduction())
-      compute_index_reduce_1d(stream, e->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx]"), e->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx + stride]")
-                                    , e->process("#name_buf_value[lidy*" + local_size_0_ld_str + " + lidx]"), e->process("#name_buf_value[lidy*" + local_size_0_ld_str + " + lidx + stride]")
-                                    , e->root_op());
+  for (symbolic::reduce_2d* rd : reductions)
+    if (is_index_reduction(rd->op()))
+      compute_index_reduce_1d(stream, rd->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx]"), rd->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx + stride]")
+                                    , rd->process("#name_buf_value[lidy*" + local_size_0_ld_str + " + lidx]"), rd->process("#name_buf_value[lidy*" + local_size_0_ld_str + " + lidx + stride]")
+                                    , rd->op());
     else
-      compute_reduce_1d(stream,e->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx]"), e->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx + stride]"), e->root_op());
+      compute_reduce_1d(stream,rd->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx]"), rd->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx + stride]"), rd->op());
 
   stream.dec_tab();
   stream << "}" << std::endl;

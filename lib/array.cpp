@@ -136,12 +136,12 @@ INSTANTIATE(double);
 #undef INSTANTIATE
 
 
-array_base::array_base(numeric_type dtype, shape_t const & shape, int_t start, shape_t const & stride, driver::Context const & context) :
+array_base::array_base(numeric_type dtype, tuple const & shape, int_t start, tuple const & stride, driver::Context const & context) :
     dtype_(dtype), shape_(shape), start_(start), stride_(stride), context_(context), data_(context_, dsize()),
     T(isaac::trans(*this))
 {}
 
-array_base::array_base(numeric_type dtype, shape_t const & shape, driver::Context const & context) : array_base(dtype, shape, 0, {1, shape[0]}, context)
+array_base::array_base(numeric_type dtype, tuple const & shape, driver::Context const & context) : array_base(dtype, shape, 0, {1, shape[0]}, context)
 {}
 
 array_base::array_base(execution_handler const & other) :
@@ -161,7 +161,7 @@ array_base::~array_base()
 numeric_type array_base::dtype() const
 { return dtype_; }
 
-shape_t const & array_base::shape() const
+tuple const & array_base::shape() const
 { return shape_; }
 
 int_t array_base::dim() const
@@ -170,7 +170,7 @@ int_t array_base::dim() const
 int_t array_base::start() const
 { return start_; }
 
-shape_t const & array_base::stride() const
+tuple const & array_base::stride() const
 { return stride_; }
 
 driver::Context const & array_base::context() const
@@ -293,7 +293,7 @@ array_base & array_base::operator/=(expression_tree const & rhs)
 
 /*--- Indexing operators -----*/
 //---------------------------------------
-expression_tree array_base::operator[](for_idx_t idx) const
+expression_tree array_base::operator[](placeholder idx) const
 {
   return expression_tree(*this, idx, op_element(BINARY_TYPE_FAMILY, ACCESS_INDEX_TYPE), context_, dtype_, {1});
 }
@@ -516,7 +516,7 @@ std::ostream & operator<<(std::ostream & os, scalar const & s)
 
 /*--- Binary Operators ----*/
 //-----------------------------------
-shape_t broadcast(shape_t const & a, shape_t const & b)
+tuple broadcast(tuple const & a, tuple const & b)
 {
     std::vector<int_t> aa = a, bb = b, result;
     size_t as = aa.size(), bs = bb.size();
@@ -528,7 +528,7 @@ shape_t broadcast(shape_t const & a, shape_t const & b)
         assert((aa[i] == bb[i] || aa[i]==1 || bb[i]==1) && "Cannot broadcast");
         result.push_back(std::max(aa[i], bb[i]));
     }
-    return shape_t(result);
+    return tuple(result);
 }
 
 #define DEFINE_ELEMENT_BINARY_OPERATOR(OP, OPNAME, DTYPE) \
@@ -541,7 +541,7 @@ expression_tree OPNAME (array_base const & x, array_base const & y) \
 expression_tree OPNAME (array_base const & x, value_scalar const & y) \
 { return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); }\
 \
-expression_tree OPNAME (array_base const & x, for_idx_t const & y) \
+expression_tree OPNAME (array_base const & x, placeholder const & y) \
 { return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); }\
 \
 \
@@ -554,7 +554,7 @@ expression_tree OPNAME (expression_tree const & x, array_base const & y) \
 expression_tree OPNAME (expression_tree const & x, value_scalar const & y) \
 { return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); } \
 \
-expression_tree OPNAME (expression_tree const & x, for_idx_t const & y) \
+expression_tree OPNAME (expression_tree const & x, placeholder const & y) \
 { return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); } \
 \
 \
@@ -564,20 +564,20 @@ expression_tree OPNAME (value_scalar const & y, expression_tree const & x) \
 expression_tree OPNAME (value_scalar const & y, array_base const & x) \
 { return expression_tree(y, x, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); }\
 \
-expression_tree OPNAME (value_scalar const & x, for_idx_t const & y) \
+expression_tree OPNAME (value_scalar const & x, placeholder const & y) \
 { return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), DTYPE); }\
 \
 \
-expression_tree OPNAME (for_idx_t const & y, expression_tree const & x) \
+expression_tree OPNAME (placeholder const & y, expression_tree const & x) \
 { return expression_tree(y, x, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); } \
 \
-expression_tree OPNAME (for_idx_t const & y, value_scalar const & x) \
+expression_tree OPNAME (placeholder const & y, value_scalar const & x) \
 { return expression_tree(y, x, op_element(BINARY_TYPE_FAMILY, OP), DTYPE); } \
 \
-expression_tree OPNAME (for_idx_t const & y, array_base const & x) \
+expression_tree OPNAME (placeholder const & y, array_base const & x) \
 { return expression_tree(y, x, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); }\
 \
-expression_tree OPNAME (for_idx_t const & y, for_idx_t const & x) \
+expression_tree OPNAME (placeholder const & y, placeholder const & x) \
 { return expression_tree(y, x, op_element(BINARY_TYPE_FAMILY, OP)); }
 
 
@@ -709,12 +709,12 @@ array diag(array_base & x, int offset)
 }
 
 
-isaac::expression_tree zeros(shape_t const & shape, isaac::numeric_type dtype, driver::Context  const & ctx)
+isaac::expression_tree zeros(tuple const & shape, isaac::numeric_type dtype, driver::Context  const & ctx)
 { return expression_tree(value_scalar(0, dtype), invalid_node(), op_element(UNARY_TYPE_FAMILY, ADD_TYPE), ctx, dtype, shape); }
 
-inline shape_t flip(shape_t const & shape)
+inline tuple flip(tuple const & shape)
 {
-  shape_t res = shape;
+  tuple res = shape;
   for(size_t i = 0 ; i < shape.size() ; ++i)
     res[i] = shape[(i + 1)%shape.size()];
   return res;
@@ -748,11 +748,11 @@ expression_tree repmat(expression_tree const & A, int_t const & rep1, int_t cons
   { return expression_tree(x, i, op_element(UNARY_TYPE_FAMILY, MATRIX_ROW_TYPE), x.context(), x.dtype(), {x.shape()[1]}); }
 
 DEFINE_ACCESS_ROW(array_base, value_scalar)
-DEFINE_ACCESS_ROW(array_base, for_idx_t)
+DEFINE_ACCESS_ROW(array_base, placeholder)
 DEFINE_ACCESS_ROW(array_base, expression_tree)
 
 DEFINE_ACCESS_ROW(expression_tree, value_scalar)
-DEFINE_ACCESS_ROW(expression_tree, for_idx_t)
+DEFINE_ACCESS_ROW(expression_tree, placeholder)
 DEFINE_ACCESS_ROW(expression_tree, expression_tree)
 
 #define DEFINE_ACCESS_COL(TYPEA, TYPEB) \
@@ -760,11 +760,11 @@ DEFINE_ACCESS_ROW(expression_tree, expression_tree)
   { return expression_tree(x, i, op_element(UNARY_TYPE_FAMILY, MATRIX_COLUMN_TYPE), x.context(), x.dtype(), {x.shape()[0]}); }
 
 DEFINE_ACCESS_COL(array_base, value_scalar)
-DEFINE_ACCESS_COL(array_base, for_idx_t)
+DEFINE_ACCESS_COL(array_base, placeholder)
 DEFINE_ACCESS_COL(array_base, expression_tree)
 
 DEFINE_ACCESS_COL(expression_tree, value_scalar)
-DEFINE_ACCESS_COL(expression_tree, for_idx_t)
+DEFINE_ACCESS_COL(expression_tree, placeholder)
 DEFINE_ACCESS_COL(expression_tree, expression_tree)
 
 ////---------------------------------------
@@ -809,14 +809,14 @@ namespace detail
 
   expression_tree matmatprod(array_base const & A, array_base const & B)
   {
-    shape_t shape{A.shape()[0], B.shape()[1]};
+    tuple shape{A.shape()[0], B.shape()[1]};
     return expression_tree(A, B, op_element(MATRIX_PRODUCT_TYPE_FAMILY, MATRIX_PRODUCT_NN_TYPE), A.context(), A.dtype(), shape);
   }
 
   expression_tree matmatprod(expression_tree const & A, array_base const & B)
   {
     operation_type type = MATRIX_PRODUCT_NN_TYPE;
-    shape_t shape{A.shape()[0], B.shape()[1]};
+    tuple shape{A.shape()[0], B.shape()[1]};
 
     expression_tree::node & A_root = const_cast<expression_tree::node &>(A.tree()[A.root()]);
     bool A_trans = A_root.op.type==TRANS_TYPE;
@@ -833,7 +833,7 @@ namespace detail
   expression_tree matmatprod(array_base const & A, expression_tree const & B)
   {
     operation_type type = MATRIX_PRODUCT_NN_TYPE;
-    shape_t shape{A.shape()[0], B.shape()[1]};
+    tuple shape{A.shape()[0], B.shape()[1]};
 
     expression_tree::node & B_root = const_cast<expression_tree::node &>(B.tree()[B.root()]);
     bool B_trans = B_root.op.type==TRANS_TYPE;
@@ -852,7 +852,7 @@ namespace detail
     operation_type type = MATRIX_PRODUCT_NN_TYPE;
     expression_tree::node & A_root = const_cast<expression_tree::node &>(A.tree()[A.root()]);
     expression_tree::node & B_root = const_cast<expression_tree::node &>(B.tree()[B.root()]);
-    shape_t shape{A.shape()[0], B.shape()[1]};
+    tuple shape{A.shape()[0], B.shape()[1]};
 
     bool A_trans = A_root.op.type==TRANS_TYPE;
     bool B_trans = B_root.op.type==TRANS_TYPE;
@@ -910,10 +910,10 @@ ISAACAPI void swap(view x, view y)
 }
 
 //Reshape
-expression_tree reshape(array_base const & x, shape_t const & shape)
+expression_tree reshape(array_base const & x, tuple const & shape)
 {  return expression_tree(x, invalid_node(), op_element(UNARY_TYPE_FAMILY, RESHAPE_TYPE), x.context(), x.dtype(), shape); }
 
-expression_tree reshape(expression_tree const & x, shape_t const & shape)
+expression_tree reshape(expression_tree const & x, tuple const & shape)
 {  return expression_tree(x, invalid_node(), op_element(UNARY_TYPE_FAMILY, RESHAPE_TYPE), x.context(), x.dtype(), shape); }
 
 expression_tree ravel(array_base const & x)
@@ -1096,7 +1096,7 @@ INSTANTIATE(double);
 std::ostream& operator<<(std::ostream & os, array_base const & a)
 {
   int_t WINDOW = 3;
-  shape_t shape = a.shape();
+  tuple shape = a.shape();
   numeric_type dtype = a.dtype();
 
   //Copy to Host RAM

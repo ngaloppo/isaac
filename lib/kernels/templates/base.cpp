@@ -38,7 +38,7 @@
 #include "isaac/symbolic/io.h"
 
 #include "tools/map.hpp"
-#include "cpp/to_string.hpp"
+#include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
 {
@@ -113,7 +113,7 @@ std::string base::generate(std::string const & suffix, expression_tree const  & 
     throw operation_not_supported_exception("The supplied parameters for this template are invalid : err " + tools::to_string(err));
 
   //Create mapping
-  mapping_type mapping;
+  symbolic::mapping_type mapping;
   std::unique_ptr<symbolic_binder> binder;
   if (binding_policy_==BIND_SEQUENTIAL)
       binder.reset(new bind_sequential());

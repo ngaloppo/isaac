@@ -24,7 +24,7 @@
 #include <string>
 
 #include "isaac/symbolic/io.h"
-#include "cpp/to_string.hpp"
+#include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
 {

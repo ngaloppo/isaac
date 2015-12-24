@@ -85,7 +85,7 @@ protected:
   static std::pair<int_t, int_t> matrix_size(expression_tree::container_type const & tree, expression_tree::node const & node);
   static bool requires_fallback(expression_tree const & expressions);
 private:
-  virtual std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, mapping_type const & mapping) const = 0;
+  virtual std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::mapping_type const & mapping) const = 0;
 public:
   base(binding_policy_t binding_policy);
   virtual unsigned int temporary_workspace(expression_tree const &) const;

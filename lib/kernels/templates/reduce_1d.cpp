@@ -24,6 +24,8 @@
 #include "isaac/kernels/templates/reduce_1d.h"
 #include "isaac/kernels/keywords.h"
 
+#include "../parse/extract.hpp"
+
 #include "tools/loop.hpp"
 #include "tools/reductions.hpp"
 #include "tools/vector_types.hpp"
@@ -61,7 +63,7 @@ unsigned int reduce_1d::temporary_workspace(expression_tree const &) const
     return 0;
 }
 
-inline void reduce_1d::reduce_1d_local_memory(kernel_generation_stream & stream, unsigned int size, std::vector<mapped_reduce_1d*> exprs,
+inline void reduce_1d::reduce_1d_local_memory(kernel_generation_stream & stream, unsigned int size, std::vector<symbolic::reduce_1d*> exprs,
                                    std::string const & buf_str, std::string const & buf_value_str, driver::backend_type backend) const
 {
   stream << "#pragma unroll" << std::endl;
@@ -73,28 +75,24 @@ inline void reduce_1d::reduce_1d_local_memory(kernel_generation_stream & stream,
   stream << "{" << std::endl;
   stream.inc_tab();
 
-  for (auto & expr : exprs)
-    if (expr->is_index_reduction())
-      compute_index_reduce_1d(stream, expr->process(buf_str+"[lid]"), expr->process(buf_str+"[lid+stride]")
-                              , expr->process(buf_value_str+"[lid]"), expr->process(buf_value_str+"[lid+stride]"),
-                              expr->root_op());
+  for (symbolic::reduce_1d* rd : exprs)
+    if (is_index_reduction(rd->op()))
+      compute_index_reduce_1d(stream, rd->process(buf_str+"[lid]"), rd->process(buf_str+"[lid+stride]")
+                              , rd->process(buf_value_str+"[lid]"), rd->process(buf_value_str+"[lid+stride]"),
+                              rd->op());
     else
-      compute_reduce_1d(stream, expr->process(buf_str+"[lid]"), expr->process(buf_str+"[lid+stride]"), expr->root_op());
+      compute_reduce_1d(stream, rd->process(buf_str+"[lid]"), rd->process(buf_str+"[lid+stride]"), rd->op());
   stream.dec_tab();
   stream << "}" << std::endl;
   stream.dec_tab();
   stream << "}" << std::endl;
 }
 
-std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree const  & expressions, driver::Device const & device, mapping_type const & mapping) const
+std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree const  & expressions, driver::Device const & device, symbolic::mapping_type const & mapping) const
 {
   kernel_generation_stream stream;
 
-  std::vector<mapped_reduce_1d*> exprs;
-  for (mapping_type::const_iterator iit = mapping.begin(); iit != mapping.end(); ++iit)
-    if (mapped_reduce_1d * p = dynamic_cast<mapped_reduce_1d*>(iit->second.get()))
-      exprs.push_back(p);
-  std::size_t N = exprs.size();
+  std::vector<symbolic::reduce_1d*> reductions = extract<symbolic::reduce_1d>(expressions, mapping);
   driver::backend_type backend = device.backend();
   std::string _size_t = size_type(device);
   std::string _global =  Global(backend).get();
@@ -106,19 +104,19 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
   auto unroll_tmp = [&]()
   {
       unsigned int offset = 0;
-      for (unsigned int k = 0; k < N; ++k)
+      for(symbolic::reduce_1d* rd: reductions)
       {
-        numeric_type dtype = lhs_most(exprs[k]->expression_tree().tree(),  exprs[k]->expression_tree().root()).lhs.dtype;
+        numeric_type dtype = lhs_most(expressions.tree(), expressions.root()).lhs.dtype;
         std::string sdtype = to_string(dtype);
-        if (exprs[k]->is_index_reduction())
+        if (is_index_reduction(rd->op()))
         {
-          stream << exprs[k]->process(_global + " uint* #name_temp = (" + _global + " uint *)(tmp + " + tools::to_string(offset) + ");");
+          stream << rd->process(_global + " uint* #name_temp = (" + _global + " uint *)(tmp + " + tools::to_string(offset) + ");");
           offset += 4*p_.num_groups;
-          stream << exprs[k]->process(_global + " " + sdtype + "* #name_temp_value = (" + _global + " " + sdtype + "*)(tmp + " + tools::to_string(offset) + ");");
+          stream << rd->process(_global + " " + sdtype + "* #name_temp_value = (" + _global + " " + sdtype + "*)(tmp + " + tools::to_string(offset) + ");");
           offset += size_of(dtype)*p_.num_groups;
         }
         else{
-          stream << exprs[k]->process( _global + " " + sdtype + "* #name_temp = (" + _global + " " + sdtype + "*)(tmp + " + tools::to_string(offset) + ");");
+          stream << rd->process( _global + " " + sdtype + "* #name_temp = (" + _global + " " + sdtype + "*)(tmp + " + tools::to_string(offset) + ");");
           offset += size_of(dtype)*p_.num_groups;
         }
       }
@@ -135,7 +133,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
       stream << " __attribute__((reqd_work_group_size(" << p_.local_size_0 << ",1,1)))" << std::endl; break;
   }
 
-  stream << KernelPrefix(backend) << " void " << name[0] << "(" << _size_t << " N, " << _global << " char* tmp," << generate_arguments("#scalartype", device, mapping, expressions) << ")" << std::endl;
+  stream << KernelPrefix(backend) << " void " << name[0] << "(" << _size_t << " N, " << _global << " char* tmp," << tools::join(kernel_arguments(device, mapping, expressions), ", ") << ")" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
 
@@ -152,19 +150,19 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
                                      {"arrayn1", "#pointer += #start;"}},
                                     expressions, mapping);
 
-  for (unsigned int k = 0; k < N; ++k)
+  for(symbolic::reduce_1d* rd: reductions)
   {
-    if (exprs[k]->is_index_reduction())
+    if (is_index_reduction(rd->op()))
     {
-      stream << exprs[k]->process(Local(backend).get() + " #scalartype #name_buf_value[" + tools::to_string(p_.local_size_0) + "];") << std::endl;
-      stream << exprs[k]->process("#scalartype #name_acc_value = " + neutral_element(exprs[k]->root_op(), backend, "#scalartype") + ";") << std::endl;
-      stream << exprs[k]->process(Local(backend).get() + " unsigned int #name_buf[" + tools::to_string(p_.local_size_0) + "];") << std::endl;
-      stream << exprs[k]->process("unsigned int #name_acc = 0;") << std::endl;
+      stream << rd->process(Local(backend).get() + " #scalartype #name_buf_value[" + tools::to_string(p_.local_size_0) + "];") << std::endl;
+      stream << rd->process("#scalartype #name_acc_value = " + neutral_element(rd->op(), backend, "#scalartype") + ";") << std::endl;
+      stream << rd->process(Local(backend).get() + " unsigned int #name_buf[" + tools::to_string(p_.local_size_0) + "];") << std::endl;
+      stream << rd->process("unsigned int #name_acc = 0;") << std::endl;
     }
     else
     {
-      stream << exprs[k]->process(Local(backend).get() + " #scalartype #name_buf[" + tools::to_string(p_.local_size_0) + "];") << std::endl;
-      stream << exprs[k]->process("#scalartype #name_acc = " + neutral_element(exprs[k]->root_op(), backend, "#scalartype") + ";") << std::endl;
+      stream << rd->process(Local(backend).get() + " #scalartype #name_buf[" + tools::to_string(p_.local_size_0) + "];") << std::endl;
+      stream << rd->process("#scalartype #name_acc = " + neutral_element(rd->op(), backend, "#scalartype") + ";") << std::endl;
     }
   }
 
@@ -172,16 +170,16 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
   element_wise_loop_1D(stream, p_.fetching_policy, p_.simd_width, "i", "N", GlobalIdx0(backend).get(), GlobalSize0(backend).get(), device, [&](unsigned int simd_width)
   {
     std::string i = (simd_width==1)?"i*#stride":"i";
+
     //Fetch vector entry
-    std::set<std::string> already_fetched;
-    for (const auto & elem : exprs)
-    {
-      std::string array = append_width("#scalartype",simd_width) + " #namereg = " + vload(simd_width,"#scalartype",i,"#pointer","#stride",backend)+";";
-      (elem)->process_recursive(stream, PARENT_NODE_TYPE, {{"arrayn", array}, {"arrayn1", array}, {"array1n", array},
-                                                           {"matrix_row",  "#scalartype #namereg = #pointer[$OFFSET{#row*#stride, i}];"},
-                                                           {"matrix_column", "#scalartype #namereg = #pointer[$OFFSET{i*#stride,#column}];"},
-                                                           {"matrix_diag", "#scalartype #namereg = #pointer[#diag_offset<0?$OFFSET{(i - #diag_offset)*#stride, i}:$OFFSET{i*#stride, (i + #diag_offset)}];"}}, already_fetched);
-    }
+    std::set<std::string> fetched;
+     for (symbolic::reduce_1d* rd : reductions)
+       for(symbolic::buffer* array: extract<symbolic::buffer>(expressions, mapping, rd->index(), PARENT_NODE_TYPE))
+          if(fetched.insert(array->process("#name")).second)
+           stream << array->process(append_width("#scalartype",simd_width) + " #namereg = " + vload(simd_width,"#scalartype",i,"#pointer","#stride",backend)+";") << std::endl;
+
+
+
     //Update accumulators
     std::vector<std::string> str(simd_width);
     if (simd_width==1)
@@ -190,7 +188,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
       for (unsigned int a = 0; a < simd_width; ++a)
         str[a] = access_vector_type("#namereg", a);
 
-    for (auto & elem : exprs)
+    for (symbolic::reduce_1d* rd : reductions)
     {
       for (unsigned int a = 0; a < simd_width; ++a)
       {
@@ -202,36 +200,36 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
         accessors["matrix_column"] = str[a];
         accessors["matrix_diag"] = str[a];
         accessors["array1"] = "#namereg";
-        std::string value = elem->evaluate_recursive(LHS_NODE_TYPE, accessors);
-        if (elem->is_index_reduction())
-          compute_index_reduce_1d(stream, elem->process("#name_acc"),  "i*" + tools::to_string(simd_width) + "+"
-                                  + tools::to_string(a), elem->process("#name_acc_value"), value,elem->root_op());
+        std::string value = evaluate(LHS_NODE_TYPE, accessors, expressions, rd->index(), mapping);
+        if (is_index_reduction(rd->op()))
+          compute_index_reduce_1d(stream, rd->process("#name_acc"),  "i*" + tools::to_string(simd_width) + "+"
+                                  + tools::to_string(a), rd->process("#name_acc_value"), value,rd->op());
         else
-          compute_reduce_1d(stream, elem->process("#name_acc"), value,elem->root_op());
+          compute_reduce_1d(stream, rd->process("#name_acc"), value,rd->op());
       }
     }
   });
 
   //Fills local memory
-  for (unsigned int k = 0; k < N; ++k)
+  for(symbolic::reduce_1d* rd: reductions)
   {
-    if (exprs[k]->is_index_reduction())
-      stream << exprs[k]->process("#name_buf_value[lid] = #name_acc_value;") << std::endl;
-    stream << exprs[k]->process("#name_buf[lid] = #name_acc;") << std::endl;
+    if (is_index_reduction(rd->op()))
+      stream << rd->process("#name_buf_value[lid] = #name_acc_value;") << std::endl;
+    stream << rd->process("#name_buf[lid] = #name_acc;") << std::endl;
   }
 
   //Reduce local memory
-  reduce_1d_local_memory(stream, p_.local_size_0, exprs, "#name_buf", "#name_buf_value", backend);
+  reduce_1d_local_memory(stream, p_.local_size_0, reductions, "#name_buf", "#name_buf_value", backend);
 
   //Write to temporary buffers
   stream << "if (lid==0)" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
-  for (unsigned int k = 0; k < N; ++k)
+  for(symbolic::reduce_1d* rd: reductions)
   {
-    if (exprs[k]->is_index_reduction())
-      stream << exprs[k]->process("#name_temp_value[gpid] = #name_buf_value[0];") << std::endl;
-    stream << exprs[k]->process("#name_temp[gpid] = #name_buf[0];") << std::endl;
+    if (is_index_reduction(rd->op()))
+      stream << rd->process("#name_temp_value[gpid] = #name_buf_value[0];") << std::endl;
+    stream << rd->process("#name_temp[gpid] = #name_buf[0];") << std::endl;
   }
   stream.dec_tab();
   stream << "}" << std::endl;
@@ -245,7 +243,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
 
 
 
-  stream << KernelPrefix(backend) << " void " << name[1] << "(" << _size_t << " N, " << _global << " char* tmp, " << generate_arguments("#scalartype", device, mapping, expressions) << ")" << std::endl;
+  stream << KernelPrefix(backend) << " void " << name[1] << "(" << _size_t << " N, " << _global << " char* tmp, " << tools::join(kernel_arguments(device, mapping, expressions), ", ") << ")" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
 
@@ -254,50 +252,50 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
   stream << "unsigned int lid = " <<LocalIdx0(backend) << ";" << std::endl;
   stream << "unsigned int lsize = " <<LocalSize0(backend) << ";" << std::endl;
 
-  for (mapped_reduce_1d* e: exprs)
+  for (symbolic::reduce_1d* rd: reductions)
   {
-    if (e->is_index_reduction())
+    if (is_index_reduction(rd->op()))
     {
-      stream << e->process(Local(backend).get() + " unsigned int #name_buf[" + tools::to_string(p_.local_size_0) + "];");
-      stream << e->process("unsigned int #name_acc = 0;") << std::endl;
-      stream << e->process(Local(backend).get() + " #scalartype #name_buf_value[" + tools::to_string(p_.local_size_0) + "];") << std::endl;
-      stream << e->process("#scalartype #name_acc_value = " + neutral_element(e->root_op(), backend, "#scalartype") + ";");
+      stream << rd->process(Local(backend).get() + " unsigned int #name_buf[" + tools::to_string(p_.local_size_0) + "];");
+      stream << rd->process("unsigned int #name_acc = 0;") << std::endl;
+      stream << rd->process(Local(backend).get() + " #scalartype #name_buf_value[" + tools::to_string(p_.local_size_0) + "];") << std::endl;
+      stream << rd->process("#scalartype #name_acc_value = " + neutral_element(rd->op(), backend, "#scalartype") + ";");
     }
     else
     {
-      stream << e->process(Local(backend).get() + " #scalartype #name_buf[" + tools::to_string(p_.local_size_0) + "];") << std::endl;
-      stream << e->process("#scalartype #name_acc = " + neutral_element(e->root_op(), backend, "#scalartype") + ";");
+      stream << rd->process(Local(backend).get() + " #scalartype #name_buf[" + tools::to_string(p_.local_size_0) + "];") << std::endl;
+      stream << rd->process("#scalartype #name_acc = " + neutral_element(rd->op(), backend, "#scalartype") + ";");
     }
   }
 
   stream << "for(unsigned int i = lid; i < " << p_.num_groups << "; i += lsize)" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
-  for (mapped_reduce_1d* e: exprs)
-    if (e->is_index_reduction())
-      compute_index_reduce_1d(stream, e->process("#name_acc"), e->process("#name_temp[i]"), e->process("#name_acc_value"),e->process("#name_temp_value[i]"),e->root_op());
+  for (symbolic::reduce_1d* rd: reductions)
+    if (is_index_reduction(rd->op()))
+      compute_index_reduce_1d(stream, rd->process("#name_acc"), rd->process("#name_temp[i]"), rd->process("#name_acc_value"),rd->process("#name_temp_value[i]"),rd->op());
     else
-      compute_reduce_1d(stream, e->process("#name_acc"), e->process("#name_temp[i]"), e->root_op());
+      compute_reduce_1d(stream, rd->process("#name_acc"), rd->process("#name_temp[i]"), rd->op());
 
   stream.dec_tab();
   stream << "}" << std::endl;
 
-  for (unsigned int k = 0; k < N; ++k)
+  for(symbolic::reduce_1d* rd: reductions)
   {
-    if (exprs[k]->is_index_reduction())
-      stream << exprs[k]->process("#name_buf_value[lid] = #name_acc_value;") << std::endl;
-    stream << exprs[k]->process("#name_buf[lid] = #name_acc;") << std::endl;
+    if (is_index_reduction(rd->op()))
+      stream << rd->process("#name_buf_value[lid] = #name_acc_value;") << std::endl;
+    stream << rd->process("#name_buf[lid] = #name_acc;") << std::endl;
   }
 
 
   //Reduce and write final result
-  reduce_1d_local_memory(stream, p_.local_size_0, exprs, "#name_buf", "#name_buf_value", backend);
+  reduce_1d_local_memory(stream, p_.local_size_0, reductions, "#name_buf", "#name_buf_value", backend);
 
   stream << "if (lid==0)" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
   std::map<std::string, std::string> accessors;
-  accessors["scalar_reduce_1d"] = "#name_buf[0]";
+  accessors["reduce_1d"] = "#name_buf[0]";
   accessors["array1"] = "#pointer[#start]";
   accessors["array11"] = "#pointer[#start]";
   stream << evaluate(PARENT_NODE_TYPE, accessors, expressions, expressions.root(), mapping) << ";" << std::endl;

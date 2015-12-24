@@ -30,7 +30,7 @@
 
 #include "tinysha1/sha1.hpp"
 
-#include "cpp/to_string.hpp"
+#include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
 {

@@ -29,7 +29,7 @@
 #include "tools/vector_types.hpp"
 
 #include <string>
-#include "cpp/align.hpp"
+#include "isaac/tools/cpp/align.hpp"
 
 namespace isaac
 {
@@ -124,7 +124,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     return TEMPLATE_VALID;
   }
 
-  std::string matrix_product::generate_impl(std::string const & suffix, expression_tree const & expression, driver::Device const & device, mapping_type const &) const
+  std::string matrix_product::generate_impl(std::string const & suffix, expression_tree const & expression, driver::Device const & device, symbolic::mapping_type const &) const
   {
     using std::string;
     using tools::to_string;

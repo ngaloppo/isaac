@@ -21,7 +21,7 @@
 
 #include <cstring>
 
-#include "cpp/to_string.hpp"
+#include "isaac/tools/cpp/string.hpp"
 
 #include "isaac/array.h"
 #include "isaac/kernels/parse.h"
@@ -40,7 +40,7 @@ namespace detail
     return node.op.type_family==VECTOR_DOT_TYPE_FAMILY;
   }
 
-  bool is_vector_reduce_1d(expression_tree::node const & node)
+  bool is_reduce_2d(expression_tree::node const & node)
   {
     return node.op.type_family==ROWS_DOT_TYPE_FAMILY
         || node.op.type_family==COLUMNS_DOT_TYPE_FAMILY;
@@ -257,7 +257,7 @@ const char * evaluate(operation_type type)
   }
 }
 
-evaluate_expression_traversal::evaluate_expression_traversal(std::map<std::string, std::string> const & accessors, std::string & str, mapping_type const & mapping) :
+evaluate_expression_traversal::evaluate_expression_traversal(std::map<std::string, std::string> const & accessors, std::string & str, symbolic::mapping_type const & mapping) :
   accessors_(accessors), str_(str), mapping_(mapping)
 { }
 
@@ -284,7 +284,7 @@ void evaluate_expression_traversal::call_after_expansion(expression_tree const &
 void evaluate_expression_traversal::operator()(isaac::expression_tree const & expression_tree, std::size_t root_idx, leaf_t leaf) const
 {
   expression_tree::node const & root_node = expression_tree.tree()[root_idx];
-  mapping_type::key_type key = std::make_pair(root_idx, leaf);
+  symbolic::mapping_type::key_type key = std::make_pair(root_idx, leaf);
   if (leaf==PARENT_NODE_TYPE)
   {
     if (detail::is_node_leaf(root_node.op))
@@ -325,7 +325,7 @@ void evaluate_expression_traversal::operator()(isaac::expression_tree const & ex
 
 
 std::string evaluate(leaf_t leaf, std::map<std::string, std::string> const & accessors,
-                            isaac::expression_tree const & expression_tree, std::size_t root_idx, mapping_type const & mapping)
+                            isaac::expression_tree const & expression_tree, std::size_t root_idx, symbolic::mapping_type const & mapping)
 {
   std::string res;
   evaluate_expression_traversal traversal_functor(accessors, res, mapping);
@@ -352,29 +352,29 @@ std::string evaluate(leaf_t leaf, std::map<std::string, std::string> const & acc
 }
 
 void evaluate(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
-                     expression_tree const & x, mapping_type const & mapping)
+                     expression_tree const & x, symbolic::mapping_type const & mapping)
 {
   stream << evaluate(leaf, accessors, x, x.root(), mapping) << std::endl;
 }
 
 process_traversal::process_traversal(std::map<std::string, std::string> const & accessors, kernel_generation_stream & stream,
-                  mapping_type const & mapping, std::set<std::string> & already_processed) :
+                  symbolic::mapping_type const & mapping, std::set<std::string> & already_processed) :
   accessors_(accessors),  stream_(stream), mapping_(mapping), already_processed_(already_processed)
 { }
 
 void process_traversal::operator()(expression_tree const & /*expression_tree*/, std::size_t root_idx, leaf_t leaf) const
 {
-  mapping_type::const_iterator it = mapping_.find(std::make_pair(root_idx, leaf));
+  symbolic::mapping_type::const_iterator it = mapping_.find(std::make_pair(root_idx, leaf));
   if (it!=mapping_.end())
   {
-    mapped_object * obj = it->second.get();
-    std::string name = obj->name();
+    symbolic::object * obj = it->second.get();
+    std::string name = obj->process("#name");
 
     if(accessors_.find(name)!=accessors_.end() && already_processed_.insert(name).second)
       for(std::map<std::string, std::string>::const_iterator itt = accessors_.lower_bound(name) ; itt != accessors_.upper_bound(name) ; ++itt)
         stream_ << obj->process(itt->second) << std::endl;
 
-    std::string key = obj->type_key();
+    std::string key = obj->type();
     if(accessors_.find(key)!=accessors_.end() && already_processed_.insert(name).second)
       for(std::map<std::string, std::string>::const_iterator itt = accessors_.lower_bound(key) ; itt != accessors_.upper_bound(key) ; ++itt)
         stream_ << obj->process(itt->second) << std::endl;
@@ -383,7 +383,7 @@ void process_traversal::operator()(expression_tree const & /*expression_tree*/, 
 
 
 void process(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
-                    isaac::expression_tree const & expression_tree, size_t root_idx, mapping_type const & mapping, std::set<std::string> & already_processed)
+                    isaac::expression_tree const & expression_tree, size_t root_idx, symbolic::mapping_type const & mapping, std::set<std::string> & already_processed)
 {
   process_traversal traversal_functor(accessors, stream, mapping, already_processed);
   expression_tree::node const & root_node = expression_tree.tree()[root_idx];
@@ -410,7 +410,7 @@ void process(kernel_generation_stream & stream, leaf_t leaf, std::map<std::strin
 
 
 void process(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
-                    expression_tree const & x, mapping_type const & mapping)
+                    expression_tree const & x, symbolic::mapping_type const & mapping)
 {
   std::set<std::string> processed;
   process(stream, leaf, accessors, x, x.root(), mapping, processed);

@@ -41,7 +41,7 @@ class elementwise_1d : public base_impl<elementwise_1d, elementwise_1d_parameter
 {
 private:
   virtual int is_invalid_impl(driver::Device const &, expression_tree const  &) const;
-  std::string generate_impl(std::string const & suffix, expression_tree const  & expressions, driver::Device const & device, mapping_type const & mappings) const;
+  std::string generate_impl(std::string const & suffix, expression_tree const  & expressions, driver::Device const & device, symbolic::mapping_type const & mappings) const;
 public:
   elementwise_1d(elementwise_1d::parameters_type const & parameters, binding_policy_t binding_policy = BIND_INDEPENDENT);
   elementwise_1d(unsigned int _simd_width, unsigned int _group_size, unsigned int _num_groups, fetching_policy_type _fetching_policy, binding_policy_t binding_policy = BIND_INDEPENDENT);

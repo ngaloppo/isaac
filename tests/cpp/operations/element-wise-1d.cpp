@@ -27,7 +27,6 @@ void test_impl(T epsilon, simple_vector_base<T> & cx, simple_vector_base<T>& cy,
   isaac::scalar da(a, context), db(b, context);
 
   simple_vector<T> buffer(N);
-#define CONVERT
 #define RUN_TEST(NAME, CPU_LOOP, GPU_EXPR) \
   {\
   std::cout << NAME "..." << std::flush;\
@@ -36,7 +35,6 @@ void test_impl(T epsilon, simple_vector_base<T> & cx, simple_vector_base<T>& cy,
   GPU_EXPR;\
   queue.synchronize();\
   isaac::copy(z, buffer.data());\
-  CONVERT;\
   if(diff(cz, buffer, epsilon))\
   {\
     failure_count++;\
@@ -56,9 +54,9 @@ void test_impl(T epsilon, simple_vector_base<T> & cx, simple_vector_base<T>& cy,
   }
   if(queue.device().backend()==sc::driver::CUDA && interf == cuBLAS)
   {
-      RUN_TEST("AXPY", cz[i] = a*cx[i] + cz[i], BLAS<T>::F(cublasSaxpy, cublasDaxpy)(N, a, (T*)CUHANDLE(x) + OFF(x), INC(x), (T*)CUHANDLE(z) + OFF(z), INC(z)));
-      RUN_TEST("COPY", cz[i] = cx[i], BLAS<T>::F(cublasScopy, cublasDcopy)(N, (T*)CUHANDLE(x) + OFF(x), INC(x), (T*)CUHANDLE(z) + OFF(z), INC(z)));
-      RUN_TEST("SCAL", cz[i] = a*cz[i], BLAS<T>::F(cublasSscal, cublasDscal)(N, a, (T*)CUHANDLE(z) + OFF(z), INC(z)));
+//      RUN_TEST("AXPY", cz[i] = a*cx[i] + cz[i], BLAS<T>::F(cublasSaxpy, cublasDaxpy)(N, a, (T*)CUHANDLE(x) + OFF(x), INC(x), (T*)CUHANDLE(z) + OFF(z), INC(z)));
+//      RUN_TEST("COPY", cz[i] = cx[i], BLAS<T>::F(cublasScopy, cublasDcopy)(N, (T*)CUHANDLE(x) + OFF(x), INC(x), (T*)CUHANDLE(z) + OFF(z), INC(z)));
+//      RUN_TEST("SCAL", cz[i] = a*cz[i], BLAS<T>::F(cublasSscal, cublasDscal)(N, a, (T*)CUHANDLE(z) + OFF(z), INC(z)));
   }
   if(interf == CPP)
   {
@@ -99,8 +97,6 @@ void test_impl(T epsilon, simple_vector_base<T> & cx, simple_vector_base<T>& cy,
 
       RUN_TEST("z = pow(x,y)", cz[i] = pow(cx[i], cy[i]), z= pow(x,y))
 
-    #undef CONVERT
-    #define CONVERT for(int_t i = 0 ; i < N ; ++i) {cz[i] = !!cz[i] ; buffer[i] = !!buffer[i];}
       RUN_TEST("z = x==y", cz[i] = cx[i]==cy[i], z= cast(x==y, dtype))
       RUN_TEST("z = x>=y", cz[i] = cx[i]>=cy[i], z= cast(x>=y, dtype))
       RUN_TEST("z = x>y", cz[i] = cx[i]>cy[i], z= cast(x>y, dtype))
@@ -109,8 +105,6 @@ void test_impl(T epsilon, simple_vector_base<T> & cx, simple_vector_base<T>& cy,
       RUN_TEST("z = x!=y", cz[i] = cx[i]!=cy[i], z= cast(x!=y, dtype))
     #undef RUN_TEST
   }
-
-
 
   if(failure_count > 0)
       exit(EXIT_FAILURE);
@@ -122,9 +116,9 @@ void test(T epsilon, sc::driver::Context const & ctx)
   int_t N = 10007;
   int_t SUBN = 7;
 
-  INIT_VECTOR(N, SUBN, 5, 3, cx, x, ctx);
-  INIT_VECTOR(N, SUBN, 7, 8, cy, y, ctx);
-  INIT_VECTOR(N, SUBN, 3, 2, cz, z, ctx);
+  INIT_VECTOR(N, SUBN, 0, 1, cx, x, ctx);
+  INIT_VECTOR(N, SUBN, 0, 1, cy, y, ctx);
+  INIT_VECTOR(N, SUBN, 0, 1, cz, z, ctx);
 
   std::cout << "> standard..." << std::endl;
   test_impl(epsilon, cx, cy, cz, x, y, z, clBLAS);

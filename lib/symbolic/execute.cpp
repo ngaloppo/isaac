@@ -133,7 +133,7 @@ namespace isaac
     {
       expression_tree::node & node = array[idx];
 
-      auto ng1 = [](shape_t const & shape){ size_t res = 0 ; for(size_t i = 0 ; i < shape.size() ; ++i) res += (shape[i] > 1); return res;};
+      auto ng1 = [](tuple const & shape){ size_t res = 0 ; for(size_t i = 0 ; i < shape.size() ; ++i) res += (shape[i] > 1); return res;};
       //Left
       expression_type type_left = INVALID_EXPRESSION_TYPE;
       if (node.lhs.subtype == COMPOSITE_OPERATOR_TYPE)
@@ -193,7 +193,7 @@ namespace isaac
 
         //Init
         expression_type current_type;
-        auto ng1 = [](shape_t const & shape){ size_t res = 0 ; for(size_t i = 0 ; i < shape.size() ; ++i) res += (shape[i] > 1); return res;};
+        auto ng1 = [](tuple const & shape){ size_t res = 0 ; for(size_t i = 0 ; i < shape.size() ; ++i) res += (shape[i] > 1); return res;};
         if(ng1(expression.shape())<=1)
           current_type=ELEMENTWISE_1D;
         else

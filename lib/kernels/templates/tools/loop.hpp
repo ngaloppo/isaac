@@ -22,7 +22,7 @@
 #include "isaac/kernels/stream.h"
 #include "isaac/kernels/templates/base.h"
 #include <string>
-#include "cpp/to_string.hpp"
+#include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
 {
@@ -59,11 +59,11 @@ inline void element_wise_loop_1D(kernel_generation_stream & stream, fetching_pol
                                  std::string const & i, std::string const & bound, std::string const & domain_id, std::string const & domain_size, driver::Device const & device, Fun const & generate_body)
 {
   std::string strwidth = tools::to_string(simd_width);
-  std::string boundround = bound + "/" + strwidth;
 
   std::string init, upper_bound, inc;
-  fetching_loop_info(fetch, boundround, stream, init, upper_bound, inc, domain_id, domain_size, device);
-  stream << "for(unsigned int " << i << " = " << init << "; " << i << " < " << upper_bound << "; " << i << " += " << inc << ")" << std::endl;
+  fetching_loop_info(fetch, bound, stream, init, upper_bound, inc, domain_id, domain_size, device);
+  std::string boundround = upper_bound + "/" + strwidth + "*" + strwidth;
+  stream << "for(unsigned int " << i << " = " << init << "*" << strwidth << "; " << i << " < " << boundround << "; " << i << " += " << inc << "*" << strwidth << ")" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
   generate_body(simd_width);
@@ -72,7 +72,7 @@ inline void element_wise_loop_1D(kernel_generation_stream & stream, fetching_pol
 
   if (simd_width>1)
   {
-    stream << "for(unsigned int " << i << " = " << boundround << "*" << strwidth << " + " << domain_id << "; " << i << " < " << bound << "; " << i << " += " + domain_size + ")" << std::endl;
+    stream << "for(unsigned int " << i << " = " << boundround << " + " << domain_id << "; " << i << " < " << bound << "; " << i << " += " + domain_size + ")" << std::endl;
     stream << "{" << std::endl;
     stream.inc_tab();
     generate_body(1);

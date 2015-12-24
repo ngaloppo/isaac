@@ -23,7 +23,10 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
-#include "isaac/kernels/mapped_object.h"
+
+#include "../../parse/extract.hpp"
+
+#include "isaac/kernels/symbolic_object.h"
 #include "isaac/kernels/parse.h"
 #include "isaac/array.h"
 
@@ -33,26 +36,24 @@ namespace templates
 {
 
 //Generate
-inline std::string generate_arguments(std::string const &, driver::Device const & device, mapping_type const & mappings, expression_tree const & expressions)
+inline std::vector<std::string> kernel_arguments(driver::Device const & device, symbolic::mapping_type const & mappings, expression_tree const & expressions)
 {
     std::string kwglobal = Global(device.backend()).get();
     std::string _size_t = size_type(device);
-
-    kernel_generation_stream stream;
-
-    process(stream, PARENT_NODE_TYPE, {  {"array11", kwglobal + " #scalartype* #pointer, " + _size_t + " #start,"},
-                                         {"array1", kwglobal + " #scalartype* #pointer, " + _size_t + " #start,"},
-                                        {"host_scalar", "#scalartype #name,"},
-                                        {"arrayn", kwglobal + " #scalartype* #pointer, " + _size_t + " #start, " + _size_t + " #stride,"},
-                                        {"array1n", kwglobal + " #scalartype* #pointer, " + _size_t + " #start, " + _size_t + " #stride,"},
-                                        {"arrayn1", kwglobal + " #scalartype* #pointer, " + _size_t + " #start, " + _size_t + " #stride,"},
-                                        {"arraynn", kwglobal + " #scalartype* #pointer, " + _size_t + " #start, " + _size_t + " #stride," +  _size_t + " #ld,"},
-                                        {"tuple4", "#scalartype #name0, #scalartype #name1, #scalartype #name2, #scalartype #name3,"}}
-            , expressions, mappings);
-
-    std::string res = stream.str();
-    res.erase(res.rfind(','));
-    return res;
+    std::vector<std::string> result;
+    for(symbolic::object* obj: extract<symbolic::object>(expressions, mappings))
+    {
+      if(symbolic::host_scalar* sym = dynamic_cast<symbolic::host_scalar*>(obj))
+        result.push_back(sym->process("#scalartype #name"));
+      if(symbolic::buffer* sym = dynamic_cast<symbolic::buffer*>(obj))
+      {
+        result.push_back(kwglobal + " " + sym->process("#scalartype* #pointer"));
+        if(sym->hasattr("start")) result.push_back(_size_t + " " + sym->process("#start"));
+        if(sym->hasattr("stride")) result.push_back(_size_t + " " + sym->process("#stride"));
+        if(sym->hasattr("ld")) result.push_back(_size_t + " " + sym->process("#ld"));
+      }
+    }
+    return result;
 }
 
 //Enqueue

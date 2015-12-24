@@ -55,7 +55,7 @@ private:
   int is_invalid_impl(driver::Device const &, expression_tree const &) const;
   unsigned int lmem_usage(expression_tree const &) const;
   unsigned int temporary_workspace(expression_tree const & expressions) const;
-  std::string generate_impl(std::string const & suffix, expression_tree const &, driver::Device const & device, mapping_type const &) const;
+  std::string generate_impl(std::string const & suffix, expression_tree const &, driver::Device const & device, symbolic::mapping_type const &) const;
 public:
   virtual std::vector<int_t> input_sizes(expression_tree const & expressions) const;
   void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base & fallback, execution_handler const &);

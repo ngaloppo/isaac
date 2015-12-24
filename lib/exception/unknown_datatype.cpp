@@ -20,7 +20,7 @@
  */
 
 #include "isaac/exception/unknown_datatype.h"
-#include "cpp/to_string.hpp"
+#include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
 {

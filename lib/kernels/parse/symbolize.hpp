@@ -19,31 +19,19 @@
  * MA 02110-1301  USA
  */
 
-#ifndef ISAAC_TOOLS_TO_STRING_HPP
-#define ISAAC_TOOLS_TO_STRING_HPP
+#ifndef ISAAC_KERNELS_PARSE_SYMBOLIZE_HPP
+#define ISAAC_KERNELS_PARSE_SYMBOLIZE_HPP
 
-#include <string>
-#include <sstream>
+#include <cstring>
+
+#include "isaac/kernels/parse.h"
 
 namespace isaac
 {
-namespace tools
+
+namespace detail
 {
 
-template<class T>
-inline std::string to_string ( T const t )
-{
-
-#if defined(ANDROID) || defined(__CYGWIN__)
-  std::stringstream ss;
-  ss << t;
-  return ss.str();
-#else
-  return  std::to_string(t);
-#endif
 }
 
 }
-}
-
-#endif

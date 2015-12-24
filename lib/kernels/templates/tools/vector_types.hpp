@@ -24,7 +24,7 @@
 
 #include "isaac/driver/common.h"
 
-#include "cpp/to_string.hpp"
+#include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
 {
@@ -41,6 +41,14 @@ inline std::string access_vector_type(std::string const & v, int i)
       case 3: return v + ".w";
       default: throw;
     }
+}
+
+inline std::string access_vector_type(std::string const & v, int i, unsigned int simd_width)
+{
+    if(simd_width==1)
+      return v;
+    else
+      return access_vector_type(v, i);
 }
 
 inline std::string append_width(std::string const & str, unsigned int width)

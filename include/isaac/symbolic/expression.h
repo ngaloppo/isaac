@@ -32,6 +32,7 @@
 #include "isaac/driver/ndrange.h"
 #include "isaac/driver/buffer.h"
 
+#include "isaac/tools/cpp/tuple.hpp"
 
 #include "isaac/types.h"
 #include "isaac/value_scalar.h"
@@ -161,7 +162,7 @@ struct op_element
   operation_type          type;
 };
 
-struct for_idx_t
+struct placeholder
 {
   expression_tree operator=(value_scalar const & ) const;
   expression_tree operator=(expression_tree const & ) const;
@@ -190,16 +191,16 @@ struct tree_node
   numeric_type dtype;
   union
   {
-    std::size_t   node_index;
+    size_t   node_index;
     values_holder vscalar;
     array_base* array;
-    for_idx_t for_idx;
+    placeholder for_idx;
   };
 };
 
 struct invalid_node{};
 
-void fill(tree_node &x, for_idx_t index);
+void fill(tree_node &x, placeholder index);
 void fill(tree_node &x, invalid_node);
 void fill(tree_node & x, size_t node_index);
 void fill(tree_node & x, array_base const & a);
@@ -218,19 +219,19 @@ public:
   typedef std::vector<node>     container_type;
 
 public:
-  expression_tree(value_scalar const &lhs, for_idx_t const &rhs, const op_element &op, const numeric_type &dtype);
-  expression_tree(for_idx_t const &lhs, for_idx_t const &rhs, const op_element &op);
-  expression_tree(for_idx_t const &lhs, value_scalar const &rhs, const op_element &op, const numeric_type &dtype);
+  expression_tree(value_scalar const &lhs, placeholder const &rhs, const op_element &op, const numeric_type &dtype);
+  expression_tree(placeholder const &lhs, placeholder const &rhs, const op_element &op);
+  expression_tree(placeholder const &lhs, value_scalar const &rhs, const op_element &op, const numeric_type &dtype);
 
   template<class LT, class RT>
-  expression_tree(LT const & lhs, RT const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, shape_t const & shape);
+  expression_tree(LT const & lhs, RT const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, tuple const & shape);
   template<class RT>
-  expression_tree(expression_tree const & lhs, RT const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, shape_t const & shape);
+  expression_tree(expression_tree const & lhs, RT const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, tuple const & shape);
   template<class LT>
-  expression_tree(LT const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, shape_t const & shape);
-  expression_tree(expression_tree const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, shape_t const & shape);
+  expression_tree(LT const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, tuple const & shape);
+  expression_tree(expression_tree const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, tuple const & shape);
 
-  shape_t shape() const;
+  tuple shape() const;
   int_t dim() const;
   container_type & tree();
   container_type const & tree() const;
@@ -245,7 +246,7 @@ private:
   std::size_t root_;
   driver::Context const * context_;
   numeric_type dtype_;
-  shape_t shape_;
+  tuple shape_;
 };
 
 

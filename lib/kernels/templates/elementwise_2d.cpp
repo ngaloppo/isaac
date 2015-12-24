@@ -50,13 +50,14 @@ int elementwise_2d::is_invalid_impl(driver::Device const &, expression_tree cons
   return TEMPLATE_VALID;
 }
 
-std::string elementwise_2d::generate_impl(std::string const & suffix, expression_tree const  & expressions, driver::Device const & device, mapping_type const & mappings) const
+std::string elementwise_2d::generate_impl(std::string const & suffix, expression_tree const  & expressions, driver::Device const & device, symbolic::mapping_type const & mappings) const
 {
   kernel_generation_stream stream;
   std::string _size_t = size_type(device);
   std::string init0, upper_bound0, inc0, init1, upper_bound1, inc1;
   std::string data_type = append_width("#scalartype",p_.simd_width);
   driver::backend_type backend = device.backend();
+  std::vector<std::size_t> assigned = filter_nodes([](expression_tree::node const & node){return detail::is_assignment(node.op);}, expressions, expressions.root(), true);
 
   switch(backend)
   {
@@ -66,7 +67,7 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
       stream << " __attribute__((reqd_work_group_size(" << p_.local_size_0 << "," << p_.local_size_1 << ",1)))" << std::endl; break;
   }
 
-  stream << KernelPrefix(backend) << " void elementwise_1d" << suffix << "(" << _size_t << " M, " << _size_t << " N, " << generate_arguments("#scalartype", device, mappings, expressions) << ")" << std::endl;
+  stream << KernelPrefix(backend) << " void elementwise_1d" << suffix << "(" << _size_t << " M, " << _size_t << " N, " << tools::join(kernel_arguments(device, mappings, expressions), ", ") << ")" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
 
@@ -87,32 +88,31 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   stream << "{" << std::endl;
   stream.inc_tab();
 
-  process(stream, PARENT_NODE_TYPE, { {"arraynn", data_type + " #namereg = $VALUE{i*#stride,j};"},
-                                      {"arrayn1", data_type + " #namereg = $VALUE{i*#stride};"},
-                                      {"arrayn", data_type + " #namereg = $VALUE{i*#stride};"},
-                                      {"array1n", data_type + " #namereg = $VALUE{j*#stride};"},
-                                      {"vdiag", "#scalartype #namereg = ((i + ((#diag_offset<0)?#diag_offset:0))!=(j-((#diag_offset>0)?#diag_offset:0)))?0:$VALUE{min(i*#stride, j*#stride)};"},
-                                      {"repeat", "#scalartype #namereg = $VALUE{(i%#sub0)*#stride, (j%#sub1)};"},
-                                      {"outer", "#scalartype #namereg = ($LVALUE{i*#stride})*($RVALUE{j*#stride});"} }
-                                    , expressions, mappings);
+  //Declares register to store results
+  for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, LHS_NODE_TYPE))
+    stream << sym->process("#scalartype #name;") << std::endl;
 
-  stream << evaluate(PARENT_NODE_TYPE, { {"arraynn", "#namereg"},
-                                         {"array1n", "#namereg"},
-                                         {"arrayn1", "#namereg"},
-                                         {"arrayn", "#namereg"},
-                                        {"vdiag", "#namereg"},
-                                        {"repeat", "#namereg"},
-                                        {"array1", "#namereg"},
-                                         {"array11", "#namereg"},
-                                        {"outer", "#namereg"},
+  //Load to registers
+  for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, RHS_NODE_TYPE))
+    stream << sym->process("#scalartype #name = at(i, j);") << std::endl;
+
+
+  stream << evaluate(PARENT_NODE_TYPE, { {"arraynn", "#name"},
+                                         {"array1n", "#name"},
+                                         {"arrayn1", "#name"},
+                                         {"arrayn", "#name"},
+                                        {"vdiag", "#name"},
+                                        {"repeat", "#name"},
+                                        {"array1", "#name"},
+                                         {"array11", "#name"},
+                                        {"outer", "#name"},
                                         {"cast", CastPrefix(backend, data_type).get()},
                                         {"host_scalar", p_.simd_width==1?"#name": InitPrefix(backend, data_type).get() + "(#name)"}}
                                     , expressions, expressions.root(), mappings) << ";" << std::endl;
 
-  process(stream, LHS_NODE_TYPE, { {"arraynn", "$VALUE{i*#stride,j} = #namereg;"},
-                                   {"array1n", "$VALUE{j*#stride} = #namereg;"},
-                                   {"arrayn1", "$VALUE{i*#stride} = #namereg;"},
-                                   {"arrayn", "$VALUE{i*#stride} = #namereg;"}} , expressions, mappings);
+  //Writes back
+  for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, LHS_NODE_TYPE))
+    stream << sym->process("at(i, j) = #name;") << std::endl;
 
   stream.dec_tab();
   stream << "}" << std::endl;

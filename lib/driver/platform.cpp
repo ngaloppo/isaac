@@ -24,7 +24,7 @@
 #include "helpers/ocl/infos.hpp"
 
 #include <string>
-#include "cpp/to_string.hpp"
+#include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
 {

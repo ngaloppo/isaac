@@ -38,8 +38,8 @@
 #include "isaac/exception/operation_not_supported.h"
 
 
-#include "sys/getenv.hpp"
-#include "cpp/to_string.hpp"
+#include "isaac/tools/sys/getenv.hpp"
+#include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
 {

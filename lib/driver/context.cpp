@@ -26,8 +26,8 @@
 
 #include "helpers/ocl/infos.hpp"
 
-#include "sys/getenv.hpp"
-#include "sys/mkdir.hpp"
+#include "isaac/tools/sys/getenv.hpp"
+#include "isaac/tools/sys/mkdir.hpp"
 
 namespace isaac
 {

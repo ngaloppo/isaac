@@ -23,6 +23,8 @@
 #include <cstring>
 #include <algorithm>
 
+#include "../parse/extract.hpp"
+
 #include "isaac/kernels/templates/elementwise_1d.h"
 #include "isaac/kernels/keywords.h"
 #include "isaac/driver/backend.h"
@@ -54,19 +56,20 @@ int elementwise_1d::is_invalid_impl(driver::Device const &, expression_tree cons
   return TEMPLATE_VALID;
 }
 
-std::string elementwise_1d::generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, mapping_type const & mappings) const
+std::string elementwise_1d::generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::mapping_type const & mappings) const
 {
   driver::backend_type backend = device.backend();
   std::string _size_t = size_type(device);
 
   kernel_generation_stream stream;
-  std::string str_simd_width = tools::to_string(p_.simd_width);
-  std::string dtype = append_width("#scalartype",p_.simd_width);
 
+  expression_tree::container_type const & tree = expressions.tree();
+  std::vector<std::size_t> sfors = filter_nodes([](expression_tree::node const & node){return node.op.type==SFOR_TYPE;}, expressions, expressions.root(), true);
+  size_t root = expressions.root();
+  if(sfors.size())
+      root = tree[sfors.back()].lhs.node_index;
 
-  std::vector<size_t> assigned_scalar = filter_nodes([](expression_tree::node const & node) {
-                                                        return  detail::is_assignment(node.op) && node.lhs.subtype==DENSE_ARRAY_TYPE && node.lhs.array->shape().max()==1;
-  }, expressions, expressions.root(), true);
+  std::vector<std::size_t> assigned = filter_nodes([](expression_tree::node const & node){return detail::is_assignment(node.op);}, expressions, root, true);
 
   switch(backend)
   {
@@ -76,115 +79,77 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
       stream << " __attribute__((reqd_work_group_size(" << p_.local_size_0 << "," << p_.local_size_1 << ",1)))" << std::endl; break;
   }
 
-  stream << KernelPrefix(backend) << " void " << "elementwise_1d" << suffix << "(" << _size_t << " N," << generate_arguments(dtype, device, mappings, expressions) << ")" << std::endl;
+  stream << KernelPrefix(backend) << " void " << "elementwise_1d" << suffix << "("
+         << _size_t << " N"
+         << ", " << tools::join(kernel_arguments(device, mappings, expressions), ", ") << ")";
+
   stream << "{" << std::endl;
   stream.inc_tab();
 
-  process(stream, PARENT_NODE_TYPE, {{"array1", "#scalartype #namereg = #pointer[#start];"},
-                                     {"array11", "#scalartype #namereg = #pointer[#start];"},
-                                      {"arrayn", "#pointer += #start;"}}, expressions, mappings);
-
-  stream << _size_t << " idx = " << GlobalIdx0(backend) << ";" << std::endl;
-  stream << _size_t << " gsize = " << GlobalSize0(backend) << ";" << std::endl;
-
-  std::string init, upper_bound, inc;
-  fetching_loop_info(p_.fetching_policy, "N/"+str_simd_width, stream, init, upper_bound, inc, "idx", "gsize", device);
-
-  stream << "for(" << _size_t << " i = " << init << "; i < " << upper_bound << "; i += " << inc << ")" << std::endl;
-  stream << "{" << std::endl;
-  stream.inc_tab();
-
-
-  expression_tree::container_type const & tree = expressions.tree();
-  std::vector<std::size_t> sfors = filter_nodes([](expression_tree::node const & node){return node.op.type==SFOR_TYPE;}, expressions, expressions.root(), true);
-
-  for(unsigned int i = 0 ; i < sfors.size() ; ++i)
+  element_wise_loop_1D(stream, p_.fetching_policy, p_.simd_width, "i", "N", GlobalIdx0(backend).get(), GlobalSize0(backend).get(), device, [&](unsigned int simd_width)
   {
-    std::string info[3];
-    int idx =  sfors[i];
-    for(int i = 0 ; i < 2 ; ++i){
-        idx = tree[idx].rhs.node_index;
-        info[i] = evaluate(LHS_NODE_TYPE, {{"placeholder", "#name"}}, expressions, idx, mappings);
+    std::string dtype = append_width("#scalartype",simd_width);
 
+    //Open user-provided for-loops
+    for(unsigned int i = 0 ; i < sfors.size() ; ++i)
+    {
+      std::string info[3];
+      int idx =  sfors[i];
+      for(int i = 0 ; i < 2 ; ++i){
+          idx = tree[idx].rhs.node_index;
+          info[i] = mappings.at({idx, LHS_NODE_TYPE})->process("#name");
+
+      }
+      info[2] = mappings.at({idx, RHS_NODE_TYPE})->process("#name");
+      info[0] = info[0].substr(1, info[0].size()-2);
+      stream << "for(int " << info[0] << " ; " << info[1] << "; " << info[2] << ")" << std::endl;
     }
-    info[2] = evaluate(RHS_NODE_TYPE, {{"placeholder", "#name"}}, expressions, idx, mappings);
-    info[0] = info[0].substr(1, info[0].size()-2);
-    stream << "for(int " << info[0] << " ; " << info[1] << "; " << info[2] << ")" << std::endl;
-  }
 
-  if(sfors.size()){
-    stream << "{" << std::endl;
-    stream.inc_tab();
-  }
+    if(sfors.size()){
+      stream << "{" << std::endl;
+      stream.inc_tab();
+    }
 
-  size_t root = expressions.root();
-  if(sfors.size())
-      root = tree[sfors.back()].lhs.node_index;
+    //Declares register to store results
+    for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, LHS_NODE_TYPE))
+      stream << sym->process(dtype + " #name;") << std::endl;
 
-  std::vector<std::size_t> assigned = filter_nodes([](expression_tree::node const & node){return detail::is_assignment(node.op);}, expressions, root, true);
-  std::set<std::string> processed;
+    //Load to registers
+    for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, RHS_NODE_TYPE))
+    {
+      if(simd_width==1)
+        stream << sym->process(dtype + " #name = at(i);") << std::endl;
+      if(simd_width==2)
+        stream << sym->process(dtype + " #name = (#scalartype2)(at(i), at(i+1));") << std::endl;
+      if(simd_width==4)
+        stream << sym->process(dtype + " #name = (#scalartype4)(at(i), at(i+1), at(i+2), at(i+3));") << std::endl;
+    }
 
-  //Declares register to store results
-  for(std::size_t idx: assigned)
-  {
-    process(stream, LHS_NODE_TYPE, {{"arrayn", dtype + " #namereg;"}, {"arrayn1", dtype + " #namereg;"}, {"array1n", dtype + " #namereg;"}, {"arraynn", dtype + " #namereg;"}, {"matrix_row", "#scalartype #namereg;"},
-                                       {"matrix_column", "#scalartype #namereg;"},  {"matrix_diag", "#scalartype #namereg;"}}, expressions, idx, mappings, processed);
-  }
-
-  //Fetches to registers
-  for(std::size_t idx: assigned)
-  {
-    std::string arrayn = dtype + " #namereg = " + vload(p_.simd_width, "#scalartype", "i*#stride", "#pointer", "1", backend, false) + ";";
-    std::string array_access = "#scalartype #namereg = #pointer[#index];";
-    std::string matrix_row = dtype + " #namereg = " + vload(p_.simd_width, "#scalartype", "i*#ld", "#pointer + #row*#stride", "#ld", backend, false) + ";";
-    std::string matrix_column = dtype + " #namereg = " + vload(p_.simd_width, "#scalartype", "i*#stride", "#pointer + #column*#ld", "#stride", backend, false) + ";";
-    std::string matrix_diag = dtype + " #namereg = " + vload(p_.simd_width, "#scalartype", "i*(#ld + #stride)", "#pointer + ((#diag_offset<0)?-#diag_offset:(#diag_offset*#ld))", "#ld + #stride", backend, false) + ";";
-    process(stream, RHS_NODE_TYPE, {{"arrayn", arrayn}, {"arrayn1", arrayn}, {"array1n", arrayn}, {"matrix_row", matrix_row}, {"matrix_column", matrix_column},
-                                    {"matrix_diag", matrix_diag}, {"array_access", array_access}}, expressions, idx, mappings, processed);
-  }
-
-
-  //Compute expressions
-  for(std::size_t idx: assigned){
-    std::string host_scalar_access = "#name";
-    if(p_.simd_width>1 && std::find(assigned_scalar.begin(), assigned_scalar.end(), idx)==assigned_scalar.end())
-        host_scalar_access = InitPrefix(backend, dtype).get() + "(#name)";
-    stream << evaluate(PARENT_NODE_TYPE, {{"array1", "#namereg"}, {"arrayn1", "#namereg"}, {"array1n", "#namereg"}, {"array11", "#namereg"}, {"arrayn", "#namereg"},
-                                        {"matrix_row", "#namereg"}, {"matrix_column", "#namereg"}, {"matrix_diag", "#namereg"}, {"array_access", "#namereg"},
-                                        {"cast", CastPrefix(backend, dtype).get()}, {"placeholder", "#name"}, {"host_scalar", host_scalar_access}},
-                                      expressions, idx, mappings) << ";" << std::endl;
-  }
-
-  //Writes back to registers
-  processed.clear();
-  for(std::size_t idx: assigned)
-  {
-    std::string arrayn = vstore(p_.simd_width, "#scalartype", "#namereg", "i*#stride", "#pointer", "1", backend, false) + ";";
-    std::string matrix_row = vstore(p_.simd_width, "#scalartype", "#namereg", "i*#ld", "#pointer + #row*#stride", "#ld", backend, false) + ";";
-    std::string matrix_column = vstore(p_.simd_width, "#scalartype", "#namereg", "i*#stride", "#pointer + #column*#ld", "#stride", backend, false) + ";";
-    std::string matrix_diag = vstore(p_.simd_width, "#scalartype", "#namereg", "i*(#ld + #stride)", "#pointer + (#diag_offset<0)?-#diag_offset:(#diag_offset*#ld)", "#ld + #stride", backend, false) + ";";
-    process(stream, LHS_NODE_TYPE, {{"arrayn", arrayn}, {"array1n", arrayn}, {"arrayn1", arrayn}, {"matrix_row", matrix_row}, {"matrix_column", matrix_column}, {"matrix_diag", matrix_diag}}, expressions, idx, mappings, processed);
-  }
-
-  if(sfors.size()){
-    stream.dec_tab();
-    stream << "}" << std::endl;
-  }
-
-  stream.dec_tab();
-  stream << "}" << std::endl;
-
-  processed.clear();
-  if(assigned_scalar.size())
-  {
-    stream << "if(idx==0)" << std::endl;
-    stream << "{" << std::endl;
-    stream.inc_tab();
+    //Compute
     for(std::size_t idx: assigned)
-      process(stream, LHS_NODE_TYPE, { {"array1", "#pointer[#start] = #namereg;"}, {"array11", "#pointer[#start] = #namereg;"} }, expressions, idx, mappings, processed);
-    stream.dec_tab();
-    stream << "}" << std::endl;
-  }
+    {
+      for(unsigned int s = 0 ; s < simd_width ; ++s)
+      {
+          std::string str = access_vector_type("#name", s, simd_width);
+          stream << evaluate(PARENT_NODE_TYPE, {{"array1", str}, {"arrayn1", str}, {"array1n", str}, {"array11", str}, {"arrayn", str},
+                                              {"matrix_row", str}, {"matrix_column", str}, {"matrix_diag", str}, {"array_access", str}, {"cast", ""}},
+                                            expressions, idx, mappings) << ";" << std::endl;
+      }
+    }
+
+    //Writes back
+    for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, LHS_NODE_TYPE))
+      for(unsigned int s = 0 ; s < simd_width ; ++s)
+          stream << sym->process("at(i+" + tools::to_string(s)+") = " + access_vector_type("#name", s, simd_width) + ";") << std::endl;
+
+    //Close user-provided for-loops
+    if(sfors.size())
+    {
+      stream.dec_tab();
+      stream << "}" << std::endl;
+    }
+
+  });
 
   stream.dec_tab();
   stream << "}" << std::endl;
@@ -208,17 +173,11 @@ std::vector<int_t> elementwise_1d::input_sizes(expression_tree const & expressio
   return {expressions.shape().max()};
 }
 
-void elementwise_1d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base & fallback, execution_handler const & control)
+void elementwise_1d::enqueue(driver::CommandQueue &, driver::Program const & program, std::string const & suffix, base &, execution_handler const & control)
 {
   expression_tree const & expressions = control.x();
   //Size
   int_t size = input_sizes(expressions)[0];
-  //Fallback
-  if(p_.simd_width > 1 && (requires_fallback(expressions) || (size%p_.simd_width>0)))
-  {
-      fallback.enqueue(queue, program, "fallback", fallback, control);
-      return;
-  }
   //Kernel
   std::string name = "elementwise_1d";
   name += suffix;
