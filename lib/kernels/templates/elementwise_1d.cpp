@@ -131,7 +131,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
       for(unsigned int s = 0 ; s < simd_width ; ++s)
       {
           std::string str = access_vector_type("#name", s, simd_width);
-          stream << evaluate(PARENT_NODE_TYPE, {{"array1", str}, {"arrayn1", str}, {"array1n", str}, {"array11", str}, {"arrayn", str},
+          stream << evaluate(PARENT_NODE_TYPE, {{"array1", str}, {"arrayn1", str}, {"array1n", str}, {"array11", str}, {"arrayn", str}, {"reshape", str},
                                               {"matrix_row", str}, {"matrix_column", str}, {"matrix_diag", str}, {"array_access", str}, {"cast", ""}},
                                             expressions, idx, mappings) << ";" << std::endl;
       }
@@ -154,7 +154,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   stream.dec_tab();
   stream << "}" << std::endl;
 
-  std::cout << stream.str() << std::endl;
+//  std::cout << stream.str() << std::endl;
   return stream.str();
 }
 
@@ -171,7 +171,7 @@ elementwise_1d::elementwise_1d(unsigned int simd, unsigned int ls, unsigned int 
 
 std::vector<int_t> elementwise_1d::input_sizes(expression_tree const & expressions) const
 {
-  return {expressions.shape().max()};
+  return {max(expressions.shape())};
 }
 
 void elementwise_1d::enqueue(driver::CommandQueue &, driver::Program const & program, std::string const & suffix, base &, execution_handler const & control)

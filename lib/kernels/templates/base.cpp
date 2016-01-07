@@ -67,7 +67,7 @@ int_t base::vector_size(expression_tree::node const & node)
   else if (node.op.type==MATRIX_COLUMN_TYPE)
     return node.lhs.array->shape()[0];
   else
-    return node.lhs.array->shape().max();
+    return max(node.lhs.array->shape());
 
 }
 
@@ -82,7 +82,6 @@ std::pair<int_t, int_t> base::matrix_size(expression_tree::container_type const 
   {
     size_t rep0 = tuple_get(tree, node.rhs.index, 0);
     size_t rep1 = tuple_get(tree, node.rhs.index, 1);
-    std::cout << rep0 << " " << rep1 << std::endl;
     return std::make_pair(node.lhs.array->shape()[0]*rep0, node.lhs.array->shape()[1]*rep1);
   }
   else

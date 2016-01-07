@@ -170,15 +170,21 @@ array::array(std::string const & scalartype, unsigned int id, std::string const 
   attributes_["pointer"] = process("#name_pointer");
 }
 
-//
-unsigned int buffer::_dim(tuple const & shape) const
+std::string array::make_broadcast(const tuple &shape)
 {
-  unsigned int result = 0;
-  for(size_t i = 0 ; i < shape.size() ; ++i) result += shape[i]>1;
+  std::string result = "at(";
+  for(size_t i = 0 ; i < shape.size() ; ++i)
+    result += ((result.back()=='(')?"arg":",arg") + tools::to_string(i);
+  result += ") : at(";
+  for(size_t i = 0 ; i < shape.size() ; ++i)
+    if(shape[i] > 1)
+      result += ((result.back()=='(')?"arg":",arg") + tools::to_string(i);
+  result += ")";
   return result;
 }
 
-buffer::buffer(std::string const & scalartype, unsigned int id, std::string const & type, const tuple &shape) : array(scalartype, id, type), dim_(_dim(shape))
+//
+buffer::buffer(std::string const & scalartype, unsigned int id, std::string const & type, const tuple &shape) : array(scalartype, id, type), dim_(numgt1(shape))
 {
   //Attributes
   attributes_["off"] = process("#name_off");
@@ -202,17 +208,7 @@ buffer::buffer(std::string const & scalartype, unsigned int id, std::string cons
 
   //Broadcast
   if(dim_!=shape.size())
-  {
-    std::string broadcast = "at(";
-    for(size_t i = 0 ; i < shape.size() ; ++i)
-      broadcast += ((broadcast.back()=='(')?"arg":",arg") + tools::to_string(i);
-    broadcast += ") : at(";
-    for(size_t i = 0 ; i < shape.size() ; ++i)
-      if(shape[i] > 1)
-        broadcast += ((broadcast.back()=='(')?"arg":",arg") + tools::to_string(i);
-    broadcast += ")";
-    lambdas_.insert(broadcast);
-  }
+    lambdas_.insert(make_broadcast(shape));
 }
 
 //
@@ -227,15 +223,17 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, 
   tuple old_shape = node.lhs.subtype==DENSE_ARRAY_TYPE?node.lhs.array->shape():expression.tree()[node.lhs.index].shape;
 
   //Attributes
-  for(unsigned int i = 1 ; i < new_shape.size() ; ++i){
-    std::string inc = "new_inc" + tools::to_string(i);
-    attributes_[inc] = process("#name_" + inc);
-  }
+  for(unsigned int i = 1 ; i < new_shape.size() ; ++i)
+    if(new_shape[i] > 1){
+      std::string inc = "new_inc" + tools::to_string(i);
+      attributes_[inc] = process("#name_" + inc);
+    }
 
-  for(unsigned int i = 1 ; i < old_shape.size() ; ++i){
-    std::string inc = "old_inc" + tools::to_string(i);
-    attributes_[inc] = process("#name_" + inc);
-  }
+  for(unsigned int i = 1 ; i < old_shape.size() ; ++i)
+    if(old_shape[i] > 1){
+      std::string inc = "old_inc" + tools::to_string(i);
+      attributes_[inc] = process("#name_" + inc);
+    }
 
   //Functions
 //  std::vector<std::string> args;
@@ -259,15 +257,21 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, 
 //  }
 
   object const * sym = mapping.at({index,LHS_NODE_TYPE}).get();
-  if(new_shape.size()==1 && old_shape.size()==1)
+  size_t new_gt1 = numgt1(new_shape);
+  size_t old_gt1 = numgt1(old_shape);
+
+  if(new_gt1==1 && old_gt1==1)
     lambdas_.insert("at(i): " + sym->process("at(i)"));
-  if(new_shape.size()==1 && old_shape.size()==2)
+  if(new_gt1==1 && old_gt1==2)
     lambdas_.insert("at(i): " + sym->process("at(i/#old_inc1, i%#old_inc1)"));
-  if(new_shape.size()==2 && old_shape.size()==1)
+  if(new_gt1==2 && old_gt1==1)
     lambdas_.insert("at(i,j): " + sym->process("at(i + j*#new_inc1)"));
-  if(old_shape.size()==2 && new_shape.size()==2)
+  if(new_gt1==2 && old_gt1==2)
     lambdas_.insert("at(i,j): " + sym->process("at((i + j*#new_inc1)/#old_inc1, (i+j*#new_inc1)%#old_inc1)"));
 
+
+  if(new_gt1!=new_shape.size())
+    lambdas_.insert(make_broadcast(new_shape));
 
 }
 

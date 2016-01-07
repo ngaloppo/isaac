@@ -42,7 +42,6 @@ public:
   //1D Constructors
   explicit array_base(int_t size1, numeric_type dtype = FLOAT_TYPE, driver::Context const & context = driver::backend::contexts::get_default());
   array_base(int_t size1, numeric_type dtype, driver::Buffer data, int_t start, int_t inc);
-
   template<typename DT>
   array_base(std::vector<DT> const & data, driver::Context const & context = driver::backend::contexts::get_default());
   array_base(array_base & v, slice const & s1);
@@ -58,8 +57,10 @@ public:
   array_base(int_t size1, int_t size2, int_t size3, numeric_type dtype = FLOAT_TYPE, driver::Context const & context = driver::backend::contexts::get_default());
 
   //General constructor
-  array_base(numeric_type dtype, tuple const & shape, driver::Context const & context);
-  array_base(numeric_type dtype, tuple const & shape, int_t start, tuple const & stride, driver::Context const & context);
+  template<typename DT>
+  array_base(tuple const & shape, std::vector<DT> const & data, driver::Context const & context = driver::backend::contexts::get_default());
+  array_base(tuple const & shape, numeric_type dtype, driver::Context const & context = driver::backend::contexts::get_default());
+  array_base(tuple const & shape, numeric_type dtype, int_t start, tuple const & stride, driver::Context const & context = driver::backend::contexts::get_default());
   explicit array_base(execution_handler const &);
 
   //Make the class virtual

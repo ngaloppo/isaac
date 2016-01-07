@@ -118,14 +118,14 @@ public:
 
 class array : public object
 {
+protected:
+  std::string make_broadcast(tuple const & shape);
 public:
   array(std::string const & scalartype, unsigned int id, std::string const & type);
 };
 
 class buffer : public array
 {
-private:
-  unsigned int _dim(tuple const & shape) const;
 public:
   buffer(std::string const & scalartype, unsigned int id, std::string const & type, tuple const & shape);
   unsigned int dim() const { return dim_; }

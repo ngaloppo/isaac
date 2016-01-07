@@ -36,17 +36,45 @@ namespace isaac
 {
 
 /*--- Constructors ---*/
-//1D Constructors
-
 int_t array_base::dsize()
-{
-  return std::max((int_t)1, shape_.prod()*size_of(dtype_));
-}
+{ return std::max((int_t)1, prod(shape_)*size_of(dtype_)); }
 
-array_base::array_base(int_t shape0, numeric_type dtype, driver::Context const & context) :
-  dtype_(dtype), shape_{shape0}, start_(0), stride_(1),
-  context_(context), data_(context_, dsize()),
-  T(isaac::trans(*this))
+#define INSTANTIATE_ALL \
+INSTANTIATE(char); \
+INSTANTIATE(unsigned char);\
+INSTANTIATE(short);\
+INSTANTIATE(unsigned short);\
+INSTANTIATE(int);\
+INSTANTIATE(unsigned int);\
+INSTANTIATE(long);\
+INSTANTIATE(unsigned long);\
+INSTANTIATE(long long);\
+INSTANTIATE(unsigned long long);\
+INSTANTIATE(float);\
+INSTANTIATE(double);
+
+//General
+array_base::array_base(tuple const & shape, numeric_type dtype, int_t start, tuple const & stride, driver::Context const & context) :
+    dtype_(dtype), shape_(shape), start_(start), stride_(stride), context_(context), data_(context_, dsize()),
+    T(isaac::trans(*this))
+{}
+
+array_base::array_base(tuple const & shape, numeric_type dtype, driver::Context const & context) : array_base(shape, dtype, 0, {1, shape[0]}, context)
+{}
+
+array_base::array_base(execution_handler const & other) : array_base(other.x.shape(), other.x.dtype(), other.x.context())
+{ *this = other; }
+
+template<typename DT>
+array_base::array_base(tuple const & shape, std::vector<DT> const & data, driver::Context const & context) :
+  array_base(shape, to_int_numeric_type<DT>::value, context)
+{ isaac::copy(data, *this); }
+#define INSTANTIATE(DT) template ISAACAPI array_base::array_base(tuple const &, std::vector<DT> const &, driver::Context const &)
+INSTANTIATE_ALL
+#undef INSTANTIATE
+
+//1D Constructors
+array_base::array_base(int_t shape0, numeric_type dtype, driver::Context const & context) : array_base(tuple{shape0}, dtype, context)
 { }
 
 array_base::array_base(int_t shape0, numeric_type dtype, driver::Buffer data, int_t start, int_t inc):
@@ -54,39 +82,20 @@ array_base::array_base(int_t shape0, numeric_type dtype, driver::Buffer data, in
   T(isaac::trans(*this))
 { }
 
-
-template<class DT>
-array_base::array_base(std::vector<DT> const & x, driver::Context const & context):
-  dtype_(to_numeric_type<DT>::value), shape_{(int_t)x.size()}, start_(0), stride_(1),
-  context_(context), data_(context, dsize()),
-  T(isaac::trans(*this))
-{ *this = x; }
-
 array_base::array_base(array_base & v, slice const & s0) :
   dtype_(v.dtype_), shape_{s0.size(v.shape_[0])}, start_(v.start_ + v.stride_[0]*s0.start), stride_(v.stride_[0]*s0.stride), context_(v.context()), data_(v.data_),
   T(isaac::trans(*this))
 {}
 
+template<class DT>
+array_base::array_base(std::vector<DT> const & x, driver::Context const & context): array_base({(int_t)x.size()}, x, context)
+{ }
 #define INSTANTIATE(T) template ISAACAPI array_base::array_base(std::vector<T> const &, driver::Context const &)
-INSTANTIATE(char);
-INSTANTIATE(unsigned char);
-INSTANTIATE(short);
-INSTANTIATE(unsigned short);
-INSTANTIATE(int);
-INSTANTIATE(unsigned int);
-INSTANTIATE(long);
-INSTANTIATE(unsigned long);
-INSTANTIATE(long long);
-INSTANTIATE(unsigned long long);
-INSTANTIATE(float);
-INSTANTIATE(double);
+INSTANTIATE_ALL
 #undef INSTANTIATE
 
 // 2D
-array_base::array_base(int_t shape0, int_t shape1, numeric_type dtype, driver::Context const & context) :
-  dtype_(dtype), shape_{shape0, shape1}, start_(0), stride_(1,shape0),
-  context_(context), data_(context_, dsize()),
-  T(isaac::trans(*this))
+array_base::array_base(int_t shape0, int_t shape1, numeric_type dtype, driver::Context const & context) : array_base({shape0, shape1}, dtype, context)
 {}
 
 array_base::array_base(int_t shape0, int_t shape1, numeric_type dtype, driver::Buffer data, int_t start, int_t ld) :
@@ -104,54 +113,17 @@ array_base::array_base(array_base & M, slice const & s0, slice const & s1) :
 
 
 template<typename DT>
-array_base::array_base(int_t shape0, int_t shape1, std::vector<DT> const & data, driver::Context const & context)
-  : dtype_(to_numeric_type<DT>::value),
-    shape_{shape0, shape1}, start_(0), stride_(1, shape0),
-    context_(context), data_(context_, dsize()),
-    T(isaac::trans(*this))
-{
-  isaac::copy(data, *this);
-}
-
-// 3D
-array_base::array_base(int_t shape0, int_t shape1, int_t shape2, numeric_type dtype, driver::Context const & context) :
-  dtype_(dtype), shape_{shape0, shape1, shape2}, start_(0), stride_(1, shape0),
-  context_(context), data_(context_, dsize()),
-  T(isaac::trans(*this))
-{}
-
+array_base::array_base(int_t shape0, int_t shape1, std::vector<DT> const & data, driver::Context const & context): array_base({shape0, shape1}, data, context)
+{ }
 #define INSTANTIATE(T) template ISAACAPI array_base::array_base(int_t, int_t, std::vector<T> const &, driver::Context const &)
-INSTANTIATE(char);
-INSTANTIATE(unsigned char);
-INSTANTIATE(short);
-INSTANTIATE(unsigned short);
-INSTANTIATE(int);
-INSTANTIATE(unsigned int);
-INSTANTIATE(long);
-INSTANTIATE(unsigned long);
-INSTANTIATE(long long);
-INSTANTIATE(unsigned long long);
-INSTANTIATE(float);
-INSTANTIATE(double);
+INSTANTIATE_ALL
 #undef INSTANTIATE
 
-
-array_base::array_base(numeric_type dtype, tuple const & shape, int_t start, tuple const & stride, driver::Context const & context) :
-    dtype_(dtype), shape_(shape), start_(start), stride_(stride), context_(context), data_(context_, dsize()),
-    T(isaac::trans(*this))
+// 3D
+array_base::array_base(int_t shape0, int_t shape1, int_t shape2, numeric_type dtype, driver::Context const & context) : array_base({shape0, shape1, shape2}, dtype, context)
 {}
 
-array_base::array_base(numeric_type dtype, tuple const & shape, driver::Context const & context) : array_base(dtype, shape, 0, {1, shape[0]}, context)
-{}
-
-array_base::array_base(execution_handler const & other) :
-  dtype_(other.x().dtype()),
-  shape_(other.x().shape()), start_(0), stride_(1, shape_[0]),
-  context_(other.x().context()), data_(context_, dsize()),
-  T(isaac::trans(*this))
-{
-  *this = other;
-}
+#undef INSTANTIATE_ALL
 
 //Destructor
 array_base::~array_base()
@@ -188,7 +160,7 @@ driver::Buffer & array_base::data()
 
 array_base & array_base::operator=(array_base const & rhs)
 {
-    if(shape_.min()==0) return *this;
+    if(min(shape_)==0) return *this;
     assert(dtype_ == rhs.dtype());
     expression_tree expression(*this, rhs, op_element(BINARY_TYPE_FAMILY, ASSIGN_TYPE), context_, dtype_, shape_);
     execute(execution_handler(expression));
@@ -197,7 +169,7 @@ array_base & array_base::operator=(array_base const & rhs)
 
 array_base & array_base::operator=(value_scalar const & rhs)
 {
-    if(shape_.min()==0) return *this;
+    if(min(shape_)==0) return *this;
     assert(dtype_ == rhs.dtype());
     expression_tree expression(*this, rhs, op_element(BINARY_TYPE_FAMILY, ASSIGN_TYPE), context_, dtype_, shape_);
     execute(execution_handler(expression));
@@ -207,7 +179,7 @@ array_base & array_base::operator=(value_scalar const & rhs)
 
 array_base& array_base::operator=(execution_handler const & c)
 {
-  if(shape_.min()==0) return *this;
+  if(min(shape_)==0) return *this;
   assert(dtype_ == c.x().dtype());
   expression_tree expression(*this, c.x(), op_element(BINARY_TYPE_FAMILY, ASSIGN_TYPE), context_, dtype_, shape_);
   execute(execution_handler(expression, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
@@ -347,7 +319,7 @@ view array_base::operator()(slice const & si, slice const & sj)
 
 array::array(expression_tree const & proxy) : array_base(execution_handler(proxy)) {}
 
-array::array(array_base const & other): array_base(other.dtype(), other.shape(), other.context())
+array::array(array_base const & other): array_base(other.shape(), other.dtype(), other.context())
 { *this = other; }
 
 array::array(array const &other): array((array_base const &)other)
@@ -606,7 +578,7 @@ expression_tree outer(LTYPE const & x, RTYPE const & y)\
     assert(x.dim()<=1 && y.dim()<=1);\
     if(x.dim()<1 || y.dim()<1)\
       return x*y;\
-    return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OUTER_PROD_TYPE), x.context(), x.dtype(), {x.shape().max(), y.shape().max()} );\
+    return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OUTER_PROD_TYPE), x.context(), x.dtype(), {max(x.shape()), max(y.shape())} );\
 }\
 
 DEFINE_OUTER(array_base, array_base)
@@ -917,14 +889,14 @@ expression_tree reshape(expression_tree const & x, tuple const & shape)
 {  return expression_tree(x, invalid_node(), op_element(UNARY_TYPE_FAMILY, RESHAPE_TYPE), x.context(), x.dtype(), shape); }
 
 expression_tree ravel(array_base const & x)
-{ return reshape(x, {x.shape().prod()}); }
+{ return reshape(x, {prod(x.shape())}); }
 
 #define DEFINE_DOT(LTYPE, RTYPE) \
 expression_tree dot(LTYPE const & x, RTYPE const & y)\
 {\
   numeric_type dtype = x.dtype();\
   driver::Context const & context = x.context();\
-  if(x.shape().max()==1 || y.shape().max()==1)\
+  if(max(x.shape())==1 || max(y.shape())==1)\
     return x*y;\
   if(x.dim()==2 && x.shape()[1]==0)\
     return zeros({x.shape()[0], y.shape()[1]}, dtype, context);\
@@ -934,19 +906,19 @@ expression_tree dot(LTYPE const & x, RTYPE const & y)\
     return sum(x*y);\
   if(x.dim()==2 && x.shape()[0]==1 && y.dim()==1){\
     if(y.shape()[0]==1)\
-        return reshape(x*y, {x.shape().max()});\
+        return reshape(x*y, {max(x.shape())});\
     else\
         return sum(x*y);\
   }\
   if(x.dim()==2 && y.dim()==1){\
     if(y.shape()[0]==1)\
-        return reshape(x*y, {x.shape().max()});\
+        return reshape(x*y, {max(x.shape())});\
     else\
         return detail::matvecprod(x, y);\
   }\
   if(x.dim()==1 && y.dim()==2){\
     if(x.shape()[0]==1)\
-        return reshape(x*y, {y.shape().max()});\
+        return reshape(x*y, {max(y.shape())});\
     else\
         return trans(detail::matvecprod(trans(y), trans(x)));\
   }\
@@ -1005,14 +977,14 @@ ISAACAPI expression_tree sfor(expression_tree const & start, expression_tree con
 void copy(void const * data, array_base& x, driver::CommandQueue & queue, bool blocking)
 {
   unsigned int dtypesize = size_of(x.dtype());
-  if(x.start()==0 && x.shape()[0]*x.stride().prod()==x.shape().prod())
+  if(x.start()==0 && x.shape()[0]*prod(x.stride())==prod(x.shape()))
   {
-    queue.write(x.data(), blocking, 0, x.shape().prod()*dtypesize, data);
+    queue.write(x.data(), blocking, 0, prod(x.shape())*dtypesize, data);
   }
   else
   {
-    array tmp(x.dtype(), x.shape(), x.context());
-    queue.write(tmp.data(), blocking, 0, tmp.shape().prod()*dtypesize, data);
+    array tmp(x.shape(), x.dtype(), x.context());
+    queue.write(tmp.data(), blocking, 0, prod(tmp.shape())*dtypesize, data);
     x = tmp;
   }
 }
@@ -1020,15 +992,15 @@ void copy(void const * data, array_base& x, driver::CommandQueue & queue, bool b
 void copy(array_base const & x, void* data, driver::CommandQueue & queue, bool blocking)
 {
   unsigned int dtypesize = size_of(x.dtype());
-  if(x.start()==0 && x.stride().prod()==x.shape().prod())
+  if(x.start()==0 && prod(x.stride())==prod(x.shape()))
   {
-    queue.read(x.data(), blocking, 0, x.shape().prod()*dtypesize, data);
+    queue.read(x.data(), blocking, 0, prod(x.shape())*dtypesize, data);
   }
   else
   {
-    array tmp(x.dtype(), x.shape(), x.context());
+    array tmp(x.shape(), x.dtype(), x.context());
     tmp = x;
-    queue.read(tmp.data(), blocking, 0, tmp.shape().prod()*dtypesize, data);
+    queue.read(tmp.data(), blocking, 0, prod(tmp.shape())*dtypesize, data);
   }
 }
 
@@ -1046,14 +1018,14 @@ void copy(array_base const & x, void* data, bool blocking)
 template<class T>
 void copy(std::vector<T> const & cx, array_base & x, driver::CommandQueue & queue, bool blocking)
 {
-  assert((int_t)cx.size()==x.shape().prod());
+  assert((int_t)cx.size()==prod(x.shape()));
   copy((void const*)cx.data(), x, queue, blocking);
 }
 
 template<class T>
 void copy(array_base const & x, std::vector<T> & cx, driver::CommandQueue & queue, bool blocking)
 {
-  assert((int_t)cx.size()==x.shape().prod());
+  assert((int_t)cx.size()==prod(x.shape()));
   copy(x, (void*)cx.data(), queue, blocking);
 }
 
@@ -1100,7 +1072,7 @@ std::ostream& operator<<(std::ostream & os, array_base const & a)
   numeric_type dtype = a.dtype();
 
   //Copy to Host RAM
-  void* tmp = new char[shape.prod()*size_of(dtype)];
+  void* tmp = new char[prod(shape)*size_of(dtype)];
   copy(a, (void*)tmp);
 
   //Strides of the CPU buffer

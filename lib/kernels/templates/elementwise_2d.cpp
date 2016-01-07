@@ -116,7 +116,7 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   stream.dec_tab();
   stream << "}" << std::endl;
 
-  std::cout << stream.str() << std::endl;
+//  std::cout << stream.str() << std::endl;
 
   return stream.str();
 }

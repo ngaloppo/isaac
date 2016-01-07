@@ -46,10 +46,6 @@ public:
     std::vector<int_t>::const_iterator end() const { return data_.end(); }
 
     size_t size() const { return data_.size(); }
-    int_t max() const   { return std::accumulate(data_.begin(), data_.end(), std::numeric_limits<int_t>::min(), [](int_t a, int_t b){ return std::max(a, b); }); }
-    int_t min() const   { return std::accumulate(data_.begin(), data_.end(), std::numeric_limits<int_t>::max(), [](int_t a, int_t b){ return std::min(a, b); }); }
-    int_t prod() const  { return std::accumulate(data_.begin(), data_.end(), 1, std::multiplies<int>()); }
-
     int_t front() const { return data_.front(); }
     int_t back() const { return data_.back(); }
 
@@ -69,9 +65,16 @@ inline ISAACAPI std::ostream& operator<<(std::ostream & oss, tuple const &shape)
 }
 
 inline ISAACAPI int_t max(tuple const & tp)
-{
+{ return std::accumulate(tp.begin(), tp.end(), std::numeric_limits<int_t>::min(), [](int_t a, int_t b){ return std::max(a, b); }); }
 
-}
+inline ISAACAPI int_t min(tuple const & tp)
+{ return std::accumulate(tp.begin(), tp.end(), std::numeric_limits<int_t>::max(), [](int_t a, int_t b){ return std::min(a, b); }); }
+
+inline ISAACAPI int_t prod(tuple const & tp)
+{ return std::accumulate(tp.begin(), tp.end(), 1, std::multiplies<int>()); }
+
+inline ISAACAPI size_t numgt1(tuple const & tp)
+{ return std::accumulate(tp.begin(), tp.end(), 0, [](size_t a, size_t b){ return a + (b>1); }); }
 
 }
 

@@ -129,9 +129,11 @@ public:
           tuple const & new_shape = node.shape;
           tuple const & old_shape = node.lhs.subtype==DENSE_ARRAY_TYPE?node.lhs.array->shape():expression.tree()[node.lhs.index].shape;
           for(unsigned int i = 1 ; i < new_shape.size() ; ++i)
-            kernel_.setSizeArg(current_arg_++, new_shape[i]);
+            if(new_shape[i] > 1)
+              kernel_.setSizeArg(current_arg_++, new_shape[i]);
           for(unsigned int i = 1 ; i < old_shape.size() ; ++i)
-            kernel_.setSizeArg(current_arg_++, old_shape[i]);
+            if(old_shape[i] > 1)
+              kernel_.setSizeArg(current_arg_++, old_shape[i]);
           }
     }
 
