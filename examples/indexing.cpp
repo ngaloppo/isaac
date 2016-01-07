@@ -21,7 +21,7 @@ int main()
     sc::array x = sc::array(1,3,std::vector<float>{1,2,3});
     sc::array y = sc::array(1,3,std::vector<float>{4,5,6});
 
-    std::cout << x + sc::reshape(y, {3,1}) << std::endl;
+    std::cout << sc::reshape(y, {3,1}) << std::endl;
 
 //    std::cout << sline << std::endl;
 //    std::cout << "A[3, 2:end]:" << A(3, {2,sc::end}) << std::endl;

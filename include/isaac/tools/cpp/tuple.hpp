@@ -40,6 +40,11 @@ public:
     tuple(int_t a) : data_{a} {}
     tuple(int_t a, int_t b) : data_{a, b} {}
 
+    std::vector<int_t>::iterator begin() { return data_.begin(); }
+    std::vector<int_t>::const_iterator begin() const { return data_.begin(); }
+    std::vector<int_t>::iterator end() { return data_.end(); }
+    std::vector<int_t>::const_iterator end() const { return data_.end(); }
+
     size_t size() const { return data_.size(); }
     int_t max() const   { return std::accumulate(data_.begin(), data_.end(), std::numeric_limits<int_t>::min(), [](int_t a, int_t b){ return std::max(a, b); }); }
     int_t min() const   { return std::accumulate(data_.begin(), data_.end(), std::numeric_limits<int_t>::max(), [](int_t a, int_t b){ return std::min(a, b); }); }
@@ -61,6 +66,11 @@ inline ISAACAPI std::ostream& operator<<(std::ostream & oss, tuple const &shape)
   for(int_t x: shape.data_)
     oss << x << ',';
   return oss;
+}
+
+inline ISAACAPI int_t max(tuple const & tp)
+{
+
 }
 
 }

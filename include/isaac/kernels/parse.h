@@ -69,7 +69,7 @@ inline void traverse(isaac::expression_tree const & expression_tree, std::size_t
   if (recurse)
   {
     if (root_node.lhs.subtype==COMPOSITE_OPERATOR_TYPE)
-      traverse(expression_tree, root_node.lhs.node_index, fun, inspect);
+      traverse(expression_tree, root_node.lhs.index, fun, inspect);
     if (root_node.lhs.subtype != INVALID_SUBTYPE)
       fun(expression_tree, root_idx, LHS_NODE_TYPE);
   }
@@ -82,7 +82,7 @@ inline void traverse(isaac::expression_tree const & expression_tree, std::size_t
   if (recurse && root_node.rhs.subtype!=INVALID_SUBTYPE)
   {
     if (root_node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
-      traverse(expression_tree, root_node.rhs.node_index, fun, inspect);
+      traverse(expression_tree, root_node.rhs.index, fun, inspect);
     if (root_node.rhs.subtype != INVALID_SUBTYPE)
       fun(expression_tree, root_idx, RHS_NODE_TYPE);
   }

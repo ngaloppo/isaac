@@ -52,16 +52,16 @@ void matrix_product::handle_node(expression_tree::container_type const & tree, s
     {
         //alpha*PROD
         if(tree[rootidx].lhs.subtype==VALUE_SCALAR_TYPE  && tree[rootidx].rhs.subtype==COMPOSITE_OPERATOR_TYPE
-           && tree[tree[rootidx].rhs.node_index].op.type_family==MATRIX_PRODUCT_TYPE_FAMILY)
+           && tree[tree[rootidx].rhs.index].op.type_family==MATRIX_PRODUCT_TYPE_FAMILY)
         {
-            a.alpha = value_scalar(tree[rootidx].lhs.vscalar, tree[rootidx].lhs.dtype);
-            handle_node(tree, tree[rootidx].rhs.node_index, a);
+            a.alpha = value_scalar(tree[rootidx].lhs.scalar, tree[rootidx].lhs.dtype);
+            handle_node(tree, tree[rootidx].rhs.index, a);
         }
 
         //beta*C
         if(tree[rootidx].lhs.subtype==VALUE_SCALAR_TYPE  && tree[rootidx].rhs.subtype==DENSE_ARRAY_TYPE)
         {
-            a.beta = value_scalar(tree[rootidx].lhs.vscalar, tree[rootidx].lhs.dtype);
+            a.beta = value_scalar(tree[rootidx].lhs.scalar, tree[rootidx].lhs.dtype);
             a.C = &tree[rootidx].rhs;
         }
     }
@@ -78,14 +78,14 @@ matrix_product::args matrix_product::check(expression_tree::container_type const
     result.beta = value_scalar(0, dtype);
     if(tree[rootidx].rhs.subtype==COMPOSITE_OPERATOR_TYPE)
     {
-        rootidx = tree[rootidx].rhs.node_index;
+        rootidx = tree[rootidx].rhs.index;
         bool is_add = tree[rootidx].op.type==ADD_TYPE;
         bool is_sub = tree[rootidx].op.type==SUB_TYPE;
         //Form X +- Y"
         if(is_add || is_sub)
         {
             if(tree[rootidx].lhs.subtype==COMPOSITE_OPERATOR_TYPE)
-                handle_node(tree, tree[rootidx].lhs.node_index, result);
+                handle_node(tree, tree[rootidx].lhs.index, result);
             else if(tree[rootidx].lhs.subtype==DENSE_ARRAY_TYPE)
             {
                 result.C = &tree[rootidx].lhs;
@@ -94,7 +94,7 @@ matrix_product::args matrix_product::check(expression_tree::container_type const
             }
 
             if(tree[rootidx].rhs.subtype==COMPOSITE_OPERATOR_TYPE)
-                handle_node(tree, tree[rootidx].rhs.node_index, result);
+                handle_node(tree, tree[rootidx].rhs.index, result);
             else if(tree[rootidx].rhs.subtype==DENSE_ARRAY_TYPE)
             {
                 result.C = &tree[rootidx].rhs;

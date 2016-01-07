@@ -38,7 +38,7 @@ namespace detail
 
     //Lhs:
     if (root_node.lhs.subtype==COMPOSITE_OPERATOR_TYPE)
-      _traverse(tree, root_node.lhs.node_index, fun);
+      _traverse(tree, root_node.lhs.index, fun);
     if (root_node.lhs.subtype != INVALID_SUBTYPE)
       fun(root, LHS_NODE_TYPE);
 
@@ -49,7 +49,7 @@ namespace detail
     if (root_node.rhs.subtype!=INVALID_SUBTYPE)
     {
       if (root_node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
-        _traverse(tree, root_node.rhs.node_index, fun);
+        _traverse(tree, root_node.rhs.index, fun);
       if (root_node.rhs.subtype != INVALID_SUBTYPE)
         fun(root, RHS_NODE_TYPE);
     }
@@ -62,9 +62,9 @@ inline void _traverse(expression_tree const & expression, size_t idx, leaf_t lea
 {
   expression_tree::node const & root = expression.tree()[idx];
   if(leaf==RHS_NODE_TYPE && root.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
-    detail::_traverse(expression, root.rhs.node_index, fun);
+    detail::_traverse(expression, root.rhs.index, fun);
   else if(leaf==LHS_NODE_TYPE && root.lhs.subtype==COMPOSITE_OPERATOR_TYPE)
-    detail::_traverse(expression, root.lhs.node_index, fun);
+    detail::_traverse(expression, root.lhs.index, fun);
   else if(leaf==PARENT_NODE_TYPE)
     detail::_traverse(expression, idx, fun);
   else

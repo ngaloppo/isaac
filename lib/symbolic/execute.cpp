@@ -137,7 +137,7 @@ namespace isaac
       //Left
       expression_type type_left = INVALID_EXPRESSION_TYPE;
       if (node.lhs.subtype == COMPOSITE_OPERATOR_TYPE)
-          parse(array, node.lhs.node_index, breakpoints, type_left, false);
+          parse(array, node.lhs.index, breakpoints, type_left, false);
       else if(node.lhs.subtype == DENSE_ARRAY_TYPE)
       {
           if(node.op.type==MATRIX_ROW_TYPE || node.op.type==MATRIX_COLUMN_TYPE || ng1(node.lhs.array->shape())<=1)
@@ -149,7 +149,7 @@ namespace isaac
       //Right
       expression_type type_right = INVALID_EXPRESSION_TYPE;
       if (node.rhs.subtype == COMPOSITE_OPERATOR_TYPE)
-          parse(array, node.rhs.node_index, breakpoints, type_right, false);
+          parse(array, node.rhs.index, breakpoints, type_right, false);
       else if(node.rhs.subtype == DENSE_ARRAY_TYPE)
       {
           if(node.op.type==MATRIX_ROW_TYPE || node.op.type==MATRIX_COLUMN_TYPE || ng1(node.rhs.array->shape())<=1)
@@ -207,7 +207,7 @@ namespace isaac
         for(detail::breakpoints_t::iterator it = breakpoints.begin() ; it != breakpoints.end() ; ++it)
         {
           std::shared_ptr<profiles::value_type> const & profile = profiles[std::make_pair(it->first, dtype)];
-          expression_tree::node const & node = tree[it->second->node_index];
+          expression_tree::node const & node = tree[it->second->index];
           expression_tree::node const & lmost = lhs_most(tree, node);
 
           //Creates temporary

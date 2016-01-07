@@ -35,18 +35,18 @@ void fill(tree_node &x, invalid_node)
   x.dtype = INVALID_NUMERIC_TYPE;
 }
 
-void fill(tree_node & x, std::size_t node_index)
+void fill(tree_node & x, std::size_t index)
 {
   x.subtype = COMPOSITE_OPERATOR_TYPE;
   x.dtype = INVALID_NUMERIC_TYPE;
-  x.node_index = node_index;
+  x.index = index;
 }
 
 void fill(tree_node & x, placeholder index)
 {
-  x.subtype = FOR_LOOP_INDEX_TYPE;
+  x.subtype = PLACEHOLDER_TYPE;
   x.dtype = INVALID_NUMERIC_TYPE;
-  x.for_idx = index;
+  x.ph = index;
 }
 
 void fill(tree_node & x, array_base const & a)
@@ -60,7 +60,7 @@ void fill(tree_node & x, value_scalar const & v)
 {
   x.dtype = v.dtype();
   x.subtype = VALUE_SCALAR_TYPE;
-  x.vscalar = v.values();
+  x.scalar = v.values();
 }
 
 tree_node::tree_node(){}
@@ -105,6 +105,7 @@ expression_tree::expression_tree(LT const & lhs, RT const & rhs, op_element cons
 {
   fill(tree_[0].lhs, lhs);
   tree_[0].op = op;
+  tree_[0].shape = shape;
   fill(tree_[0].rhs, rhs);
 }
 
@@ -115,6 +116,7 @@ expression_tree::expression_tree(expression_tree const & lhs, RT const & rhs, op
   std::copy(lhs.tree_.begin(), lhs.tree_.end(), tree_.begin());
   fill(tree_[root_].lhs, lhs.root_);
   tree_[root_].op = op;
+  tree_[root_].shape = shape;
   fill(tree_[root_].rhs, rhs);
 }
 
@@ -125,6 +127,7 @@ expression_tree::expression_tree(LT const & lhs, expression_tree const & rhs, op
   std::copy(rhs.tree_.begin(), rhs.tree_.end(), tree_.begin());
   fill(tree_[root_].lhs, lhs);
   tree_[root_].op = op;
+  tree_[root_].shape = shape;
   fill(tree_[root_].rhs, rhs.root_);
 }
 
@@ -136,10 +139,11 @@ expression_tree::expression_tree(expression_tree const & lhs, expression_tree co
   std::copy(rhs.tree_.begin(), rhs.tree_.end(), tree_.begin() + lsize);
   fill(tree_[root_].lhs, lhs.root_);
   tree_[root_].op = op;
+  tree_[root_].shape = shape;
   fill(tree_[root_].rhs, lsize + rhs.root_);
   for(container_type::iterator it = tree_.begin() + lsize ; it != tree_.end() - 1 ; ++it){
-    if(it->lhs.subtype==COMPOSITE_OPERATOR_TYPE) it->lhs.node_index+=lsize;
-    if(it->rhs.subtype==COMPOSITE_OPERATOR_TYPE) it->rhs.node_index+=lsize;
+    if(it->lhs.subtype==COMPOSITE_OPERATOR_TYPE) it->lhs.index+=lsize;
+    if(it->rhs.subtype==COMPOSITE_OPERATOR_TYPE) it->rhs.index+=lsize;
   }
   root_ = tree_.size() - 1;
 }
@@ -201,7 +205,7 @@ expression_tree::node const & lhs_most(expression_tree::container_type const & a
 {
   expression_tree::node const * current = &init;
   while (current->lhs.subtype==COMPOSITE_OPERATOR_TYPE)
-    current = &array[current->lhs.node_index];
+    current = &array[current->lhs.index];
   return *current;
 }
 

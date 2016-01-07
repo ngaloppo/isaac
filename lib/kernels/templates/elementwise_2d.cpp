@@ -67,17 +67,10 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
       stream << " __attribute__((reqd_work_group_size(" << p_.local_size_0 << "," << p_.local_size_1 << ",1)))" << std::endl; break;
   }
 
-  stream << KernelPrefix(backend) << " void elementwise_1d" << suffix << "(" << _size_t << " M, " << _size_t << " N, " << tools::join(kernel_arguments(device, mappings, expressions), ", ") << ")" << std::endl;
+  stream << KernelPrefix(backend) << " void elementwise_2d" << suffix << "(" << _size_t << " M, " << _size_t << " N, " << tools::join(kernel_arguments(device, mappings, expressions), ", ") << ")" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
 
-  process(stream, PARENT_NODE_TYPE, { {"array1", "#scalartype #namereg = #pointer[#start];"},
-                                      {"array11", "#scalartype #namereg = #pointer[#start];"},
-                                      {"arrayn", "#pointer += #start;"},
-                                      {"array1n", "#pointer += #start;"},
-                                      {"arrayn1", "#pointer += #start;"},
-                                      {"arraynn", "#pointer += #start;"}}
-                                  , expressions, mappings);
 
   fetching_loop_info(p_.fetching_policy, "M", stream, init0, upper_bound0, inc0,  GlobalIdx0(backend).get(), GlobalSize0(backend).get(), device);
   stream << "for(" << _size_t << " i = " << init0 << "; i < " << upper_bound0 << "; i += " << inc0 << ")" << std::endl;
@@ -89,11 +82,11 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   stream.inc_tab();
 
   //Declares register to store results
-  for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, LHS_NODE_TYPE))
+  for(symbolic::array* sym: extract<symbolic::array>(expressions, mappings, assigned, LHS_NODE_TYPE))
     stream << sym->process("#scalartype #name;") << std::endl;
 
   //Load to registers
-  for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, RHS_NODE_TYPE))
+  for(symbolic::array* sym: extract<symbolic::array>(expressions, mappings, assigned, RHS_NODE_TYPE))
     stream << sym->process("#scalartype #name = at(i, j);") << std::endl;
 
 
@@ -123,6 +116,8 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   stream.dec_tab();
   stream << "}" << std::endl;
 
+  std::cout << stream.str() << std::endl;
+
   return stream.str();
 }
 
@@ -144,7 +139,7 @@ std::vector<int_t> elementwise_2d::input_sizes(expression_tree const  & expressi
 void elementwise_2d::enqueue(driver::CommandQueue & /*queue*/, driver::Program const & program, std::string const & suffix, base &, execution_handler const & control)
 {
   expression_tree const  & expressions = control.x();
-  std::string name = "elementwise_1d";
+  std::string name = "elementwise_2d";
   name +=suffix;
   driver::Kernel kernel(program, name.c_str());
   driver::NDRange global(p_.local_size_0*p_.num_groups_0, p_.local_size_1*p_.num_groups_1);

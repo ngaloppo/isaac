@@ -24,12 +24,12 @@
 #include <set>
 #include <string>
 
+#include "isaac/array.h"
 #include "isaac/tuple.h"
 #include "isaac/kernels/symbolic_object.h"
 #include "isaac/kernels/parse.h"
 #include "isaac/kernels/stream.h"
 #include "isaac/symbolic/expression.h"
-
 #include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
@@ -60,7 +60,12 @@ int lambda::expand(std::string & str) const
   {
     size_t pos_po = str.find('(', pos);
     size_t pos_pe = str.find(')', pos_po);
-
+    size_t next = str.find('(', pos_po + 1);
+    while(next < pos_pe){
+      pos_pe = str.find(')', pos_pe + 1);
+      if(next < pos_pe)
+        next = str.find('(', next + 1);
+    }
     //Parse
     std::vector<std::string> args = tools::split(str.substr(pos_po + 1, pos_pe - pos_po - 1), ',');
     if(args_.size() != args.size()){
@@ -175,14 +180,25 @@ unsigned int buffer::_dim(tuple const & shape) const
 
 buffer::buffer(std::string const & scalartype, unsigned int id, std::string const & type, const tuple &shape) : array(scalartype, id, type), dim_(_dim(shape))
 {
-  attributes_["start"] = process("#name_start");
-  if(dim_ > 0) attributes_["stride"] = process("#name_stride");
-  if(dim_ > 1) attributes_["ld"] = process("#name_ld");
+  //Attributes
+  attributes_["off"] = process("#name_off");
+  for(unsigned int i = 0 ; i < dim_ ; ++i){
+    std::string inc = "inc" + tools::to_string(i);
+    attributes_[inc] = process("#name_" + inc);
+  }
 
-  //Default
-  if(dim_==0) lambdas_.insert("at(): #pointer[#start]");
-  if(dim_==1) lambdas_.insert("at(i): #pointer[#start + (i)*#stride]");
-  if(dim_==2) lambdas_.insert("at(i, j): #pointer[#start + (i)*#stride + (j)*#ld]");
+  //Access
+  std::vector<std::string> args;
+  for(unsigned int i = 0 ; i < dim_ ; ++i)
+    args.push_back("x" + tools::to_string(i));
+
+  std::string off = "#off";
+  for(unsigned int i = 0 ; i < dim_ ; ++i)
+  {
+    std::string inc = "#inc" + tools::to_string(i);
+    off += " + (" + args[i] + ")*" + inc;
+  }
+  lambdas_.insert("at(" + tools::join(args, ",") + "): #pointer[" + off + "]");
 
   //Broadcast
   if(dim_!=shape.size())
@@ -203,9 +219,55 @@ buffer::buffer(std::string const & scalartype, unsigned int id, std::string cons
 index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t index, mapping_type const & mapping, std::string const & type) : array(scalartype, id, type), index_(index), mapping_(mapping)
 { }
 
-//
-reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping, "reshape")
+//Reshaping
+reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, expression_tree const & expression, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping, "reshape")
 {
+  expression_tree::node node = expression.tree()[index];
+  tuple new_shape = node.shape;
+  tuple old_shape = node.lhs.subtype==DENSE_ARRAY_TYPE?node.lhs.array->shape():expression.tree()[node.lhs.index].shape;
+
+  //Attributes
+  for(unsigned int i = 1 ; i < new_shape.size() ; ++i){
+    std::string inc = "new_inc" + tools::to_string(i);
+    attributes_[inc] = process("#name_" + inc);
+  }
+
+  for(unsigned int i = 1 ; i < old_shape.size() ; ++i){
+    std::string inc = "old_inc" + tools::to_string(i);
+    attributes_[inc] = process("#name_" + inc);
+  }
+
+  //Functions
+//  std::vector<std::string> args;
+//  for(unsigned int i = 0 ; i < new_shape.size() ; ++i)
+//    args.push_back("x" + tools::to_string(i));
+
+//  std::string idx = "";
+//  if(args.size() > 1)
+//    idx = "(" + args[0] + ")";
+//  for(unsigned int i = 1 ; i < new_shape.size() ; ++i)
+//    idx += "+ (" + args[i] + ")*#new_inc" + tools::to_string(i);
+
+//  std::vector<std::string> forward_args;
+//  std::string current = idx;
+//  for(unsigned int i = old_shape.size() ; i > 0 ; --i){
+//    if(i>1)
+//      forward_args.push_back( "(" + current + ")/#old_inc" + tools::to_string(i-1));
+//    else
+//      forward_args.push_back(current);
+//    current = current + " - " + forward_args.back();
+//  }
+
+  object const * sym = mapping.at({index,LHS_NODE_TYPE}).get();
+  if(new_shape.size()==1 && old_shape.size()==1)
+    lambdas_.insert("at(i): " + sym->process("at(i)"));
+  if(new_shape.size()==1 && old_shape.size()==2)
+    lambdas_.insert("at(i): " + sym->process("at(i/#old_inc1, i%#old_inc1)"));
+  if(new_shape.size()==2 && old_shape.size()==1)
+    lambdas_.insert("at(i,j): " + sym->process("at(i + j*#new_inc1)"));
+  if(old_shape.size()==2 && new_shape.size()==2)
+    lambdas_.insert("at(i,j): " + sym->process("at((i + j*#new_inc1)/#old_inc1, (i+j*#new_inc1)%#old_inc1)"));
+
 
 }
 
@@ -260,7 +322,7 @@ object& get(expression_tree::container_type const & tree, size_t root, mapping_t
   for(unsigned int i = 0 ; i < idx ; ++i){
       expression_tree::node node = tree[root];
       if(node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
-        root = node.rhs.node_index;
+        root = node.rhs.index;
       else
         return *(mapping.at(std::make_pair(root, RHS_NODE_TYPE)));
   }

@@ -885,7 +885,7 @@ namespace detail
     expression_tree::node & A_root = const_cast<expression_tree::node &>(A.tree()[A.root()]);
     bool A_trans = A_root.op.type==TRANS_TYPE;
     while(A_root.lhs.subtype==COMPOSITE_OPERATOR_TYPE){
-        A_root = A.tree()[A_root.lhs.node_index];
+        A_root = A.tree()[A_root.lhs.index];
         A_trans ^= A_root.op.type==TRANS_TYPE;
     }
     if(A_trans)

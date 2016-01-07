@@ -47,11 +47,11 @@ inline value_scalar tuple_get(expression_tree::container_type const & tree, size
   for(unsigned int i = 0 ; i < idx ; ++i){
       expression_tree::node node = tree[root];
       if(node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
-        root = node.rhs.node_index;
+        root = node.rhs.index;
       else
-        return value_scalar(node.rhs.vscalar, node.rhs.dtype);
+        return value_scalar(node.rhs.scalar, node.rhs.dtype);
   }
-  return value_scalar(tree[root].lhs.vscalar, tree[root].lhs.dtype);
+  return value_scalar(tree[root].lhs.scalar, tree[root].lhs.dtype);
 }
 
 

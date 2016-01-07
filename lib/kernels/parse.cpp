@@ -72,8 +72,7 @@ namespace detail
 
   bool bypass(op_element const & op)
   {
-        return op.type == RESHAPE_TYPE
-             ||op.type == TRANS_TYPE;
+        return op.type == TRANS_TYPE;
   }
 
   bool is_cast(op_element const & op)
@@ -105,6 +104,7 @@ namespace detail
         || op.type_family==ROWS_DOT_TYPE_FAMILY
         || op.type_family==COLUMNS_DOT_TYPE_FAMILY
         || op.type_family==MATRIX_PRODUCT_TYPE_FAMILY
+        || op.type==RESHAPE_TYPE
         ;
   }
 
@@ -249,6 +249,7 @@ const char * evaluate(operation_type type)
   case MATRIX_COLUMN_TYPE : return "col";
   case PAIR_TYPE: return "pair";
   case ACCESS_INDEX_TYPE: return "access";
+  case RESHAPE_TYPE: return "reshape";
 
   //FOR
   case SFOR_TYPE: return "sfor";
@@ -303,8 +304,8 @@ void evaluate_expression_traversal::operator()(isaac::expression_tree const & ex
     {
       if (root_node.lhs.subtype!=COMPOSITE_OPERATOR_TYPE)
       {
-        if (root_node.lhs.subtype==FOR_LOOP_INDEX_TYPE)
-          str_ += "sforidx" + tools::to_string(root_node.lhs.for_idx.level);
+        if (root_node.lhs.subtype==PLACEHOLDER_TYPE)
+          str_ += "sforidx" + tools::to_string(root_node.lhs.ph.level);
         else
           str_ += mapping_.at(key)->evaluate(accessors_);
       }
@@ -314,8 +315,8 @@ void evaluate_expression_traversal::operator()(isaac::expression_tree const & ex
     {
       if (root_node.rhs.subtype!=COMPOSITE_OPERATOR_TYPE)
       {
-        if (root_node.rhs.subtype==FOR_LOOP_INDEX_TYPE)
-          str_ += "sforidx" + tools::to_string(root_node.rhs.for_idx.level);
+        if (root_node.rhs.subtype==PLACEHOLDER_TYPE)
+          str_ += "sforidx" + tools::to_string(root_node.rhs.ph.level);
         else
           str_ += mapping_.at(key)->evaluate(accessors_);
       }
@@ -334,14 +335,14 @@ std::string evaluate(leaf_t leaf, std::map<std::string, std::string> const & acc
   if (leaf==RHS_NODE_TYPE)
   {
     if (root_node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
-      traverse(expression_tree, root_node.rhs.node_index, traversal_functor, false);
+      traverse(expression_tree, root_node.rhs.index, traversal_functor, false);
     else
       traversal_functor(expression_tree, root_idx, leaf);
   }
   else if (leaf==LHS_NODE_TYPE)
   {
     if (root_node.lhs.subtype==COMPOSITE_OPERATOR_TYPE)
-      traverse(expression_tree, root_node.lhs.node_index, traversal_functor, false);
+      traverse(expression_tree, root_node.lhs.index, traversal_functor, false);
     else
       traversal_functor(expression_tree, root_idx, leaf);
   }
@@ -391,14 +392,14 @@ void process(kernel_generation_stream & stream, leaf_t leaf, std::map<std::strin
   if (leaf==RHS_NODE_TYPE)
   {
     if (root_node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
-      traverse(expression_tree, root_node.rhs.node_index, traversal_functor, true);
+      traverse(expression_tree, root_node.rhs.index, traversal_functor, true);
     else
       traversal_functor(expression_tree, root_idx, leaf);
   }
   else if (leaf==LHS_NODE_TYPE)
   {
     if (root_node.lhs.subtype==COMPOSITE_OPERATOR_TYPE)
-      traverse(expression_tree, root_node.lhs.node_index, traversal_functor, true);
+      traverse(expression_tree, root_node.lhs.index, traversal_functor, true);
     else
       traversal_functor(expression_tree, root_idx, leaf);
   }

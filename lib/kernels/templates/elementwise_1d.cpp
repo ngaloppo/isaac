@@ -67,7 +67,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   std::vector<std::size_t> sfors = filter_nodes([](expression_tree::node const & node){return node.op.type==SFOR_TYPE;}, expressions, expressions.root(), true);
   size_t root = expressions.root();
   if(sfors.size())
-      root = tree[sfors.back()].lhs.node_index;
+      root = tree[sfors.back()].lhs.index;
 
   std::vector<std::size_t> assigned = filter_nodes([](expression_tree::node const & node){return detail::is_assignment(node.op);}, expressions, root, true);
 
@@ -96,7 +96,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
       std::string info[3];
       int idx =  sfors[i];
       for(int i = 0 ; i < 2 ; ++i){
-          idx = tree[idx].rhs.node_index;
+          idx = tree[idx].rhs.index;
           info[i] = mappings.at({idx, LHS_NODE_TYPE})->process("#name");
 
       }
@@ -111,11 +111,11 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
     }
 
     //Declares register to store results
-    for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, LHS_NODE_TYPE))
+    for(symbolic::array* sym: extract<symbolic::array>(expressions, mappings, assigned, LHS_NODE_TYPE))
       stream << sym->process(dtype + " #name;") << std::endl;
 
     //Load to registers
-    for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, RHS_NODE_TYPE))
+    for(symbolic::array* sym: extract<symbolic::array>(expressions, mappings, assigned, RHS_NODE_TYPE))
     {
       if(simd_width==1)
         stream << sym->process(dtype + " #name = at(i);") << std::endl;
@@ -138,7 +138,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
     }
 
     //Writes back
-    for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, LHS_NODE_TYPE))
+    for(symbolic::array* sym: extract<symbolic::array>(expressions, mappings, assigned, LHS_NODE_TYPE))
       for(unsigned int s = 0 ; s < simd_width ; ++s)
           stream << sym->process("at(i+" + tools::to_string(s)+") = " + access_vector_type("#name", s, simd_width) + ";") << std::endl;
 
@@ -154,6 +154,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   stream.dec_tab();
   stream << "}" << std::endl;
 
+  std::cout << stream.str() << std::endl;
   return stream.str();
 }
 

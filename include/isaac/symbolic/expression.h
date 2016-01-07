@@ -181,7 +181,7 @@ enum node_type
   COMPOSITE_OPERATOR_TYPE,
   VALUE_SCALAR_TYPE,
   DENSE_ARRAY_TYPE,
-  FOR_LOOP_INDEX_TYPE
+  PLACEHOLDER_TYPE
 };
 
 struct tree_node
@@ -191,10 +191,10 @@ struct tree_node
   numeric_type dtype;
   union
   {
-    size_t   node_index;
-    values_holder vscalar;
+    size_t   index;
+    values_holder scalar;
     array_base* array;
-    placeholder for_idx;
+    placeholder ph;
   };
 };
 
@@ -202,7 +202,7 @@ struct invalid_node{};
 
 void fill(tree_node &x, placeholder index);
 void fill(tree_node &x, invalid_node);
-void fill(tree_node & x, size_t node_index);
+void fill(tree_node & x, size_t index);
 void fill(tree_node & x, array_base const & a);
 void fill(tree_node & x, value_scalar const & v);
 
@@ -214,6 +214,7 @@ public:
     tree_node    lhs;
     op_element   op;
     tree_node    rhs;
+    tuple        shape;
   };
 
   typedef std::vector<node>     container_type;

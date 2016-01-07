@@ -53,9 +53,9 @@ class map_functor : public traversal_functor
   {
     switch(lhs_rhs.subtype)
     {
-      case VALUE_SCALAR_TYPE: return create(lhs_rhs.dtype, lhs_rhs.vscalar);
+      case VALUE_SCALAR_TYPE: return create(lhs_rhs.dtype, lhs_rhs.scalar);
       case DENSE_ARRAY_TYPE: return create(lhs_rhs.array, is_assigned);
-      case FOR_LOOP_INDEX_TYPE: return std::shared_ptr<symbolic::object>(new symbolic::placeholder(lhs_rhs.for_idx.level));
+      case PLACEHOLDER_TYPE: return std::shared_ptr<symbolic::object>(new symbolic::placeholder(lhs_rhs.ph.level));
       default: throw "";
     }
   }
@@ -78,12 +78,11 @@ public:
     expression_tree::node const & node = expression.tree()[idx];
     std::string dtype = to_string(expression.dtype());
 
-
     if (leaf == LHS_NODE_TYPE && node.lhs.subtype != COMPOSITE_OPERATOR_TYPE)
       mapping_.insert(symbolic::mapping_type::value_type(key, create(node.lhs, detail::is_assignment(node.op))));
     else if (leaf == RHS_NODE_TYPE && node.rhs.subtype != COMPOSITE_OPERATOR_TYPE)
       mapping_.insert(symbolic::mapping_type::value_type(key, create(node.rhs)));
-    else if ( leaf== PARENT_NODE_TYPE)
+    else if (leaf== PARENT_NODE_TYPE)
     {
       unsigned int id = binder_.get();
       //1D Reduction
@@ -103,6 +102,8 @@ public:
         mapping_.insert(make_pair<symbolic::matrix_column>(key, dtype, id, idx, mapping_));
       else if(node.op.type==ACCESS_INDEX_TYPE)
         mapping_.insert(make_pair<symbolic::array_access>(key, dtype, id, idx, mapping_));
+      else if(node.op.type==RESHAPE_TYPE)
+        mapping_.insert(make_pair<symbolic::reshape>(key, dtype, id, idx, expression, mapping_));
       else if (detail::is_cast(node.op))
         mapping_.insert(make_pair<symbolic::cast>(key, node.op.type, id));
     }

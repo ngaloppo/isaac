@@ -148,7 +148,7 @@ private:
 class reshape : public index_modifier
 {
 public:
-  reshape(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping);
+  reshape(std::string const & scalartype, unsigned int id, size_t index, expression_tree const & expression, mapping_type const & mapping);
 };
 
 class diag_matrix : public index_modifier

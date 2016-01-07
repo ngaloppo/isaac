@@ -48,9 +48,14 @@ inline std::vector<std::string> kernel_arguments(driver::Device const & device, 
       if(symbolic::buffer* sym = dynamic_cast<symbolic::buffer*>(obj))
       {
         result.push_back(kwglobal + " " + sym->process("#scalartype* #pointer"));
-        if(sym->hasattr("start")) result.push_back(_size_t + " " + sym->process("#start"));
-        if(sym->hasattr("stride")) result.push_back(_size_t + " " + sym->process("#stride"));
-        if(sym->hasattr("ld")) result.push_back(_size_t + " " + sym->process("#ld"));
+        if(sym->hasattr("off")) result.push_back(_size_t + " " + sym->process("#off"));
+        if(sym->hasattr("inc0")) result.push_back(_size_t + " " + sym->process("#inc0"));
+        if(sym->hasattr("inc1")) result.push_back(_size_t + " " + sym->process("#inc1"));
+      }
+      if(symbolic::reshape* sym = dynamic_cast<symbolic::reshape*>(obj))
+      {
+        if(sym->hasattr("new_inc1")) result.push_back(_size_t + " " + sym->process("#new_inc1"));
+        if(sym->hasattr("old_inc1")) result.push_back(_size_t + " " + sym->process("#old_inc1"));
       }
     }
     return result;
@@ -105,20 +110,29 @@ public:
     {
         switch(lhs_rhs.subtype)
         {
-        case VALUE_SCALAR_TYPE:   return set_arguments(lhs_rhs.dtype, lhs_rhs.vscalar);
+        case VALUE_SCALAR_TYPE:   return set_arguments(lhs_rhs.dtype, lhs_rhs.scalar);
         case DENSE_ARRAY_TYPE:    return set_arguments(lhs_rhs.array, is_assigned);
-        case FOR_LOOP_INDEX_TYPE: return;
+        case PLACEHOLDER_TYPE: return;
         default: throw std::runtime_error("Unrecognized type family");
         }
     }
 
-    void operator()(isaac::expression_tree const & expression_tree, size_t root_idx, leaf_t leaf_t) const
+    void operator()(isaac::expression_tree const & expression, size_t root_idx, leaf_t leaf_t) const
     {
-        expression_tree::node const & root_node = expression_tree.tree()[root_idx];
-        if (leaf_t==LHS_NODE_TYPE && root_node.lhs.subtype != COMPOSITE_OPERATOR_TYPE)
-            set_arguments(root_node.lhs, detail::is_assignment(root_node.op));
-        else if (leaf_t==RHS_NODE_TYPE && root_node.rhs.subtype != COMPOSITE_OPERATOR_TYPE)
-            set_arguments(root_node.rhs, false);
+        expression_tree::node const & node = expression.tree()[root_idx];
+        if (leaf_t==LHS_NODE_TYPE && node.lhs.subtype != COMPOSITE_OPERATOR_TYPE)
+          set_arguments(node.lhs, detail::is_assignment(node.op));
+        else if (leaf_t==RHS_NODE_TYPE && node.rhs.subtype != COMPOSITE_OPERATOR_TYPE)
+          set_arguments(node.rhs, false);
+        if(leaf_t==PARENT_NODE_TYPE && node.op.type == RESHAPE_TYPE)
+        {
+          tuple const & new_shape = node.shape;
+          tuple const & old_shape = node.lhs.subtype==DENSE_ARRAY_TYPE?node.lhs.array->shape():expression.tree()[node.lhs.index].shape;
+          for(unsigned int i = 1 ; i < new_shape.size() ; ++i)
+            kernel_.setSizeArg(current_arg_++, new_shape[i]);
+          for(unsigned int i = 1 ; i < old_shape.size() ; ++i)
+            kernel_.setSizeArg(current_arg_++, old_shape[i]);
+          }
     }
 
 
