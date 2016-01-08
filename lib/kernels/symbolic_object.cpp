@@ -165,7 +165,7 @@ placeholder::placeholder(unsigned int level) : object("int", "sforidx" + tools::
 host_scalar::host_scalar(std::string const & scalartype, unsigned int id) : object(scalartype, id, "host_scalar"){ }
 
 //
-array::array(std::string const & scalartype, unsigned int id, std::string const & type) : object(scalartype, id, type)
+array::array(std::string const & scalartype, unsigned int id) : object(scalartype, id, "array")
 {
   attributes_["pointer"] = process("#name_pointer");
 }
@@ -184,7 +184,7 @@ std::string array::make_broadcast(const tuple &shape)
 }
 
 //
-buffer::buffer(std::string const & scalartype, unsigned int id, std::string const & type, const tuple &shape) : array(scalartype, id, type), dim_(numgt1(shape))
+buffer::buffer(std::string const & scalartype, unsigned int id, const tuple &shape) : array(scalartype, id), dim_(numgt1(shape))
 {
   //Attributes
   attributes_["off"] = process("#name_off");
@@ -212,11 +212,11 @@ buffer::buffer(std::string const & scalartype, unsigned int id, std::string cons
 }
 
 //
-index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t index, mapping_type const & mapping, std::string const & type) : array(scalartype, id, type), index_(index), mapping_(mapping)
+index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t index, mapping_type const & mapping) : array(scalartype, id), index_(index), mapping_(mapping)
 { }
 
 //Reshaping
-reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, expression_tree const & expression, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping, "reshape")
+reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, expression_tree const & expression, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
 {
   expression_tree::node node = expression.tree()[index];
   tuple new_shape = node.shape;
@@ -235,66 +235,43 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, 
       attributes_[inc] = process("#name_" + inc);
     }
 
-  //Functions
-//  std::vector<std::string> args;
-//  for(unsigned int i = 0 ; i < new_shape.size() ; ++i)
-//    args.push_back("x" + tools::to_string(i));
-
-//  std::string idx = "";
-//  if(args.size() > 1)
-//    idx = "(" + args[0] + ")";
-//  for(unsigned int i = 1 ; i < new_shape.size() ; ++i)
-//    idx += "+ (" + args[i] + ")*#new_inc" + tools::to_string(i);
-
-//  std::vector<std::string> forward_args;
-//  std::string current = idx;
-//  for(unsigned int i = old_shape.size() ; i > 0 ; --i){
-//    if(i>1)
-//      forward_args.push_back( "(" + current + ")/#old_inc" + tools::to_string(i-1));
-//    else
-//      forward_args.push_back(current);
-//    current = current + " - " + forward_args.back();
-//  }
-
-  object const * sym = mapping.at({index,LHS_NODE_TYPE}).get();
+  //Index modification
   size_t new_gt1 = numgt1(new_shape);
   size_t old_gt1 = numgt1(old_shape);
-
   if(new_gt1==1 && old_gt1==1)
-    lambdas_.insert("at(i): " + sym->process("at(i)"));
+    lambdas_.insert("at(i): " + isaac::evaluate(LHS_NODE_TYPE, {{"array", process("at(i)")}}, expression, index, mapping));
   if(new_gt1==1 && old_gt1==2)
-    lambdas_.insert("at(i): " + sym->process("at(i/#old_inc1, i%#old_inc1)"));
+    lambdas_.insert("at(i): " + isaac::evaluate(LHS_NODE_TYPE, {{"array", process("at(i%#old_inc1, i/#old_inc1)")}}, expression, index, mapping));
   if(new_gt1==2 && old_gt1==1)
-    lambdas_.insert("at(i,j): " + sym->process("at(i + j*#new_inc1)"));
+    lambdas_.insert("at(i,j): " + isaac::evaluate(LHS_NODE_TYPE, {{"array", process("at(i + j*#new_inc1)")}}, expression, index, mapping));
   if(new_gt1==2 && old_gt1==2)
-    lambdas_.insert("at(i,j): " + sym->process("at((i + j*#new_inc1)/#old_inc1, (i+j*#new_inc1)%#old_inc1)"));
+    lambdas_.insert("at(i,j): " + isaac::evaluate(LHS_NODE_TYPE, {{"array", process("at((i + j*#new_inc1)%#old_inc1, (i+j*#new_inc1)/#old_inc1)")}}, expression, index, mapping));
 
-
+  //Broadcast
   if(new_gt1!=new_shape.size())
     lambdas_.insert(make_broadcast(new_shape));
-
 }
 
 //
-diag_matrix::diag_matrix(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping, "vdiag"){}
+diag_matrix::diag_matrix(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping){}
 
 //
-array_access::array_access(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping, "array_access")
+array_access::array_access(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
 { }
 
 //
-matrix_row::matrix_row(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping, "matrix_row")
+matrix_row::matrix_row(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
 { }
 
 //
-matrix_column::matrix_column(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping, "matrix_column")
+matrix_column::matrix_column(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
 { }
 
 //
-diag_vector::diag_vector(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping, "matrix_diag")
+diag_vector::diag_vector(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
 { }
 
-repeat::repeat(std::string const & scalartype, unsigned int id,  size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping, "repeat")
+repeat::repeat(std::string const & scalartype, unsigned int id,  size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
 { }
 
 //

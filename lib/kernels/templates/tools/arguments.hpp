@@ -127,14 +127,21 @@ public:
         if(leaf_t==PARENT_NODE_TYPE && node.op.type == RESHAPE_TYPE)
         {
           tuple const & new_shape = node.shape;
-          tuple const & old_shape = node.lhs.subtype==DENSE_ARRAY_TYPE?node.lhs.array->shape():expression.tree()[node.lhs.index].shape;
-          for(unsigned int i = 1 ; i < new_shape.size() ; ++i)
+          int_t current = 1;
+          for(unsigned int i = 1 ; i < new_shape.size() ; ++i){
+            current *= new_shape[i-1];
             if(new_shape[i] > 1)
-              kernel_.setSizeArg(current_arg_++, new_shape[i]);
-          for(unsigned int i = 1 ; i < old_shape.size() ; ++i)
-            if(old_shape[i] > 1)
-              kernel_.setSizeArg(current_arg_++, old_shape[i]);
+              kernel_.setSizeArg(current_arg_++, current);
           }
+
+          tuple const & old_shape = node.lhs.subtype==DENSE_ARRAY_TYPE?node.lhs.array->shape():expression.tree()[node.lhs.index].shape;
+          current = 1;
+          for(unsigned int i = 1 ; i < old_shape.size() ; ++i){
+            current *= old_shape[i-1];
+            if(old_shape[i] > 1)
+              kernel_.setSizeArg(current_arg_++, current);
+          }
+        }
     }
 
 

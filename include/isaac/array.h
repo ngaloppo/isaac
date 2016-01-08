@@ -332,6 +332,8 @@ ISAACAPI void swap(view x, view y);
 
 //Reshape
 ISAACAPI expression_tree reshape(array_base const &, tuple const &);
+ISAACAPI expression_tree reshape(expression_tree const &, tuple const &);
+
 ISAACAPI expression_tree ravel(array_base const &);
 
 //diag

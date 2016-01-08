@@ -121,13 +121,13 @@ class array : public object
 protected:
   std::string make_broadcast(tuple const & shape);
 public:
-  array(std::string const & scalartype, unsigned int id, std::string const & type);
+  array(std::string const & scalartype, unsigned int id);
 };
 
 class buffer : public array
 {
 public:
-  buffer(std::string const & scalartype, unsigned int id, std::string const & type, tuple const & shape);
+  buffer(std::string const & scalartype, unsigned int id, tuple const & shape);
   unsigned int dim() const { return dim_; }
 private:
   std::string ld_;
@@ -139,7 +139,7 @@ private:
 class index_modifier: public array
 {
 public:
-  index_modifier(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping, std::string const & type);
+  index_modifier(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping);
 private:
   size_t index_;
   mapping_type const & mapping_;

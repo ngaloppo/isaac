@@ -43,10 +43,7 @@ class map_functor : public traversal_functor
   {
     std::string dtype = to_string(a->dtype());
     unsigned int id = binder_.get(a, is_assigned);
-    std::string type = "array";
-    for(int_t i = 0 ; i < a->dim() ; ++i)
-      type += (a->shape()[i]==1)?'1':'n';
-    return std::shared_ptr<symbolic::object>(new symbolic::buffer(dtype, id, type, a->shape()));
+    return std::shared_ptr<symbolic::object>(new symbolic::buffer(dtype, id, a->shape()));
   }
 
   std::shared_ptr<symbolic::object> create(tree_node const & lhs_rhs, bool is_assigned = false) const

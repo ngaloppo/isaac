@@ -62,12 +62,12 @@ array_base::array_base(tuple const & shape, numeric_type dtype, int_t start, tup
 array_base::array_base(tuple const & shape, numeric_type dtype, driver::Context const & context) : array_base(shape, dtype, 0, {1, shape[0]}, context)
 {}
 
-array_base::array_base(execution_handler const & other) : array_base(other.x.shape(), other.x.dtype(), other.x.context())
+array_base::array_base(execution_handler const & other) : array_base(other.x().shape(), other.x().dtype(), other.x().context())
 { *this = other; }
 
 template<typename DT>
 array_base::array_base(tuple const & shape, std::vector<DT> const & data, driver::Context const & context) :
-  array_base(shape, to_int_numeric_type<DT>::value, context)
+  array_base(shape, to_numeric_type<DT>::value, context)
 { isaac::copy(data, *this); }
 #define INSTANTIATE(DT) template ISAACAPI array_base::array_base(tuple const &, std::vector<DT> const &, driver::Context const &)
 INSTANTIATE_ALL

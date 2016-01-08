@@ -272,7 +272,6 @@ void evaluate_expression_traversal::call_before_expansion(isaac::expression_tree
     str_+=evaluate(root_node.op.type);
   if(root_node.op.type!=OPERATOR_FUSE)
     str_+="(";
-
 }
 
 void evaluate_expression_traversal::call_after_expansion(expression_tree const & expression_tree, std::size_t root_idx) const
@@ -321,6 +320,7 @@ void evaluate_expression_traversal::operator()(isaac::expression_tree const & ex
           str_ += mapping_.at(key)->evaluate(accessors_);
       }
     }
+
   }
 }
 
