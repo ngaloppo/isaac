@@ -24,6 +24,7 @@
 
 #include "isaac/defines.h"
 #include "isaac/types.h"
+#include "isaac/common/numeric_type.h"
 #include <stdint.h>
 
 namespace isaac

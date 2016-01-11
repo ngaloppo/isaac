@@ -31,7 +31,6 @@ namespace isaac
 {
 
 //Extract symbolic types
-
 template<class T>
 inline void extract(expression_tree const & expression, symbolic::mapping_type const & symbolic,
                     size_t idx, leaf_t leaf, std::set<std::string>& processed, std::vector<T*>& result)
@@ -70,21 +69,6 @@ inline std::vector<T*> extract(expression_tree const & expression, symbolic::map
 {
   return extract<T>(expression, symbolic, expression.root(), PARENT_NODE_TYPE);
 }
-
-////Extract nodes
-inline std::vector<size_t> extract_nodes(expression_tree const & expression, size_t idx, leaf_t leaf, std::function<bool (expression_tree::node const &)> const & pred)
-{
-  std::vector<size_t> result;
-  auto fun = [&](size_t index, leaf_t leaf) {  if(leaf==PARENT_NODE_TYPE && pred(expression.tree()[index])) result.push_back(index); };
-  _traverse(expression, idx, leaf, fun);
-  return result;
-}
-
-inline std::vector<size_t> extract_nodes(expression_tree const & expression, std::function<bool (expression_tree::node const &)> const & pred)
-{
-  return extract_nodes(expression, expression.root(), PARENT_NODE_TYPE, pred);
-}
-
 
 }
 

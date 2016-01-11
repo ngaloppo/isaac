@@ -24,6 +24,8 @@
 #include <algorithm>
 
 #include "../parse/extract.hpp"
+#include "../parse/filter.hpp"
+#include "../parse/set_arguments.hpp"
 
 #include "isaac/kernels/templates/elementwise_1d.h"
 #include "isaac/kernels/keywords.h"
@@ -64,12 +66,12 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   kernel_generation_stream stream;
 
   expression_tree::container_type const & tree = expressions.tree();
-  std::vector<std::size_t> sfors = filter_nodes([](expression_tree::node const & node){return node.op.type==SFOR_TYPE;}, expressions, expressions.root(), true);
+  std::vector<std::size_t> sfors = filter(expressions, [](expression_tree::node const & node){return node.op.type==SFOR_TYPE;});
   size_t root = expressions.root();
   if(sfors.size())
       root = tree[sfors.back()].lhs.index;
 
-  std::vector<std::size_t> assigned = filter_nodes([](expression_tree::node const & node){return detail::is_assignment(node.op);}, expressions, root, true);
+  std::vector<std::size_t> assigned = filter(expressions, root, PARENT_NODE_TYPE, [](expression_tree::node const & node){return detail::is_assignment(node.op.type);});
 
   switch(backend)
   {
@@ -127,15 +129,9 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
 
     //Compute
     for(std::size_t idx: assigned)
-    {
       for(unsigned int s = 0 ; s < simd_width ; ++s)
-      {
-          std::string str = access_vector_type("#name", s, simd_width);
-          stream << evaluate(PARENT_NODE_TYPE, {{"array1", str}, {"arrayn1", str}, {"array1n", str}, {"array11", str}, {"arrayn", str}, {"reshape", str},
-                                              {"matrix_row", str}, {"matrix_column", str}, {"matrix_diag", str}, {"array_access", str}, {"cast", ""}},
-                                            expressions, idx, mappings) << ";" << std::endl;
-      }
-    }
+         stream << mappings.at({idx, PARENT_NODE_TYPE})->evaluate(access_vector_type("#name", s, simd_width)) << ";" << std::endl;
+
 
     //Writes back
     for(symbolic::array* sym: extract<symbolic::array>(expressions, mappings, assigned, LHS_NODE_TYPE))
@@ -154,7 +150,6 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   stream.dec_tab();
   stream << "}" << std::endl;
 
-//  std::cout << stream.str() << std::endl;
   return stream.str();
 }
 

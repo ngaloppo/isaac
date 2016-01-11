@@ -73,12 +73,38 @@ public:
 
   std::string type() const;
   std::string process(std::string const & in) const;
-  std::string evaluate(std::map<std::string, std::string> const & accessors) const;
+  virtual std::string evaluate(std::string const &) const;
   bool hasattr(std::string const & name) const;
 protected:
   std::string type_;
   std::map<std::string, std::string> attributes_;
   std::set<lambda> lambdas_;
+};
+
+class arithmetic_node: public object
+{
+public:
+  arithmetic_node(operation_type type, size_t index, expression_tree const & expression, mapping_type const & mapping);
+protected:
+  operation_type type_;
+  std::string op_str_;
+  object* lhs;
+  object* rhs;
+};
+
+class binary_node: public arithmetic_node
+{
+public:
+  binary_node(operation_type type, size_t index, expression_tree const & expression, mapping_type const & mapping);
+  std::string evaluate(std::string const &) const;
+private:
+};
+
+class unary_node: public arithmetic_node
+{
+public:
+  unary_node(operation_type type, size_t index, expression_tree const & expression, mapping_type const & mapping);
+  std::string evaluate(std::string const &) const;
 };
 
 class reduction : public object
@@ -108,12 +134,14 @@ class host_scalar : public object
 {
 public:
   host_scalar(std::string const & scalartype, unsigned int id);
+  std::string evaluate(std::string const &) const;
 };
 
 class placeholder : public object
 {
 public:
   placeholder(unsigned int level);
+  std::string evaluate(std::string const &) const;
 };
 
 class array : public object

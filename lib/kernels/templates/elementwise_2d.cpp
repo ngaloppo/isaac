@@ -29,6 +29,9 @@
 #include "tools/loop.hpp"
 #include "tools/vector_types.hpp"
 
+#include "../parse/set_arguments.hpp"
+#include "../parse/filter.hpp"
+
 namespace isaac
 {
 namespace templates
@@ -57,7 +60,7 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   std::string init0, upper_bound0, inc0, init1, upper_bound1, inc1;
   std::string data_type = append_width("#scalartype",p_.simd_width);
   driver::backend_type backend = device.backend();
-  std::vector<std::size_t> assigned = filter_nodes([](expression_tree::node const & node){return detail::is_assignment(node.op);}, expressions, expressions.root(), true);
+  std::vector<std::size_t> assigned = filter(expressions, [](expression_tree::node const & node){return detail::is_assignment(node.op.type);});
 
   switch(backend)
   {
@@ -89,19 +92,8 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   for(symbolic::array* sym: extract<symbolic::array>(expressions, mappings, assigned, RHS_NODE_TYPE))
     stream << sym->process("#scalartype #name = at(i, j);") << std::endl;
 
-
-  stream << evaluate(PARENT_NODE_TYPE, { {"arraynn", "#name"},
-                                         {"array1n", "#name"},
-                                         {"arrayn1", "#name"},
-                                         {"arrayn", "#name"},
-                                        {"vdiag", "#name"},
-                                        {"repeat", "#name"},
-                                        {"array1", "#name"},
-                                         {"array11", "#name"},
-                                        {"outer", "#name"},
-                                        {"cast", CastPrefix(backend, data_type).get()},
-                                        {"host_scalar", p_.simd_width==1?"#name": InitPrefix(backend, data_type).get() + "(#name)"}}
-                                    , expressions, expressions.root(), mappings) << ";" << std::endl;
+  for(std::size_t idx: assigned)
+    stream << mappings.at({idx, PARENT_NODE_TYPE})->evaluate("#name") << ";" << std::endl;
 
   //Writes back
   for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, LHS_NODE_TYPE))

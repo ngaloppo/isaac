@@ -25,6 +25,8 @@
 #include "isaac/kernels/keywords.h"
 
 #include "../parse/extract.hpp"
+#include "../parse/set_arguments.hpp"
+#include "../parse/filter.hpp"
 
 #include "tools/loop.hpp"
 #include "tools/reductions.hpp"
@@ -144,12 +146,6 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
   stream << "unsigned int gpid = " <<GroupIdx0(backend) << ";" << std::endl;
   stream << "unsigned int gsize = " <<GlobalSize0(backend) << ";" << std::endl;
 
-  process(stream, PARENT_NODE_TYPE, {{"array1", "#scalartype #namereg = #pointer[#start];"},
-                                     {"arrayn", "#pointer += #start;"},
-                                     {"array1n", "#pointer += #start;"},
-                                     {"arrayn1", "#pointer += #start;"}},
-                                    expressions, mapping);
-
   for(symbolic::reduce_1d* rd: reductions)
   {
     if (is_index_reduction(rd->op()))
@@ -176,38 +172,19 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
      for (symbolic::reduce_1d* rd : reductions)
        for(symbolic::buffer* array: extract<symbolic::buffer>(expressions, mapping, rd->index(), PARENT_NODE_TYPE))
           if(fetched.insert(array->process("#name")).second)
-           stream << array->process(append_width("#scalartype",simd_width) + " #namereg = " + vload(simd_width,"#scalartype",i,"#pointer","#stride",backend)+";") << std::endl;
-
+           stream << array->process(append_width("#scalartype",simd_width) + " #name = " + vload(simd_width,"#scalartype",i,"#pointer","#stride",backend)+";") << std::endl;
 
 
     //Update accumulators
-    std::vector<std::string> str(simd_width);
-    if (simd_width==1)
-      str[0] = "#namereg";
-    else
-      for (unsigned int a = 0; a < simd_width; ++a)
-        str[a] = access_vector_type("#namereg", a);
-
     for (symbolic::reduce_1d* rd : reductions)
-    {
-      for (unsigned int a = 0; a < simd_width; ++a)
+      for (unsigned int s = 0; s < simd_width; ++s)
       {
-        std::map<std::string, std::string> accessors;
-        accessors["arrayn"] = str[a];
-        accessors["array1n"] = str[a];
-        accessors["arrayn1"] = str[a];
-        accessors["matrix_row"] = str[a];
-        accessors["matrix_column"] = str[a];
-        accessors["matrix_diag"] = str[a];
-        accessors["array1"] = "#namereg";
-        std::string value = evaluate(LHS_NODE_TYPE, accessors, expressions, rd->index(), mapping);
+        std::string value = mapping.at({rd->index(), LHS_NODE_TYPE})->evaluate(access_vector_type("#name", s, simd_width));
         if (is_index_reduction(rd->op()))
-          compute_index_reduce_1d(stream, rd->process("#name_acc"),  "i*" + tools::to_string(simd_width) + "+"
-                                  + tools::to_string(a), rd->process("#name_acc_value"), value,rd->op());
+          compute_index_reduce_1d(stream, rd->process("#name_acc"),  "i*" + tools::to_string(simd_width) + "+" + tools::to_string(s), rd->process("#name_acc_value"), value,rd->op());
         else
           compute_reduce_1d(stream, rd->process("#name_acc"), value,rd->op());
       }
-    }
   });
 
   //Fills local memory
@@ -294,11 +271,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
   stream << "if (lid==0)" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
-  std::map<std::string, std::string> accessors;
-  accessors["reduce_1d"] = "#name_buf[0]";
-  accessors["array1"] = "#pointer[#start]";
-  accessors["array11"] = "#pointer[#start]";
-  stream << evaluate(PARENT_NODE_TYPE, accessors, expressions, expressions.root(), mapping) << ";" << std::endl;
+  stream << mapping.at({expressions.root(), PARENT_NODE_TYPE})->evaluate("#name_buf[0]") << ";" << std::endl;
   stream.dec_tab();
   stream << "}" << std::endl;
 
@@ -319,7 +292,7 @@ reduce_1d::reduce_1d(unsigned int simd, unsigned int ls, unsigned int ng,
 
 std::vector<int_t> reduce_1d::input_sizes(expression_tree const  & x) const
 {
-  std::vector<size_t> reduce_1ds_idx = filter_nodes(&is_reduce_1d, x, x.root(), false);
+  std::vector<size_t> reduce_1ds_idx = filter(x, &is_reduce_1d);
   int_t N = vector_size(lhs_most(x.tree(), reduce_1ds_idx[0]));
   return {N};
 }
@@ -339,7 +312,7 @@ void reduce_1d::enqueue(driver::CommandQueue & queue, driver::Program const & pr
   }
 
   std::vector<expression_tree::node const *> reduce_1ds;
-    std::vector<size_t> reduce_1ds_idx = filter_nodes(&is_reduce_1d, x, x.root(), false);
+    std::vector<size_t> reduce_1ds_idx = filter(x, &is_reduce_1d);
     for (size_t idx: reduce_1ds_idx)
       reduce_1ds.push_back(&x.tree()[idx]);
 

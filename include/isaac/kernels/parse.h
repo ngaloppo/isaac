@@ -36,12 +36,13 @@ namespace detail
   bool is_node_leaf(op_element const & op);
   bool is_scalar_reduce_1d(expression_tree::node const & node);
   bool is_reduce_2d(expression_tree::node const & node);
-  bool is_assignment(op_element const & op);
+  bool is_assignment(operation_type op);
   bool is_elementwise_operator(op_element const & op);
   bool is_elementwise_function(op_element const & op);
   bool is_cast(op_element const & op);
   bool bypass(op_element const & op);
 }
+const char * evaluate(operation_type type);
 
 class scalar;
 
@@ -91,76 +92,75 @@ inline void traverse(isaac::expression_tree const & expression_tree, std::size_t
     fun.call_after_expansion(expression_tree, root_idx);
 }
 
-class filter_fun : public traversal_functor
-{
-public:
-  typedef bool (*pred_t)(expression_tree::node const & node);
-  filter_fun(pred_t pred, std::vector<size_t> & out);
-  void operator()(isaac::expression_tree const & expression_tree, size_t root_idx, leaf_t) const;
-private:
-  pred_t pred_;
-  std::vector<size_t> & out_;
-};
+//class filter_fun : public traversal_functor
+//{
+//public:
+//  typedef bool (*pred_t)(expression_tree::node const & node);
+//  filter_fun(pred_t pred, std::vector<size_t> & out);
+//  void operator()(isaac::expression_tree const & expression_tree, size_t root_idx, leaf_t) const;
+//private:
+//  pred_t pred_;
+//  std::vector<size_t> & out_;
+//};
 
-class filter_elements_fun : public traversal_functor
-{
-public:
-  filter_elements_fun(node_type subtype, std::vector<tree_node> & out);
-  void operator()(isaac::expression_tree const & expression_tree, size_t root_idx, leaf_t) const;
-private:
-  node_type subtype_;
-  std::vector<tree_node> & out_;
-};
+//class filter_elements_fun : public traversal_functor
+//{
+//public:
+//  filter_elements_fun(node_type subtype, std::vector<tree_node> & out);
+//  void operator()(isaac::expression_tree const & expression_tree, size_t root_idx, leaf_t) const;
+//private:
+//  node_type subtype_;
+//  std::vector<tree_node> & out_;
+//};
 
-std::vector<size_t> filter_nodes(bool (*pred)(expression_tree::node const & node),
-                                        isaac::expression_tree const & expression_tree,
-                                        size_t root,
-                                        bool inspect);
+//std::vector<size_t> filter_nodes(bool (*pred)(expression_tree::node const & node),
+//                                        isaac::expression_tree const & expression_tree,
+//                                        size_t root,
+//                                        bool inspect);
 
-std::vector<tree_node> filter_elements(node_type subtype,
-                                             isaac::expression_tree const & expression_tree);
-const char * evaluate(operation_type type);
+//std::vector<tree_node> filter_elements(node_type subtype,
+//                                             isaac::expression_tree const & expression_tree);
 
-/** @brief functor for generating the expression string from a expression_tree */
-class evaluate_expression_traversal: public traversal_functor
-{
-private:
-  std::map<std::string, std::string> const & accessors_;
-  std::string & str_;
-  symbolic::mapping_type const & mapping_;
+///** @brief functor for generating the expression string from a expression_tree */
+//class evaluate_expression_traversal: public traversal_functor
+//{
+//private:
+//  std::map<std::string, std::string> const & accessors_;
+//  std::string & str_;
+//  symbolic::mapping_type const & mapping_;
 
-public:
-  evaluate_expression_traversal(std::map<std::string, std::string> const & accessors, std::string & str, symbolic::mapping_type const & mapping);
-  void call_before_expansion(isaac::expression_tree const & expression_tree, std::size_t root_idx) const;
-  void call_after_expansion(expression_tree const & /*expression_tree*/, std::size_t /*root_idx*/) const;
-  void operator()(isaac::expression_tree const & expression_tree, std::size_t root_idx, leaf_t leaf) const;
-};
+//public:
+//  evaluate_expression_traversal(std::map<std::string, std::string> const & accessors, std::string & str, symbolic::mapping_type const & mapping);
+//  void call_before_expansion(isaac::expression_tree const & expression_tree, std::size_t root_idx) const;
+//  void call_after_expansion(expression_tree const & /*expression_tree*/, std::size_t /*root_idx*/) const;
+//  void operator()(isaac::expression_tree const & expression_tree, std::size_t root_idx, leaf_t leaf) const;
+//};
 
-std::string evaluate(leaf_t leaf, std::map<std::string, std::string> const & accessors,
-                            isaac::expression_tree const & expression_tree, std::size_t root_idx, symbolic::mapping_type const & mapping);
+//std::string evaluate(leaf_t leaf, std::map<std::string, std::string> const & accessors,
+//                            isaac::expression_tree const & expression_tree, std::size_t root_idx, symbolic::mapping_type const & mapping);
 
-void evaluate(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
-                     expression_tree const & expressions, symbolic::mapping_type const & mappings);
+//void evaluate(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
+//                     expression_tree const & expressions, symbolic::mapping_type const & mappings);
 
-/** @brief functor for fetching or writing-back the elements in a expression_tree */
-class process_traversal : public traversal_functor
-{
-public:
-  process_traversal(std::map<std::string, std::string> const & accessors, kernel_generation_stream & stream,
-                    symbolic::mapping_type const & mapping, std::set<std::string> & already_processed);
-  void operator()(expression_tree const & expression_tree, std::size_t root_idx, leaf_t leaf) const;
-private:
-  std::map<std::string, std::string> accessors_;
-  kernel_generation_stream & stream_;
-  symbolic::mapping_type const & mapping_;
-  std::set<std::string> & already_processed_;
-};
+///** @brief functor for fetching or writing-back the elements in a expression_tree */
+//class process_traversal : public traversal_functor
+//{
+//public:
+//  process_traversal(std::map<std::string, std::string> const & accessors, kernel_generation_stream & stream,
+//                    symbolic::mapping_type const & mapping, std::set<std::string> & already_processed);
+//  void operator()(expression_tree const & expression_tree, std::size_t root_idx, leaf_t leaf) const;
+//private:
+//  std::map<std::string, std::string> accessors_;
+//  kernel_generation_stream & stream_;
+//  symbolic::mapping_type const & mapping_;
+//  std::set<std::string> & already_processed_;
+//};
 
-void process(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
-             isaac::expression_tree const & expression_tree, size_t root_idx, symbolic::mapping_type const & mapping, std::set<std::string> & already_processed);
+//void process(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
+//             isaac::expression_tree const & expression_tree, size_t root_idx, symbolic::mapping_type const & mapping, std::set<std::string> & already_processed);
 
-void process(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
-                    expression_tree const & expressions, symbolic::mapping_type const & mappings);
+//void process(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
+//                    expression_tree const & expressions, symbolic::mapping_type const & mappings);
 
 
 class expression_tree_representation_functor : public traversal_functor{

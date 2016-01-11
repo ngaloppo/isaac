@@ -28,6 +28,8 @@
 #include "isaac/kernels/templates/reduce_2d.h"
 
 #include "../parse/extract.hpp"
+#include "../parse/set_arguments.hpp"
+#include "../parse/filter.hpp"
 
 #include "tools/arguments.hpp"
 #include "tools/loop.hpp"
@@ -119,10 +121,10 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
 
   unroll_tmp();
 
-  process(stream, PARENT_NODE_TYPE,
-                        {{"array1", "#scalartype #namereg = #pointer[#start];"},
-                         {"arrayn", "#pointer += #start;"},
-                         {"arraynn", "#pointer += #start;"}}, expression, mapping);
+//  process(stream, PARENT_NODE_TYPE,
+//                        {{"array1", "#scalartype #namereg = #pointer[#start];"},
+//                         {"arrayn", "#pointer += #start;"},
+//                         {"arraynn", "#pointer += #start;"}}, expression, mapping);
 
   unsigned int local_size_0_ld = p_.local_size_0;
   std::string local_size_0_ld_str = to_string(local_size_0_ld);
@@ -154,44 +156,21 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
 
     std::set<std::string> fetched;
     for (symbolic::reduce_2d* rd : reductions)
-    {
-      //Array
-      for(symbolic::buffer* sym: extract<symbolic::buffer>(expression, mapping, rd->index(), PARENT_NODE_TYPE)){
-        if(sym->dim()==2 && fetched.insert(sym->process("#name")).second){
-          if(reduce_1d_type_==REDUCE_COLUMNS)
-            stream << sym->process(rdtype + " #namereg = " + vload(row_simd_width, "#scalartype", "c*#stride", "#pointer + r*#ld", "1", backend,false)+";") << std::endl;
-          else
-            stream << sym->process(cdtype + " #namereg = " + vload(col_simd_width, "#scalartype", "0", "#pointer + r*#stride + c*#ld", "1", backend,false) + ";") << std::endl;
-        }
-      }
-
-
-      //Repeat
-      for(symbolic::repeat* sym: extract<symbolic::repeat>(expression, mapping, rd->index(), PARENT_NODE_TYPE)){
+      for(symbolic::array* sym: extract<symbolic::array>(expression, mapping, rd->index(), PARENT_NODE_TYPE)){
         if(fetched.insert(sym->process("#name")).second){
           if(reduce_1d_type_==REDUCE_COLUMNS)
-            stream << sym->process(rdtype + " #namereg = " + vload(row_simd_width, "#scalartype", "(c%#sub0)*#stride", "#pointer + (r%#sub1)*#stride ", "1", backend,false)+";") << std::endl;
+            stream << sym->process(rdtype + " #name = " + vload(row_simd_width, "#scalartype", "c*#stride", "#pointer + r*#ld", "1", backend,false)+";") << std::endl;
           else
-            stream << sym->process("#scalartype #namereg = $VALUE{(r%#sub0)*#stride, (c%#sub1)*#stride};") << std::endl;
+            stream << sym->process(cdtype + " #name = " + vload(col_simd_width, "#scalartype", "0", "#pointer + r*#stride + c*#ld", "1", backend,false) + ";") << std::endl;
         }
       }
-    }
-
-    //Update accumulators
-    std::vector<std::string> str(row_simd_width);
-    if (row_simd_width==1)
-      str[0] = "#namereg";
-    else
-      for (unsigned int a = 0; a < row_simd_width; ++a)
-        str[a] = access_vector_type("#namereg",a);
-
 
     for (symbolic::reduce_2d* rd : reductions)
-      for (unsigned int a = 0; a < row_simd_width; ++a)
+      for (unsigned int s = 0; s < row_simd_width; ++s)
       {
-        std::string value = evaluate(LHS_NODE_TYPE, {{"arraynn", str[a]}, {"repeat", str[a]}, {"array1", "#namereg"}}, expression, rd->index(), mapping);
+        std::string value = mapping.at({rd->index(), LHS_NODE_TYPE})->evaluate(access_vector_type("#name", s, row_simd_width));
         if (is_index_reduction(rd->op()))
-          compute_index_reduce_1d(stream, rd->process("#name_acc"), "c*"+to_string(row_simd_width) + to_string(a), rd->process("#name_acc_value"), value, rd->op());
+          compute_index_reduce_1d(stream, rd->process("#name_acc"), "c*"+to_string(row_simd_width) + to_string(s), rd->process("#name_acc_value"), value, rd->op());
         else
           compute_reduce_1d(stream, rd->process("#name_acc"), value,rd->op());
       }
@@ -232,17 +211,17 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   stream.inc_tab();
   if(p_.num_groups_0==1)
   {
-    std::map<std::string, std::string> accessors;
-    for(int s = 0 ; s < col_simd_width ; ++s)
-    {
-        accessors["reduce_2d"] = "#name_buf[lidy*" + local_size_0_ld_str + "]";
-        if(col_simd_width > 1)
-            accessors["reduce_2d"] = access_vector_type(accessors["reduce_2d"], s);
-        accessors["arrayn"] = "#pointer[(r +" + to_string(s) + ")*#stride]";
-        accessors["array1n"] = "#pointer[(r +" + to_string(s) + ")*#stride]";
-        accessors["arrayn1"] = "#pointer[(r +" + to_string(s) + ")*#stride]";
-        stream << evaluate(PARENT_NODE_TYPE, accessors, expression, expression.root(), mapping) << ";" << std::endl;
-    }
+//    std::map<std::string, std::string> accessors;
+//    for(int s = 0 ; s < col_simd_width ; ++s)
+//    {
+//        accessors["reduce_2d"] = "#name_buf[lidy*" + local_size_0_ld_str + "]";
+//        if(col_simd_width > 1)
+//            accessors["reduce_2d"] = access_vector_type(accessors["reduce_2d"], s);
+//        accessors["arrayn"] = "#pointer[(r +" + to_string(s) + ")*#stride]";
+//        accessors["array1n"] = "#pointer[(r +" + to_string(s) + ")*#stride]";
+//        accessors["arrayn1"] = "#pointer[(r +" + to_string(s) + ")*#stride]";
+//        stream << evaluate(PARENT_NODE_TYPE, accessors, expression, expression.root(), mapping) << ";" << std::endl;
+//    }
   }
   else
   {
@@ -294,12 +273,12 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
 
   unroll_tmp();
 
-  process(stream, PARENT_NODE_TYPE,
-                        {{"array1", "#scalartype #namereg = #pointer[#start];"},
-                         {"arrayn", "#pointer += #start;"},
-                         {"array1n", "#pointer += #start;"},
-                         {"arrayn1", "#pointer += #start;"},
-                         {"arraynn", "#pointer += #start; "}}, expression, mapping);
+//  process(stream, PARENT_NODE_TYPE,
+//                        {{"array1", "#scalartype #namereg = #pointer[#start];"},
+//                         {"arrayn", "#pointer += #start;"},
+//                         {"array1n", "#pointer += #start;"},
+//                         {"arrayn1", "#pointer += #start;"},
+//                         {"arraynn", "#pointer += #start; "}}, expression, mapping);
 
   for (symbolic::reduce_2d* rd : reductions)
     stream << rd->process(Local(backend).get() + " #scalartype #name_buf[" + to_string(p_.local_size_1*local_size_0_ld) + "];") << std::endl;
@@ -361,12 +340,12 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   stream << "{" << std::endl;
   stream.inc_tab();
 
-  std::map<std::string, std::string> accessors;
-  accessors["reduce_2d"] = "#name_buf[lidy*" + local_size_0_ld_str + "]";
-  accessors["arrayn"] = "#pointer[r*#stride]";
-  accessors["array1n"] = "#pointer[r*#stride]";
-  accessors["arrayn1"] = "#pointer[r*#stride]";
-  stream << evaluate(PARENT_NODE_TYPE, accessors, expression, expression.root(), mapping) << ";" << std::endl;
+//  std::map<std::string, std::string> accessors;
+//  accessors["reduce_2d"] = "#name_buf[lidy*" + local_size_0_ld_str + "]";
+//  accessors["arrayn"] = "#pointer[r*#stride]";
+//  accessors["array1n"] = "#pointer[r*#stride]";
+//  accessors["arrayn1"] = "#pointer[r*#stride]";
+//  stream << evaluate(PARENT_NODE_TYPE, accessors, expression, expression.root(), mapping) << ";" << std::endl;
 
   stream.dec_tab();
   stream << "}" << std::endl;
@@ -391,7 +370,7 @@ reduce_2d::reduce_2d(reduce_2d::parameters_type const & parameters,
 
 std::vector<int_t> reduce_2d::input_sizes(expression_tree const & expression) const
 {
-  std::vector<std::size_t> idx = filter_nodes(&is_reduce_1d, expression, expression.root(), false);
+  std::vector<std::size_t> idx = filter(expression, &is_reduce_1d);
   std::pair<int_t, int_t> MN = matrix_size(expression.tree(), lhs_most(expression.tree(), idx[0]));
   if(reduce_1d_type_==REDUCE_COLUMNS)
     std::swap(MN.first,MN.second);
@@ -404,7 +383,7 @@ void reduce_2d::enqueue(driver::CommandQueue & queue, driver::Program const & pr
 
   std::vector<int_t> MN = input_sizes(expression);
   std::vector<expression_tree::node const *> reduce_1ds;
-  std::vector<size_t> reduce_1ds_idx = filter_nodes(&is_reduce_1d, expression, expression.root(), false);
+  std::vector<size_t> reduce_1ds_idx = filter(expression, &is_reduce_1d);
   for (size_t idx : reduce_1ds_idx)
     reduce_1ds.push_back(&expression.tree()[idx]);
 

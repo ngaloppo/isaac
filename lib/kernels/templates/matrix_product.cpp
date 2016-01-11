@@ -28,6 +28,8 @@
 #include "tools/arguments.hpp"
 #include "tools/vector_types.hpp"
 
+#include "../parse/set_arguments.hpp"
+
 #include <string>
 #include "isaac/tools/cpp/align.hpp"
 
@@ -613,8 +615,6 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     driver::NDRange global(align(align(M,p_.mS)/p_.mS, p_.local_size_0), align(align(N,p_.nS)/p_.nS, p_.local_size_1), p_.depth);
 
     unsigned int current_arg = 0;
-    bind_independent binder;
-    set_arguments_functor helper(binder, current_arg, matrix_product);
 
     driver::Buffer& workspace = driver::backend::workspaces::get(options.queue(C.context()));
     matrix_product.setSizeArg(current_arg++, M);
@@ -636,7 +636,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     }
 
 
-    helper.set_arguments(alpha.dtype(), alpha.values());
+    matrix_product.setArg(current_arg++, alpha);
     matrix_product.setArg(current_arg++, A.data());
     matrix_product.setSizeArg(current_arg++, A.stride()[1]);
     matrix_product.setSizeArg(current_arg++, A.start());
@@ -647,7 +647,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     matrix_product.setSizeArg(current_arg++, B.start());
     matrix_product.setSizeArg(current_arg++, B.stride()[0]);
 
-    helper.set_arguments(beta.dtype(), beta.values());
+    matrix_product.setArg(current_arg++, beta);
     options.enqueue(program.context(), matrix_product, global, local);
 
     if(p_.depth > 1)
@@ -656,7 +656,6 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
       driver::Kernel reduce(program, reduce_name.c_str());
       driver::NDRange local(p_.local_size_0, p_.local_size_1);
       driver::NDRange global(align(M, p_.local_size_0), align(N, p_.local_size_1));
-      set_arguments_functor helper(binder, current_arg, reduce);
       reduce.setSizeArg(current_arg++, M);
       reduce.setSizeArg(current_arg++, N);
       reduce.setSizeArg(current_arg++, p_.depth);
@@ -666,7 +665,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
       reduce.setSizeArg(current_arg++, C.stride()[1]);
       reduce.setSizeArg(current_arg++, C.start());
       reduce.setSizeArg(current_arg++, C.stride()[0]);
-      helper.set_arguments(beta.dtype(), beta.values());
+      reduce.setArg(current_arg++, beta);
       options.enqueue(program.context(), reduce, global, local);
     }
 

@@ -42,9 +42,6 @@ namespace detail
     if (root_node.lhs.subtype != INVALID_SUBTYPE)
       fun(root, LHS_NODE_TYPE);
 
-    //Self:
-    fun(root, PARENT_NODE_TYPE);
-
     //Rhs:
     if (root_node.rhs.subtype!=INVALID_SUBTYPE)
     {
@@ -53,8 +50,9 @@ namespace detail
       if (root_node.rhs.subtype != INVALID_SUBTYPE)
         fun(root, RHS_NODE_TYPE);
     }
-  }
 
+    fun(root, PARENT_NODE_TYPE);
+  }
 }
 
 template<class FUN>

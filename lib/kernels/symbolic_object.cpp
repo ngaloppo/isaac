@@ -134,12 +134,37 @@ bool object::hasattr(std::string const & name) const
   return attributes_.find(name) != attributes_.end();
 }
 
-std::string object::evaluate(std::map<std::string, std::string> const & accessors) const
+std::string object::evaluate(const std::string & str) const
+{ return process(str); }
+
+//
+arithmetic_node::arithmetic_node(operation_type type, size_t index, expression_tree const & expression, mapping_type const & mapping) : object("", "", ""), type_(type), op_str_(isaac::evaluate(type)), lhs(NULL), rhs(NULL)
 {
-  if (accessors.find(type_)==accessors.end())
-    return process("#name");
-  return process(accessors.at(type_));
+  expression_tree::node const & node = expression.tree()[index];
+  mapping_type::const_iterator it;
+
+  if((it = mapping.find({index, LHS_NODE_TYPE}))!=mapping.end())
+    lhs = it->second.get();
+  else if(node.lhs.subtype==COMPOSITE_OPERATOR_TYPE)
+    lhs = mapping.at({node.lhs.index, PARENT_NODE_TYPE}).get();
+
+  if((it = mapping.find({index, RHS_NODE_TYPE}))!=mapping.end())
+    rhs = it->second.get();
+  else if(node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
+    rhs = mapping.at({node.rhs.index, PARENT_NODE_TYPE}).get();
 }
+
+//
+binary_node::binary_node(operation_type type, size_t index, expression_tree const & expression, mapping_type const & mapping) : arithmetic_node(type, index, expression, mapping){}
+
+std::string binary_node::evaluate(std::string const & str) const
+{ return "(" + lhs->evaluate(str) + op_str_ + rhs->evaluate(str) + ")"; }
+
+//
+unary_node::unary_node(operation_type type, size_t index, expression_tree const & expression, mapping_type const & mapping) : arithmetic_node(type, index, expression, mapping){}
+
+std::string unary_node::evaluate(std::string const & str) const
+{ return op_str_ + "(" + lhs->evaluate(str) + ")"; }
 
 //
 reduction::reduction(std::string const & scalartype, unsigned int id, size_t root, op_element op, std::string const & type) :
@@ -161,8 +186,14 @@ reduce_2d::reduce_2d(std::string const & scalartype, unsigned int id, size_t roo
 //
 placeholder::placeholder(unsigned int level) : object("int", "sforidx" + tools::to_string(level), "placeholder"){}
 
+std::string placeholder::evaluate(std::string const &) const
+{ return process("#name"); }
+
 //
 host_scalar::host_scalar(std::string const & scalartype, unsigned int id) : object(scalartype, id, "host_scalar"){ }
+
+std::string host_scalar::evaluate(std::string const &) const
+{ return process("#name"); }
 
 //
 array::array(std::string const & scalartype, unsigned int id) : object(scalartype, id, "array")
@@ -239,13 +270,13 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, 
   size_t new_gt1 = numgt1(new_shape);
   size_t old_gt1 = numgt1(old_shape);
   if(new_gt1==1 && old_gt1==1)
-    lambdas_.insert("at(i): " + isaac::evaluate(LHS_NODE_TYPE, {{"array", process("at(i)")}}, expression, index, mapping));
+    lambdas_.insert("at(i): " + mapping.at({index, LHS_NODE_TYPE})->process("at(i)"));
   if(new_gt1==1 && old_gt1==2)
-    lambdas_.insert("at(i): " + isaac::evaluate(LHS_NODE_TYPE, {{"array", process("at(i%#old_inc1, i/#old_inc1)")}}, expression, index, mapping));
+    lambdas_.insert("at(i): " + mapping.at({index, LHS_NODE_TYPE})->process("at(i%#old_inc1, i/#old_inc1)"));
   if(new_gt1==2 && old_gt1==1)
-    lambdas_.insert("at(i,j): " + isaac::evaluate(LHS_NODE_TYPE, {{"array", process("at(i + j*#new_inc1)")}}, expression, index, mapping));
+    lambdas_.insert("at(i,j): " + mapping.at({index, LHS_NODE_TYPE})-> process("at(i + j*#new_inc1)"));
   if(new_gt1==2 && old_gt1==2)
-    lambdas_.insert("at(i,j): " + isaac::evaluate(LHS_NODE_TYPE, {{"array", process("at((i + j*#new_inc1)%#old_inc1, (i+j*#new_inc1)/#old_inc1)")}}, expression, index, mapping));
+    lambdas_.insert("at(i,j): " + mapping.at({index, LHS_NODE_TYPE})->process("at((i + j*#new_inc1)%#old_inc1, (i+j*#new_inc1)/#old_inc1)"));
 
   //Broadcast
   if(new_gt1!=new_shape.size())

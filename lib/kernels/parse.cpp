@@ -46,16 +46,16 @@ namespace detail
         || node.op.type_family==COLUMNS_DOT_TYPE_FAMILY;
   }
 
-  bool is_assignment(op_element const & op)
+  bool is_assignment(operation_type op)
   {
-      return op.type== ASSIGN_TYPE
-              || op.type== INPLACE_ADD_TYPE
-              || op.type== INPLACE_SUB_TYPE;
+      return op== ASSIGN_TYPE
+              || op== INPLACE_ADD_TYPE
+              || op== INPLACE_SUB_TYPE;
   }
 
   bool is_elementwise_operator(op_element const & op)
   {
-    return is_assignment(op)
+    return is_assignment(op.type)
         || op.type== ADD_TYPE
         || op.type== SUB_TYPE
         || op.type== ELEMENT_PROD_TYPE
@@ -140,46 +140,46 @@ namespace detail
 
 
 }
-//
-filter_fun::filter_fun(pred_t pred, std::vector<size_t> & out) : pred_(pred), out_(out)
-{ }
+////
+//filter_fun::filter_fun(pred_t pred, std::vector<size_t> & out) : pred_(pred), out_(out)
+//{ }
 
-void filter_fun::operator()(isaac::expression_tree const & expression_tree, size_t root_idx, leaf_t leaf) const
-{
-  expression_tree::node const * root_node = &expression_tree.tree()[root_idx];
-  if (leaf==PARENT_NODE_TYPE && pred_(*root_node))
-    out_.push_back(root_idx);
-}
+//void filter_fun::operator()(isaac::expression_tree const & expression_tree, size_t root_idx, leaf_t leaf) const
+//{
+//  expression_tree::node const * root_node = &expression_tree.tree()[root_idx];
+//  if (leaf==PARENT_NODE_TYPE && pred_(*root_node))
+//    out_.push_back(root_idx);
+//}
 
-//
-std::vector<size_t> filter_nodes(bool (*pred)(expression_tree::node const & node), isaac::expression_tree const & expression_tree, size_t root, bool inspect)
-{
-  std::vector<size_t> res;
-  traverse(expression_tree, root, filter_fun(pred, res), inspect);
-  return res;
-}
+////
+//std::vector<size_t> filter_nodes(bool (*pred)(expression_tree::node const & node), isaac::expression_tree const & expression_tree, size_t root, bool inspect)
+//{
+//  std::vector<size_t> res;
+//  traverse(expression_tree, root, filter_fun(pred, res), inspect);
+//  return res;
+//}
 
-//
-filter_elements_fun::filter_elements_fun(node_type subtype, std::vector<tree_node> & out) :
-  subtype_(subtype), out_(out)
-{ }
+////
+//filter_elements_fun::filter_elements_fun(node_type subtype, std::vector<tree_node> & out) :
+//  subtype_(subtype), out_(out)
+//{ }
 
-void filter_elements_fun::operator()(isaac::expression_tree const & expression_tree, size_t root_idx, leaf_t) const
-{
-  expression_tree::node const * root_node = &expression_tree.tree()[root_idx];
-  if (root_node->lhs.subtype==subtype_)
-    out_.push_back(root_node->lhs);
-  if (root_node->rhs.subtype==subtype_)
-    out_.push_back(root_node->rhs);
-}
+//void filter_elements_fun::operator()(isaac::expression_tree const & expression_tree, size_t root_idx, leaf_t) const
+//{
+//  expression_tree::node const * root_node = &expression_tree.tree()[root_idx];
+//  if (root_node->lhs.subtype==subtype_)
+//    out_.push_back(root_node->lhs);
+//  if (root_node->rhs.subtype==subtype_)
+//    out_.push_back(root_node->rhs);
+//}
 
 
-std::vector<tree_node> filter_elements(node_type subtype, isaac::expression_tree const & expression_tree)
-{
-  std::vector<tree_node> res;
-  traverse(expression_tree, expression_tree.root(), filter_elements_fun(subtype, res), true);
-  return res;
-}
+//std::vector<tree_node> filter_elements(node_type subtype, isaac::expression_tree const & expression_tree)
+//{
+//  std::vector<tree_node> res;
+//  traverse(expression_tree, expression_tree.root(), filter_elements_fun(subtype, res), true);
+//  return res;
+//}
 
 /** @brief generate a string from an operation_type */
 const char * evaluate(operation_type type)
@@ -258,164 +258,164 @@ const char * evaluate(operation_type type)
   }
 }
 
-evaluate_expression_traversal::evaluate_expression_traversal(std::map<std::string, std::string> const & accessors, std::string & str, symbolic::mapping_type const & mapping) :
-  accessors_(accessors), str_(str), mapping_(mapping)
-{ }
+//evaluate_expression_traversal::evaluate_expression_traversal(std::map<std::string, std::string> const & accessors, std::string & str, symbolic::mapping_type const & mapping) :
+//  accessors_(accessors), str_(str), mapping_(mapping)
+//{ }
 
-void evaluate_expression_traversal::call_before_expansion(isaac::expression_tree const & expression_tree, std::size_t root_idx) const
-{
-  expression_tree::node const & root_node = expression_tree.tree()[root_idx];
-  if(detail::is_cast(root_node.op))
-    str_ += mapping_.at(std::make_pair(root_idx, PARENT_NODE_TYPE))->evaluate(accessors_);
-  else if (( (root_node.op.type_family==UNARY_TYPE_FAMILY&&root_node.op.type!=ADD_TYPE) || detail::is_elementwise_function(root_node.op))
-      && !detail::is_node_leaf(root_node.op))
-    str_+=evaluate(root_node.op.type);
-  if(root_node.op.type!=OPERATOR_FUSE)
-    str_+="(";
-}
+//void evaluate_expression_traversal::call_before_expansion(isaac::expression_tree const & expression_tree, std::size_t root_idx) const
+//{
+//  expression_tree::node const & root_node = expression_tree.tree()[root_idx];
+//  if(detail::is_cast(root_node.op))
+//    str_ += mapping_.at(std::make_pair(root_idx, PARENT_NODE_TYPE))->evaluate(accessors_);
+//  else if (( (root_node.op.type_family==UNARY_TYPE_FAMILY&&root_node.op.type!=ADD_TYPE) || detail::is_elementwise_function(root_node.op))
+//      && !detail::is_node_leaf(root_node.op))
+//    str_+=evaluate(root_node.op.type);
+//  if(root_node.op.type!=OPERATOR_FUSE)
+//    str_+="(";
+//}
 
-void evaluate_expression_traversal::call_after_expansion(expression_tree const & expression_tree, std::size_t root_idx) const
-{
-  expression_tree::node const & root_node = expression_tree.tree()[root_idx];
-  if(root_node.op.type!=OPERATOR_FUSE)
-    str_+=")";
-}
+//void evaluate_expression_traversal::call_after_expansion(expression_tree const & expression_tree, std::size_t root_idx) const
+//{
+//  expression_tree::node const & root_node = expression_tree.tree()[root_idx];
+//  if(root_node.op.type!=OPERATOR_FUSE)
+//    str_+=")";
+//}
 
-void evaluate_expression_traversal::operator()(isaac::expression_tree const & expression_tree, std::size_t root_idx, leaf_t leaf) const
-{
-  expression_tree::node const & root_node = expression_tree.tree()[root_idx];
-  symbolic::mapping_type::key_type key = std::make_pair(root_idx, leaf);
-  if (leaf==PARENT_NODE_TYPE)
-  {
-    if (detail::is_node_leaf(root_node.op))
-      str_ += mapping_.at(key)->evaluate(accessors_);
-    else if(root_node.op.type_family!=UNARY_TYPE_FAMILY)
-    {
-      if (detail::is_elementwise_operator(root_node.op))
-        str_ += evaluate(root_node.op.type);
-      else if (detail::is_elementwise_function(root_node.op))
-        str_ += ",";
-    }
-  }
-  else
-  {
-    if (leaf==LHS_NODE_TYPE)
-    {
-      if (root_node.lhs.subtype!=COMPOSITE_OPERATOR_TYPE)
-      {
-        if (root_node.lhs.subtype==PLACEHOLDER_TYPE)
-          str_ += "sforidx" + tools::to_string(root_node.lhs.ph.level);
-        else
-          str_ += mapping_.at(key)->evaluate(accessors_);
-      }
-    }
+//void evaluate_expression_traversal::operator()(isaac::expression_tree const & expression_tree, std::size_t root_idx, leaf_t leaf) const
+//{
+//  expression_tree::node const & root_node = expression_tree.tree()[root_idx];
+//  symbolic::mapping_type::key_type key = std::make_pair(root_idx, leaf);
+//  if (leaf==PARENT_NODE_TYPE)
+//  {
+//    if (detail::is_node_leaf(root_node.op))
+//      str_ += mapping_.at(key)->evaluate(accessors_);
+//    else if(root_node.op.type_family!=UNARY_TYPE_FAMILY)
+//    {
+//      if (detail::is_elementwise_operator(root_node.op))
+//        str_ += evaluate(root_node.op.type);
+//      else if (detail::is_elementwise_function(root_node.op))
+//        str_ += ",";
+//    }
+//  }
+//  else
+//  {
+//    if (leaf==LHS_NODE_TYPE)
+//    {
+//      if (root_node.lhs.subtype!=COMPOSITE_OPERATOR_TYPE)
+//      {
+//        if (root_node.lhs.subtype==PLACEHOLDER_TYPE)
+//          str_ += "sforidx" + tools::to_string(root_node.lhs.ph.level);
+//        else
+//          str_ += mapping_.at(key)->evaluate(accessors_);
+//      }
+//    }
 
-    if (leaf==RHS_NODE_TYPE)
-    {
-      if (root_node.rhs.subtype!=COMPOSITE_OPERATOR_TYPE)
-      {
-        if (root_node.rhs.subtype==PLACEHOLDER_TYPE)
-          str_ += "sforidx" + tools::to_string(root_node.rhs.ph.level);
-        else
-          str_ += mapping_.at(key)->evaluate(accessors_);
-      }
-    }
+//    if (leaf==RHS_NODE_TYPE)
+//    {
+//      if (root_node.rhs.subtype!=COMPOSITE_OPERATOR_TYPE)
+//      {
+//        if (root_node.rhs.subtype==PLACEHOLDER_TYPE)
+//          str_ += "sforidx" + tools::to_string(root_node.rhs.ph.level);
+//        else
+//          str_ += mapping_.at(key)->evaluate(accessors_);
+//      }
+//    }
 
-  }
-}
-
-
-std::string evaluate(leaf_t leaf, std::map<std::string, std::string> const & accessors,
-                            isaac::expression_tree const & expression_tree, std::size_t root_idx, symbolic::mapping_type const & mapping)
-{
-  std::string res;
-  evaluate_expression_traversal traversal_functor(accessors, res, mapping);
-  expression_tree::node const & root_node = expression_tree.tree()[root_idx];
-
-  if (leaf==RHS_NODE_TYPE)
-  {
-    if (root_node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
-      traverse(expression_tree, root_node.rhs.index, traversal_functor, false);
-    else
-      traversal_functor(expression_tree, root_idx, leaf);
-  }
-  else if (leaf==LHS_NODE_TYPE)
-  {
-    if (root_node.lhs.subtype==COMPOSITE_OPERATOR_TYPE)
-      traverse(expression_tree, root_node.lhs.index, traversal_functor, false);
-    else
-      traversal_functor(expression_tree, root_idx, leaf);
-  }
-  else
-    traverse(expression_tree, root_idx, traversal_functor, false);
-
-  return res;
-}
-
-void evaluate(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
-                     expression_tree const & x, symbolic::mapping_type const & mapping)
-{
-  stream << evaluate(leaf, accessors, x, x.root(), mapping) << std::endl;
-}
-
-process_traversal::process_traversal(std::map<std::string, std::string> const & accessors, kernel_generation_stream & stream,
-                  symbolic::mapping_type const & mapping, std::set<std::string> & already_processed) :
-  accessors_(accessors),  stream_(stream), mapping_(mapping), already_processed_(already_processed)
-{ }
-
-void process_traversal::operator()(expression_tree const & /*expression_tree*/, std::size_t root_idx, leaf_t leaf) const
-{
-  symbolic::mapping_type::const_iterator it = mapping_.find(std::make_pair(root_idx, leaf));
-  if (it!=mapping_.end())
-  {
-    symbolic::object * obj = it->second.get();
-    std::string name = obj->process("#name");
-
-    if(accessors_.find(name)!=accessors_.end() && already_processed_.insert(name).second)
-      for(std::map<std::string, std::string>::const_iterator itt = accessors_.lower_bound(name) ; itt != accessors_.upper_bound(name) ; ++itt)
-        stream_ << obj->process(itt->second) << std::endl;
-
-    std::string key = obj->type();
-    if(accessors_.find(key)!=accessors_.end() && already_processed_.insert(name).second)
-      for(std::map<std::string, std::string>::const_iterator itt = accessors_.lower_bound(key) ; itt != accessors_.upper_bound(key) ; ++itt)
-        stream_ << obj->process(itt->second) << std::endl;
-  }
-}
+//  }
+//}
 
 
-void process(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
-                    isaac::expression_tree const & expression_tree, size_t root_idx, symbolic::mapping_type const & mapping, std::set<std::string> & already_processed)
-{
-  process_traversal traversal_functor(accessors, stream, mapping, already_processed);
-  expression_tree::node const & root_node = expression_tree.tree()[root_idx];
+//std::string evaluate(leaf_t leaf, std::map<std::string, std::string> const & accessors,
+//                            isaac::expression_tree const & expression_tree, std::size_t root_idx, symbolic::mapping_type const & mapping)
+//{
+//  std::string res;
+//  evaluate_expression_traversal traversal_functor(accessors, res, mapping);
+//  expression_tree::node const & root_node = expression_tree.tree()[root_idx];
 
-  if (leaf==RHS_NODE_TYPE)
-  {
-    if (root_node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
-      traverse(expression_tree, root_node.rhs.index, traversal_functor, true);
-    else
-      traversal_functor(expression_tree, root_idx, leaf);
-  }
-  else if (leaf==LHS_NODE_TYPE)
-  {
-    if (root_node.lhs.subtype==COMPOSITE_OPERATOR_TYPE)
-      traverse(expression_tree, root_node.lhs.index, traversal_functor, true);
-    else
-      traversal_functor(expression_tree, root_idx, leaf);
-  }
-  else
-  {
-    traverse(expression_tree, root_idx, traversal_functor, true);
-  }
-}
+//  if (leaf==RHS_NODE_TYPE)
+//  {
+//    if (root_node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
+//      traverse(expression_tree, root_node.rhs.index, traversal_functor, false);
+//    else
+//      traversal_functor(expression_tree, root_idx, leaf);
+//  }
+//  else if (leaf==LHS_NODE_TYPE)
+//  {
+//    if (root_node.lhs.subtype==COMPOSITE_OPERATOR_TYPE)
+//      traverse(expression_tree, root_node.lhs.index, traversal_functor, false);
+//    else
+//      traversal_functor(expression_tree, root_idx, leaf);
+//  }
+//  else
+//    traverse(expression_tree, root_idx, traversal_functor, false);
+
+//  return res;
+//}
+
+//void evaluate(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
+//                     expression_tree const & x, symbolic::mapping_type const & mapping)
+//{
+//  stream << evaluate(leaf, accessors, x, x.root(), mapping) << std::endl;
+//}
+
+//process_traversal::process_traversal(std::map<std::string, std::string> const & accessors, kernel_generation_stream & stream,
+//                  symbolic::mapping_type const & mapping, std::set<std::string> & already_processed) :
+//  accessors_(accessors),  stream_(stream), mapping_(mapping), already_processed_(already_processed)
+//{ }
+
+//void process_traversal::operator()(expression_tree const & /*expression_tree*/, std::size_t root_idx, leaf_t leaf) const
+//{
+//  symbolic::mapping_type::const_iterator it = mapping_.find(std::make_pair(root_idx, leaf));
+//  if (it!=mapping_.end())
+//  {
+//    symbolic::object * obj = it->second.get();
+//    std::string name = obj->process("#name");
+
+//    if(accessors_.find(name)!=accessors_.end() && already_processed_.insert(name).second)
+//      for(std::map<std::string, std::string>::const_iterator itt = accessors_.lower_bound(name) ; itt != accessors_.upper_bound(name) ; ++itt)
+//        stream_ << obj->process(itt->second) << std::endl;
+
+//    std::string key = obj->type();
+//    if(accessors_.find(key)!=accessors_.end() && already_processed_.insert(name).second)
+//      for(std::map<std::string, std::string>::const_iterator itt = accessors_.lower_bound(key) ; itt != accessors_.upper_bound(key) ; ++itt)
+//        stream_ << obj->process(itt->second) << std::endl;
+//  }
+//}
 
 
-void process(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
-                    expression_tree const & x, symbolic::mapping_type const & mapping)
-{
-  std::set<std::string> processed;
-  process(stream, leaf, accessors, x, x.root(), mapping, processed);
-}
+//void process(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
+//                    isaac::expression_tree const & expression_tree, size_t root_idx, symbolic::mapping_type const & mapping, std::set<std::string> & already_processed)
+//{
+//  process_traversal traversal_functor(accessors, stream, mapping, already_processed);
+//  expression_tree::node const & root_node = expression_tree.tree()[root_idx];
+
+//  if (leaf==RHS_NODE_TYPE)
+//  {
+//    if (root_node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
+//      traverse(expression_tree, root_node.rhs.index, traversal_functor, true);
+//    else
+//      traversal_functor(expression_tree, root_idx, leaf);
+//  }
+//  else if (leaf==LHS_NODE_TYPE)
+//  {
+//    if (root_node.lhs.subtype==COMPOSITE_OPERATOR_TYPE)
+//      traverse(expression_tree, root_node.lhs.index, traversal_functor, true);
+//    else
+//      traversal_functor(expression_tree, root_idx, leaf);
+//  }
+//  else
+//  {
+//    traverse(expression_tree, root_idx, traversal_functor, true);
+//  }
+//}
+
+
+//void process(kernel_generation_stream & stream, leaf_t leaf, std::map<std::string, std::string> const & accessors,
+//                    expression_tree const & x, symbolic::mapping_type const & mapping)
+//{
+//  std::set<std::string> processed;
+//  process(stream, leaf, accessors, x, x.root(), mapping, processed);
+//}
 
 
 void expression_tree_representation_functor::append_id(char * & ptr, unsigned int val)
@@ -463,7 +463,7 @@ void expression_tree_representation_functor::operator()(isaac::expression_tree c
 {
   expression_tree::node const & root_node = expression_tree.tree()[root_idx];
   if (leaf_t==LHS_NODE_TYPE && root_node.lhs.subtype != COMPOSITE_OPERATOR_TYPE)
-    append(root_node.lhs, detail::is_assignment(root_node.op));
+    append(root_node.lhs, detail::is_assignment(root_node.op.type));
   else if (leaf_t==RHS_NODE_TYPE && root_node.rhs.subtype != COMPOSITE_OPERATOR_TYPE)
     append(root_node.rhs, false);
   else if (leaf_t==PARENT_NODE_TYPE)
