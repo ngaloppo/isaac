@@ -112,7 +112,7 @@ std::string base::generate(std::string const & suffix, expression_tree const  & 
     throw operation_not_supported_exception("The supplied parameters for this template are invalid : err " + tools::to_string(err));
 
   //Create mapping
-  symbolic::mapping_type mapping = symbolize(binding_policy_, expression, device);
+  symbolic::mapping_type mapping = symbolize(binding_policy_, expression);
   return generate_impl(suffix, expression, device, mapping);
 }
 

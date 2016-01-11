@@ -26,6 +26,7 @@
 
 #include "isaac/array.h"
 #include "isaac/tuple.h"
+#include "isaac/exception/operation_not_supported.h"
 #include "isaac/kernels/symbolic_object.h"
 #include "isaac/kernels/parse.h"
 #include "isaac/kernels/stream.h"
@@ -138,7 +139,7 @@ std::string object::evaluate(const std::string & str) const
 { return process(str); }
 
 //
-arithmetic_node::arithmetic_node(operation_type type, size_t index, expression_tree const & expression, mapping_type const & mapping) : object("", "", ""), type_(type), op_str_(isaac::evaluate(type)), lhs(NULL), rhs(NULL)
+arithmetic_node::arithmetic_node(operation_type type, size_t index, expression_tree const & expression, mapping_type const & mapping) : object("", "", ""), type_(type), op_str_(to_string(type)), lhs(NULL), rhs(NULL)
 {
   expression_tree::node const & node = expression.tree()[index];
   mapping_type::const_iterator it;

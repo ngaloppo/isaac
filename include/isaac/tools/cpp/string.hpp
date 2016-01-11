@@ -111,6 +111,19 @@ inline std::vector<std::string> tokenize(std::string const & str,std::string con
   return result;
 }
 
+//
+inline void fast_append(char * & ptr, unsigned int val)
+{
+  if (val==0)
+    *ptr++='0';
+  else
+    while (val>0)
+    {
+      *ptr++= (char)('0' + (val % 10));
+      val /= 10;
+    }
+}
+
 }
 }
 

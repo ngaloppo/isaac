@@ -31,7 +31,7 @@ kernel_generation_stream::kgenstream::kgenstream(std::ostringstream& oss,unsigne
 int kernel_generation_stream::kgenstream::sync()
 {
   for (unsigned int i=0; i<tab_count_;++i)
-    oss_ << "    ";
+    oss_ << "  ";
   oss_ << str();
   str("");
   return !oss_;

@@ -37,6 +37,7 @@
 #include "isaac/kernels/templates/matrix_product.h"
 #include "isaac/exception/operation_not_supported.h"
 
+#include "../kernels/parse/hash.hpp"
 
 #include "isaac/tools/sys/getenv.hpp"
 #include "isaac/tools/cpp/string.hpp"
@@ -55,18 +56,9 @@ driver::Program const & profiles::value_type::init(execution_handler const & exp
   std::string pname;
   compilation_options_type const & opt = expression.compilation_options();
   if(opt.program_name.empty())
-  {
-    char program_name[256];
-
-    char* ptr = program_name;
-    bind_independent binder;
-    traverse(expression.x(), expression.x().root(), expression_tree_representation_functor(binder, ptr),true);
-    *ptr='\0';
-    pname = std::string(program_name);
-
-  }
+    pname = hash(expression.x());
   else
-    pname = expression.compilation_options().program_name;
+    pname = opt.program_name;
 
   driver::Program const * program = cache_.find(pname);
 

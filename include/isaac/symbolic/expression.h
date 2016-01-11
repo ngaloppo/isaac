@@ -154,6 +154,8 @@ enum operation_type
   SFOR_TYPE,
 };
 
+std::string to_string(operation_type type);
+
 struct op_element
 {
   op_element();

@@ -26,6 +26,7 @@
 #include "isaac/kernels/keywords.h"
 #include "isaac/kernels/stream.h"
 #include "isaac/symbolic/expression.h"
+#include "isaac/kernels/symbolic_object.h"
 #include "isaac/types.h"
 
 namespace isaac
@@ -36,9 +37,9 @@ namespace templates
 inline void compute_reduce_1d(kernel_generation_stream & os, std::string acc, std::string cur, op_element const & op)
 {
   if (detail::is_elementwise_function(op))
-    os << acc << "=" << evaluate(op.type) << "(" << acc << "," << cur << ");" << std::endl;
+    os << acc << "=" << to_string(op.type) << "(" << acc << "," << cur << ");" << std::endl;
   else
-    os << acc << "= (" << acc << ")" << evaluate(op.type)  << "(" << cur << ");" << std::endl;
+    os << acc << "= (" << acc << ")" << to_string(op.type)  << "(" << cur << ");" << std::endl;
 }
 
 inline void compute_index_reduce_1d(kernel_generation_stream & os, std::string acc, std::string cur, std::string const & acc_value, std::string const & cur_value, op_element const & op)
