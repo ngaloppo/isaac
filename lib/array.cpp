@@ -30,7 +30,7 @@
 #include "isaac/exception/unknown_datatype.h"
 #include "isaac/profiles/profiles.h"
 #include "isaac/symbolic/execute.h"
-#include "isaac/symbolic/io.h"
+#include "isaac/symbolic/expression/io.h"
 
 namespace isaac
 {
@@ -790,14 +790,14 @@ namespace detail
     operation_type type = MATRIX_PRODUCT_NN_TYPE;
     tuple shape{A.shape()[0], B.shape()[1]};
 
-    expression_tree::node & A_root = const_cast<expression_tree::node &>(A.tree()[A.root()]);
+    expression_tree::node & A_root = const_cast<expression_tree::node &>(A.data()[A.root()]);
     bool A_trans = A_root.op.type==TRANS_TYPE;
     if(A_trans){
       type = MATRIX_PRODUCT_TN_TYPE;
     }
 
     expression_tree res(A, B, op_element(MATRIX_PRODUCT_TYPE_FAMILY, type), A.context(), A.dtype(), shape);
-    expression_tree::node & res_root = const_cast<expression_tree::node &>(res.tree()[res.root()]);
+    expression_tree::node & res_root = const_cast<expression_tree::node &>(res.data()[res.root()]);
     if(A_trans) res_root.lhs = A_root.lhs;
     return res;
   }
@@ -807,14 +807,14 @@ namespace detail
     operation_type type = MATRIX_PRODUCT_NN_TYPE;
     tuple shape{A.shape()[0], B.shape()[1]};
 
-    expression_tree::node & B_root = const_cast<expression_tree::node &>(B.tree()[B.root()]);
+    expression_tree::node & B_root = const_cast<expression_tree::node &>(B.data()[B.root()]);
     bool B_trans = B_root.op.type==TRANS_TYPE;
     if(B_trans){
       type = MATRIX_PRODUCT_NT_TYPE;
     }
 
     expression_tree res(A, B, op_element(MATRIX_PRODUCT_TYPE_FAMILY, type), A.context(), A.dtype(), shape);
-    expression_tree::node & res_root = const_cast<expression_tree::node &>(res.tree()[res.root()]);
+    expression_tree::node & res_root = const_cast<expression_tree::node &>(res.data()[res.root()]);
     if(B_trans) res_root.rhs = B_root.lhs;
     return res;
   }
@@ -822,8 +822,8 @@ namespace detail
   expression_tree matmatprod(expression_tree const & A, expression_tree const & B)
   {
     operation_type type = MATRIX_PRODUCT_NN_TYPE;
-    expression_tree::node & A_root = const_cast<expression_tree::node &>(A.tree()[A.root()]);
-    expression_tree::node & B_root = const_cast<expression_tree::node &>(B.tree()[B.root()]);
+    expression_tree::node & A_root = const_cast<expression_tree::node &>(A.data()[A.root()]);
+    expression_tree::node & B_root = const_cast<expression_tree::node &>(B.data()[B.root()]);
     tuple shape{A.shape()[0], B.shape()[1]};
 
     bool A_trans = A_root.op.type==TRANS_TYPE;
@@ -835,7 +835,7 @@ namespace detail
     else type = MATRIX_PRODUCT_NN_TYPE;
 
     expression_tree res(A, B, op_element(MATRIX_PRODUCT_TYPE_FAMILY, type), A.context(), A.dtype(), shape);
-    expression_tree::node & res_root = const_cast<expression_tree::node &>(res.tree()[res.root()]);
+    expression_tree::node & res_root = const_cast<expression_tree::node &>(res.data()[res.root()]);
     if(A_trans) res_root.lhs = A_root.lhs;
     if(B_trans) res_root.rhs = B_root.lhs;
     return res;
@@ -854,17 +854,17 @@ namespace detail
   {
     int_t M = A.shape()[0];
     int_t N = A.shape()[1];
-    expression_tree::node & A_root = const_cast<expression_tree::node &>(A.tree()[A.root()]);
+    expression_tree::node & A_root = const_cast<expression_tree::node &>(A.data()[A.root()]);
     bool A_trans = A_root.op.type==TRANS_TYPE;
-    while(A_root.lhs.subtype==COMPOSITE_OPERATOR_TYPE){
-        A_root = A.tree()[A_root.lhs.index];
+    while(A_root.lhs.type==COMPOSITE_OPERATOR_TYPE){
+        A_root = A.data()[A_root.lhs.index];
         A_trans ^= A_root.op.type==TRANS_TYPE;
     }
     if(A_trans)
     {
       expression_tree tmp(A, repmat(x, 1, M), op_element(BINARY_TYPE_FAMILY, ELEMENT_PROD_TYPE), A.context(), A.dtype(), {N, M});
       //Remove trans
-      tmp.tree()[tmp.root()].lhs = A.tree()[A.root()].lhs;
+      tmp.data()[tmp.root()].lhs = A.data()[A.root()].lhs;
       return sum(tmp, 0);
     }
     else

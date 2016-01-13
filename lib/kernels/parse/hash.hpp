@@ -38,7 +38,7 @@ inline std::string hash(expression_tree const & expression)
 
   auto hash_leaf = [&](tree_node const & node, bool is_assigned)
   {
-    if(node.subtype==DENSE_ARRAY_TYPE)
+    if(node.type==DENSE_ARRAY_TYPE)
     {
         for(int i = 0 ; i < node.array->dim() ; ++i)
           *ptr++= node.array->shape()[i]>1?'n':'1';
@@ -50,10 +50,10 @@ inline std::string hash(expression_tree const & expression)
 
   auto hash_impl = [&](size_t idx, leaf_t leaf)
   {
-    expression_tree::node const & node = expression.tree()[idx];
-    if (leaf==LHS_NODE_TYPE && node.lhs.subtype != COMPOSITE_OPERATOR_TYPE)
+    expression_tree::node const & node = expression.data()[idx];
+    if (leaf==LHS_NODE_TYPE && node.lhs.type != COMPOSITE_OPERATOR_TYPE)
       hash_leaf(node.lhs, detail::is_assignment(node.op.type));
-    else if (leaf==RHS_NODE_TYPE && node.rhs.subtype != COMPOSITE_OPERATOR_TYPE)
+    else if (leaf==RHS_NODE_TYPE && node.rhs.type != COMPOSITE_OPERATOR_TYPE)
       hash_leaf(node.rhs, false);
     else if (leaf==PARENT_NODE_TYPE)
       tools::fast_append(ptr,node.op.type);

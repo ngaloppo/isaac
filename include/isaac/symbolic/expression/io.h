@@ -23,7 +23,7 @@
 #define ISAAC_SCHEDULER_IO_H
 
 #include <iostream>
-#include "isaac/symbolic/expression.h"
+#include "isaac/symbolic/expression/expression.h"
 
 namespace isaac
 {

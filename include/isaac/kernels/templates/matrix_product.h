@@ -23,8 +23,8 @@
 #define ISAAC_BACKEND_TEMPLATES_MPRODUCT_H
 
 #include "isaac/kernels/templates/base.h"
-#include "isaac/symbolic/expression.h"
-#include "isaac/symbolic/preset.h"
+#include "isaac/symbolic/expression/expression.h"
+#include "isaac/symbolic/expression/preset.h"
 
 namespace isaac
 {

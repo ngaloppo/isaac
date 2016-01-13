@@ -25,7 +25,7 @@
 #include "isaac/driver/common.h"
 #include "isaac/kernels/keywords.h"
 #include "isaac/kernels/stream.h"
-#include "isaac/symbolic/expression.h"
+#include "isaac/symbolic/expression/expression.h"
 #include "isaac/kernels/symbolic_object.h"
 #include "isaac/types.h"
 

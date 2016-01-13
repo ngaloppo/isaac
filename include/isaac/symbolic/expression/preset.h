@@ -22,7 +22,7 @@
 #ifndef ISAAC_SYMBOLIC_PRESET_H_
 #define ISAAC_SYMBOLIC_PRESET_H_
 
-#include "isaac/symbolic/expression.h"
+#include "isaac/symbolic/expression/expression.h"
 
 namespace isaac
 {
@@ -53,12 +53,11 @@ public:
             return type!=INVALID_EXPRESSION_TYPE && C!=NULL;
         }
     };
-
 private:
-    static void handle_node( expression_tree::container_type const &tree, size_t rootidx, args & a);
+    static void handle_node( expression_tree::data_type const &tree, size_t rootidx, args & a);
 
 public:
-    static args check(expression_tree::container_type const &tree, size_t rootidx);
+    static args check(expression_tree::data_type const &tree, size_t rootidx);
 };
 
 }

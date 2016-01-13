@@ -25,7 +25,7 @@
 #include <iostream>
 #include "isaac/defines.h"
 #include "isaac/driver/backend.h"
-#include "isaac/symbolic/expression.h"
+#include "isaac/symbolic/expression/expression.h"
 #include "isaac/types.h"
 #include "isaac/tools/cpp/tuple.hpp"
 

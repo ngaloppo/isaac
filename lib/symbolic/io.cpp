@@ -23,7 +23,7 @@
 #include <sstream>
 #include <string>
 
-#include "isaac/symbolic/io.h"
+#include "isaac/symbolic/expression/io.h"
 #include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
@@ -44,11 +44,11 @@ inline std::string to_string(node_type const & f)
 
 inline std::string to_string(tree_node const & e)
 {
-  if(e.subtype==COMPOSITE_OPERATOR_TYPE)
+  if(e.type==COMPOSITE_OPERATOR_TYPE)
   {
     return"COMPOSITE [" + tools::to_string(e.index) + "]";
   }
-  return tools::to_string(e.subtype);
+  return tools::to_string(e.type);
 }
 
 inline std::ostream & operator<<(std::ostream & os, expression_tree::node const & s_node)
@@ -66,7 +66,7 @@ namespace detail
   /** @brief Recursive worker routine for printing a whole expression_tree */
   inline void print_node(std::ostream & os, isaac::expression_tree const & s, size_t index, size_t indent = 0)
   {
-    expression_tree::container_type const & nodes = s.tree();
+    expression_tree::data_type const & nodes = s.data();
     expression_tree::node const & current_node = nodes[index];
 
     for (size_t i=0; i<indent; ++i)
@@ -74,10 +74,10 @@ namespace detail
 
     os << "Node " << index << ": " << current_node << std::endl;
 
-    if (current_node.lhs.subtype == COMPOSITE_OPERATOR_TYPE)
+    if (current_node.lhs.type == COMPOSITE_OPERATOR_TYPE)
       print_node(os, s, current_node.lhs.index, indent+1);
 
-    if (current_node.rhs.subtype == COMPOSITE_OPERATOR_TYPE)
+    if (current_node.rhs.type == COMPOSITE_OPERATOR_TYPE)
       print_node(os, s, current_node.rhs.index, indent+1);
   }
 }

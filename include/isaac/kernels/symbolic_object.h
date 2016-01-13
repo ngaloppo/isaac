@@ -27,7 +27,7 @@
 #include <string>
 #include "isaac/types.h"
 #include "isaac/kernels/stream.h"
-#include "isaac/symbolic/expression.h"
+#include "isaac/symbolic/expression/expression.h"
 
 namespace isaac
 {
@@ -227,7 +227,7 @@ public:
   cast(operation_type type, unsigned int id);
 };
 
-extern object& get(expression_tree::container_type const &, size_t, symbolic::mapping_type const &, size_t);
+extern object& get(expression_tree::data_type const &, size_t, symbolic::mapping_type const &, size_t);
 
 }
 

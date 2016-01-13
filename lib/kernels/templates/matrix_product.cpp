@@ -22,7 +22,7 @@
 #include "isaac/array.h"
 #include "isaac/kernels/templates/matrix_product.h"
 #include "isaac/kernels/keywords.h"
-#include "isaac/symbolic/preset.h"
+#include "isaac/symbolic/expression/preset.h"
 #include "isaac/exception/operation_not_supported.h"
 
 #include "tools/arguments.hpp"
@@ -52,7 +52,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
   unsigned int matrix_product::lmem_usage(expression_tree const & expression) const
   {
-    numeric_type numeric_t = lhs_most(expression.tree(), expression.root()).lhs.dtype;
+    numeric_type numeric_t = lhs_most(expression.data(), expression.root()).lhs.dtype;
     unsigned int N = 0;
     N += p_.kL * p_.mL;
     N += p_.nL * p_.kL;
@@ -61,7 +61,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
   unsigned int matrix_product::registers_usage(expression_tree const & expression) const
   {
-    numeric_type numeric_t = lhs_most(expression.tree(), expression.root()).lhs.dtype;
+    numeric_type numeric_t = lhs_most(expression.data(), expression.root()).lhs.dtype;
 
     unsigned int N = p_.mS * p_.nS + p_.mS * p_.kS + p_.kS * p_.nS;
     return N*size_of(numeric_t);
@@ -146,7 +146,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     /// INIT
     /// //////////////
     kernel_generation_stream stream;
-    numeric_type dtype = lhs_most(expression.tree(), expression.root()).lhs.dtype;
+    numeric_type dtype = lhs_most(expression.data(), expression.root()).lhs.dtype;
     std::string sdtype = to_string(dtype);
     std::string vdtype = append_width(sdtype, p_.simd_width);
     std::string _size_t = size_type(device);
@@ -673,7 +673,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
   std::vector<int_t> matrix_product::infos(expression_tree const & expression, symbolic::preset::matrix_product::args& arguments) const
   {
-    expression_tree::container_type const & array = expression.tree();
+    expression_tree::data_type const & array = expression.data();
     std::size_t root = expression.root();
     arguments = symbolic::preset::matrix_product::check(array, root);
     int_t M = arguments.C->array->shape()[0];

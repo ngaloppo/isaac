@@ -26,8 +26,8 @@
 #include "isaac/types.h"
 #include "isaac/array.h"
 #include "isaac/profiles/profiles.h"
-#include "isaac/symbolic/expression.h"
-#include "isaac/symbolic/preset.h"
+#include "isaac/symbolic/expression/expression.h"
+#include "isaac/symbolic/expression/preset.h"
 
 namespace isaac
 {
@@ -126,7 +126,7 @@ namespace isaac
     }
 
     /** @brief Parses the breakpoints for a given expression tree */
-    static void parse(expression_tree::container_type&array, size_t idx,
+    static void parse(expression_tree::data_type&array, size_t idx,
                breakpoints_t & breakpoints,
                expression_type & final_type,
                bool is_first = true)
@@ -136,9 +136,9 @@ namespace isaac
       auto ng1 = [](tuple const & shape){ size_t res = 0 ; for(size_t i = 0 ; i < shape.size() ; ++i) res += (shape[i] > 1); return res;};
       //Left
       expression_type type_left = INVALID_EXPRESSION_TYPE;
-      if (node.lhs.subtype == COMPOSITE_OPERATOR_TYPE)
+      if (node.lhs.type == COMPOSITE_OPERATOR_TYPE)
           parse(array, node.lhs.index, breakpoints, type_left, false);
-      else if(node.lhs.subtype == DENSE_ARRAY_TYPE)
+      else if(node.lhs.type == DENSE_ARRAY_TYPE)
       {
           if(node.op.type==MATRIX_ROW_TYPE || node.op.type==MATRIX_COLUMN_TYPE || ng1(node.lhs.array->shape())<=1)
               type_left = ELEMENTWISE_1D;
@@ -148,9 +148,9 @@ namespace isaac
 
       //Right
       expression_type type_right = INVALID_EXPRESSION_TYPE;
-      if (node.rhs.subtype == COMPOSITE_OPERATOR_TYPE)
+      if (node.rhs.type == COMPOSITE_OPERATOR_TYPE)
           parse(array, node.rhs.index, breakpoints, type_right, false);
-      else if(node.rhs.subtype == DENSE_ARRAY_TYPE)
+      else if(node.rhs.type == DENSE_ARRAY_TYPE)
       {
           if(node.op.type==MATRIX_ROW_TYPE || node.op.type==MATRIX_COLUMN_TYPE || ng1(node.rhs.array->shape())<=1)
               type_right = ELEMENTWISE_1D;
@@ -173,7 +173,7 @@ namespace isaac
     expression_tree expression = c.x();
     driver::Context const & context = expression.context();
     size_t rootidx = expression.root();
-    expression_tree::container_type & tree = const_cast<expression_tree::container_type &>(expression.tree());
+    expression_tree::data_type & tree = const_cast<expression_tree::data_type &>(expression.data());
     expression_tree::node root_save = tree[rootidx];
 
     //Todo: technically the datatype should be per temporary
@@ -232,7 +232,7 @@ namespace isaac
           tree[rootidx].op.type = ASSIGN_TYPE;
           fill(tree[rootidx].lhs, (array&)*tmp);
           tree[rootidx].rhs = *it->second;
-          tree[rootidx].rhs.subtype = it->second->subtype;
+          tree[rootidx].rhs.type = it->second->type;
 
           //Execute
           profile->execute(execution_handler(expression, c.execution_options(), c.dispatcher_options(), c.compilation_options()));

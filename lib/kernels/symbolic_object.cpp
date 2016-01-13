@@ -30,7 +30,7 @@
 #include "isaac/kernels/symbolic_object.h"
 #include "isaac/kernels/parse.h"
 #include "isaac/kernels/stream.h"
-#include "isaac/symbolic/expression.h"
+#include "isaac/symbolic/expression/expression.h"
 #include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
@@ -141,17 +141,17 @@ std::string object::evaluate(const std::string & str) const
 //
 arithmetic_node::arithmetic_node(operation_type type, size_t index, expression_tree const & expression, mapping_type const & mapping) : object("", "", ""), type_(type), op_str_(to_string(type)), lhs(NULL), rhs(NULL)
 {
-  expression_tree::node const & node = expression.tree()[index];
+  expression_tree::node const & node = expression.data()[index];
   mapping_type::const_iterator it;
 
   if((it = mapping.find({index, LHS_NODE_TYPE}))!=mapping.end())
     lhs = it->second.get();
-  else if(node.lhs.subtype==COMPOSITE_OPERATOR_TYPE)
+  else if(node.lhs.type==COMPOSITE_OPERATOR_TYPE)
     lhs = mapping.at({node.lhs.index, PARENT_NODE_TYPE}).get();
 
   if((it = mapping.find({index, RHS_NODE_TYPE}))!=mapping.end())
     rhs = it->second.get();
-  else if(node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
+  else if(node.rhs.type==COMPOSITE_OPERATOR_TYPE)
     rhs = mapping.at({node.rhs.index, PARENT_NODE_TYPE}).get();
 }
 
@@ -250,9 +250,9 @@ index_modifier::index_modifier(const std::string &scalartype, unsigned int id, s
 //Reshaping
 reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, expression_tree const & expression, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
 {
-  expression_tree::node node = expression.tree()[index];
+  expression_tree::node node = expression.data()[index];
   tuple new_shape = node.shape;
-  tuple old_shape = node.lhs.subtype==DENSE_ARRAY_TYPE?node.lhs.array->shape():expression.tree()[node.lhs.index].shape;
+  tuple old_shape = node.lhs.type==DENSE_ARRAY_TYPE?node.lhs.array->shape():expression.data()[node.lhs.index].shape;
 
   //Attributes
   for(unsigned int i = 1 ; i < new_shape.size() ; ++i)
@@ -330,11 +330,11 @@ std::string cast::operator_to_str(operation_type type)
 cast::cast(operation_type type, unsigned int id) : object(operator_to_str(type), id, "cast")
 { }
 
-object& get(expression_tree::container_type const & tree, size_t root, mapping_type const & mapping, size_t idx)
+object& get(expression_tree::data_type const & tree, size_t root, mapping_type const & mapping, size_t idx)
 {
   for(unsigned int i = 0 ; i < idx ; ++i){
       expression_tree::node node = tree[root];
-      if(node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
+      if(node.rhs.type==COMPOSITE_OPERATOR_TYPE)
         root = node.rhs.index;
       else
         return *(mapping.at(std::make_pair(root, RHS_NODE_TYPE)));

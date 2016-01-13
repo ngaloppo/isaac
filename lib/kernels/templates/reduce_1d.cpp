@@ -47,7 +47,7 @@ reduce_1d_parameters::reduce_1d_parameters(unsigned int _simd_width,
 
 unsigned int reduce_1d::lmem_usage(expression_tree const  & x) const
 {
-  numeric_type numeric_t= lhs_most(x.tree(), x.root()).lhs.dtype;
+  numeric_type numeric_t= lhs_most(x.data(), x.root()).lhs.dtype;
   return p_.local_size_0*size_of(numeric_t);
 }
 
@@ -108,7 +108,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
       unsigned int offset = 0;
       for(symbolic::reduce_1d* rd: reductions)
       {
-        numeric_type dtype = lhs_most(expressions.tree(), expressions.root()).lhs.dtype;
+        numeric_type dtype = lhs_most(expressions.data(), expressions.root()).lhs.dtype;
         std::string sdtype = to_string(dtype);
         if (is_index_reduction(rd->op()))
         {
@@ -293,7 +293,7 @@ reduce_1d::reduce_1d(unsigned int simd, unsigned int ls, unsigned int ng,
 std::vector<int_t> reduce_1d::input_sizes(expression_tree const  & x) const
 {
   std::vector<size_t> reduce_1ds_idx = filter(x, &is_reduce_1d);
-  int_t N = vector_size(lhs_most(x.tree(), reduce_1ds_idx[0]));
+  int_t N = vector_size(lhs_most(x.data(), reduce_1ds_idx[0]));
   return {N};
 }
 
@@ -314,7 +314,7 @@ void reduce_1d::enqueue(driver::CommandQueue & queue, driver::Program const & pr
   std::vector<expression_tree::node const *> reduce_1ds;
     std::vector<size_t> reduce_1ds_idx = filter(x, &is_reduce_1d);
     for (size_t idx: reduce_1ds_idx)
-      reduce_1ds.push_back(&x.tree()[idx]);
+      reduce_1ds.push_back(&x.data()[idx]);
 
   //Kernel
   std::string name[2] = {"prod", "reduce"};

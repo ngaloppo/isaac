@@ -22,7 +22,7 @@
 #include <cstring>
 #include <iostream>
 #include "isaac/kernels/templates/elementwise_2d.h"
-#include "isaac/symbolic/io.h"
+#include "isaac/symbolic/expression/io.h"
 #include "isaac/kernels/keywords.h"
 
 #include "tools/arguments.hpp"
@@ -124,7 +124,7 @@ elementwise_2d::elementwise_2d(unsigned int simd, unsigned int ls1, unsigned int
 
 std::vector<int_t> elementwise_2d::input_sizes(expression_tree const  & expression) const
 {
-  std::pair<int_t, int_t> size = matrix_size(expression.tree(), lhs_most(expression.tree(), expression.root()));
+  std::pair<int_t, int_t> size = matrix_size(expression.data(), lhs_most(expression.data(), expression.root()));
   return {size.first, size.second};
 }
 

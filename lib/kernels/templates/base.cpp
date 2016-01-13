@@ -35,7 +35,7 @@
 #include "isaac/kernels/parse.h"
 #include "isaac/exception/unknown_datatype.h"
 #include "isaac/exception/operation_not_supported.h"
-#include "isaac/symbolic/io.h"
+#include "isaac/symbolic/expression/io.h"
 
 #include "../parse/symbolize.hpp"
 #include "isaac/tools/cpp/string.hpp"
@@ -51,9 +51,9 @@ base::parameters_type::parameters_type(unsigned int _simd_width, int_t _local_si
 
 bool base::requires_fallback(expression_tree const  & expression)
 {
-  for(expression_tree::node const & node: expression.tree())
-    if(  (node.lhs.subtype==DENSE_ARRAY_TYPE && (node.lhs.array->stride()[0]>1 || node.lhs.array->start()>0))
-      || (node.rhs.subtype==DENSE_ARRAY_TYPE && (node.rhs.array->stride()[0]>1 || node.rhs.array->start()>0)))
+  for(expression_tree::node const & node: expression.data())
+    if(  (node.lhs.type==DENSE_ARRAY_TYPE && (node.lhs.array->stride()[0]>1 || node.lhs.array->start()>0))
+      || (node.rhs.type==DENSE_ARRAY_TYPE && (node.rhs.array->stride()[0]>1 || node.rhs.array->start()>0)))
       return true;
   return false;
 }
@@ -71,7 +71,7 @@ int_t base::vector_size(expression_tree::node const & node)
 
 }
 
-std::pair<int_t, int_t> base::matrix_size(expression_tree::container_type const & tree, expression_tree::node const & node)
+std::pair<int_t, int_t> base::matrix_size(expression_tree::data_type const & tree, expression_tree::node const & node)
 {
   if (node.op.type==VDIAG_TYPE)
   {

@@ -23,8 +23,8 @@
 #include <vector>
 #include "isaac/array.h"
 #include "isaac/value_scalar.h"
-#include "isaac/symbolic/expression.h"
-#include "isaac/symbolic/preset.h"
+#include "isaac/symbolic/expression/expression.h"
+#include "isaac/symbolic/expression/preset.h"
 #include "isaac/exception/operation_not_supported.h"
 
 namespace isaac
@@ -92,27 +92,27 @@ std::string to_string(operation_type type)
 
 void fill(tree_node &x, invalid_node)
 {
-  x.subtype = INVALID_SUBTYPE;
+  x.type = INVALID_SUBTYPE;
   x.dtype = INVALID_NUMERIC_TYPE;
 }
 
 void fill(tree_node & x, std::size_t index)
 {
-  x.subtype = COMPOSITE_OPERATOR_TYPE;
+  x.type = COMPOSITE_OPERATOR_TYPE;
   x.dtype = INVALID_NUMERIC_TYPE;
   x.index = index;
 }
 
 void fill(tree_node & x, placeholder index)
 {
-  x.subtype = PLACEHOLDER_TYPE;
+  x.type = PLACEHOLDER_TYPE;
   x.dtype = INVALID_NUMERIC_TYPE;
   x.ph = index;
 }
 
 void fill(tree_node & x, array_base const & a)
 {
-  x.subtype = DENSE_ARRAY_TYPE;
+  x.type = DENSE_ARRAY_TYPE;
   x.dtype = a.dtype();
   x.array = (array_base*)&a;
 }
@@ -120,7 +120,7 @@ void fill(tree_node & x, array_base const & a)
 void fill(tree_node & x, value_scalar const & v)
 {
   x.dtype = v.dtype();
-  x.subtype = VALUE_SCALAR_TYPE;
+  x.type = VALUE_SCALAR_TYPE;
   x.scalar = v.values();
 }
 
@@ -202,9 +202,9 @@ expression_tree::expression_tree(expression_tree const & lhs, expression_tree co
   tree_[root_].op = op;
   tree_[root_].shape = shape;
   fill(tree_[root_].rhs, lsize + rhs.root_);
-  for(container_type::iterator it = tree_.begin() + lsize ; it != tree_.end() - 1 ; ++it){
-    if(it->lhs.subtype==COMPOSITE_OPERATOR_TYPE) it->lhs.index+=lsize;
-    if(it->rhs.subtype==COMPOSITE_OPERATOR_TYPE) it->rhs.index+=lsize;
+  for(data_type::iterator it = tree_.begin() + lsize ; it != tree_.end() - 1 ; ++it){
+    if(it->lhs.type==COMPOSITE_OPERATOR_TYPE) it->lhs.index+=lsize;
+    if(it->rhs.type==COMPOSITE_OPERATOR_TYPE) it->rhs.index+=lsize;
   }
   root_ = tree_.size() - 1;
 }
@@ -233,10 +233,10 @@ template expression_tree::expression_tree(array_base const &, placeholder const 
 template expression_tree::expression_tree(placeholder const &, expression_tree const &, op_element const &,         driver::Context const &, numeric_type const &, tuple const &);
 template expression_tree::expression_tree(placeholder const &, array_base const &,        op_element const &, driver::Context const &, numeric_type const &, tuple const &);
 
-expression_tree::container_type & expression_tree::tree()
+expression_tree::data_type & expression_tree::data()
 { return tree_; }
 
-expression_tree::container_type const & expression_tree::tree() const
+expression_tree::data_type const & expression_tree::data() const
 { return tree_; }
 
 std::size_t expression_tree::root() const
@@ -262,15 +262,15 @@ expression_tree expression_tree::operator!()
 
 //
 
-expression_tree::node const & lhs_most(expression_tree::container_type const & array, expression_tree::node const & init)
+expression_tree::node const & lhs_most(expression_tree::data_type const & array, expression_tree::node const & init)
 {
   expression_tree::node const * current = &init;
-  while (current->lhs.subtype==COMPOSITE_OPERATOR_TYPE)
+  while (current->lhs.type==COMPOSITE_OPERATOR_TYPE)
     current = &array[current->lhs.index];
   return *current;
 }
 
-expression_tree::node const & lhs_most(expression_tree::container_type const & array, size_t root)
+expression_tree::node const & lhs_most(expression_tree::data_type const & array, size_t root)
 { return lhs_most(array, array[root]); }
 
 //

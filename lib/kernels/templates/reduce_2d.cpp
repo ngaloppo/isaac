@@ -90,7 +90,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
       unsigned int offset = 0;
       for (symbolic::reduce_2d* rd : reductions)
       {
-        numeric_type dtype = lhs_most(expression.tree(),  expression.root()).lhs.dtype;
+        numeric_type dtype = lhs_most(expression.data(),  expression.root()).lhs.dtype;
         std::string sdtype = to_string(dtype);
         if (is_index_reduction(rd->op()))
         {
@@ -371,7 +371,7 @@ reduce_2d::reduce_2d(reduce_2d::parameters_type const & parameters,
 std::vector<int_t> reduce_2d::input_sizes(expression_tree const & expression) const
 {
   std::vector<std::size_t> idx = filter(expression, &is_reduce_1d);
-  std::pair<int_t, int_t> MN = matrix_size(expression.tree(), lhs_most(expression.tree(), idx[0]));
+  std::pair<int_t, int_t> MN = matrix_size(expression.data(), lhs_most(expression.data(), idx[0]));
   if(reduce_1d_type_==REDUCE_COLUMNS)
     std::swap(MN.first,MN.second);
   return {MN.first, MN.second};
@@ -385,7 +385,7 @@ void reduce_2d::enqueue(driver::CommandQueue & queue, driver::Program const & pr
   std::vector<expression_tree::node const *> reduce_1ds;
   std::vector<size_t> reduce_1ds_idx = filter(expression, &is_reduce_1d);
   for (size_t idx : reduce_1ds_idx)
-    reduce_1ds.push_back(&expression.tree()[idx]);
+    reduce_1ds.push_back(&expression.data()[idx]);
 
   //Fallback
   if(p_.simd_width>1 && requires_fallback(expression))

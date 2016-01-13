@@ -34,7 +34,7 @@
 #include "tools/loop.hpp"
 #include "tools/vector_types.hpp"
 #include "tools/arguments.hpp"
-#include "isaac/symbolic/io.h"
+#include "isaac/symbolic/expression/io.h"
 
 #include <string>
 
@@ -65,7 +65,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
 
   kernel_generation_stream stream;
 
-  expression_tree::container_type const & tree = expressions.tree();
+  expression_tree::data_type const & tree = expressions.data();
   std::vector<std::size_t> sfors = filter(expressions, [](expression_tree::node const & node){return node.op.type==SFOR_TYPE;});
   size_t root = expressions.root();
   if(sfors.size())

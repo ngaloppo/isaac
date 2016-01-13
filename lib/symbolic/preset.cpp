@@ -19,7 +19,7 @@
  * MA 02110-1301  USA
  */
 
-#include "isaac/symbolic/preset.h"
+#include "isaac/symbolic/expression/preset.h"
 
 namespace isaac
 {
@@ -30,13 +30,13 @@ namespace symbolic
 namespace preset
 {
 
-void matrix_product::handle_node(expression_tree::container_type const & tree, size_t rootidx, args & a)
+void matrix_product::handle_node(expression_tree::data_type const & tree, size_t rootidx, args & a)
 {
     //Matrix-Matrix product node
     if(tree[rootidx].op.type_family==MATRIX_PRODUCT_TYPE_FAMILY)
     {
-        if(tree[rootidx].lhs.subtype==DENSE_ARRAY_TYPE) a.A = &tree[rootidx].lhs;
-        if(tree[rootidx].rhs.subtype==DENSE_ARRAY_TYPE) a.B = &tree[rootidx].rhs;
+        if(tree[rootidx].lhs.type==DENSE_ARRAY_TYPE) a.A = &tree[rootidx].lhs;
+        if(tree[rootidx].rhs.type==DENSE_ARRAY_TYPE) a.B = &tree[rootidx].rhs;
         switch(tree[rootidx].op.type)
         {
           case MATRIX_PRODUCT_NN_TYPE: a.type = MATRIX_PRODUCT_NN; break;
@@ -51,7 +51,7 @@ void matrix_product::handle_node(expression_tree::container_type const & tree, s
     if(tree[rootidx].op.type==MULT_TYPE)
     {
         //alpha*PROD
-        if(tree[rootidx].lhs.subtype==VALUE_SCALAR_TYPE  && tree[rootidx].rhs.subtype==COMPOSITE_OPERATOR_TYPE
+        if(tree[rootidx].lhs.type==VALUE_SCALAR_TYPE  && tree[rootidx].rhs.type==COMPOSITE_OPERATOR_TYPE
            && tree[tree[rootidx].rhs.index].op.type_family==MATRIX_PRODUCT_TYPE_FAMILY)
         {
             a.alpha = value_scalar(tree[rootidx].lhs.scalar, tree[rootidx].lhs.dtype);
@@ -59,7 +59,7 @@ void matrix_product::handle_node(expression_tree::container_type const & tree, s
         }
 
         //beta*C
-        if(tree[rootidx].lhs.subtype==VALUE_SCALAR_TYPE  && tree[rootidx].rhs.subtype==DENSE_ARRAY_TYPE)
+        if(tree[rootidx].lhs.type==VALUE_SCALAR_TYPE  && tree[rootidx].rhs.type==DENSE_ARRAY_TYPE)
         {
             a.beta = value_scalar(tree[rootidx].lhs.scalar, tree[rootidx].lhs.dtype);
             a.C = &tree[rootidx].rhs;
@@ -67,7 +67,7 @@ void matrix_product::handle_node(expression_tree::container_type const & tree, s
     }
 }
 
-matrix_product::args matrix_product::check(expression_tree::container_type const & tree, size_t rootidx)
+matrix_product::args matrix_product::check(expression_tree::data_type const & tree, size_t rootidx)
 {
     tree_node const * assigned = &tree[rootidx].lhs;
     numeric_type dtype = assigned->dtype;
@@ -76,7 +76,7 @@ matrix_product::args matrix_product::check(expression_tree::container_type const
       return result;
     result.alpha = value_scalar(1, dtype);
     result.beta = value_scalar(0, dtype);
-    if(tree[rootidx].rhs.subtype==COMPOSITE_OPERATOR_TYPE)
+    if(tree[rootidx].rhs.type==COMPOSITE_OPERATOR_TYPE)
     {
         rootidx = tree[rootidx].rhs.index;
         bool is_add = tree[rootidx].op.type==ADD_TYPE;
@@ -84,18 +84,18 @@ matrix_product::args matrix_product::check(expression_tree::container_type const
         //Form X +- Y"
         if(is_add || is_sub)
         {
-            if(tree[rootidx].lhs.subtype==COMPOSITE_OPERATOR_TYPE)
+            if(tree[rootidx].lhs.type==COMPOSITE_OPERATOR_TYPE)
                 handle_node(tree, tree[rootidx].lhs.index, result);
-            else if(tree[rootidx].lhs.subtype==DENSE_ARRAY_TYPE)
+            else if(tree[rootidx].lhs.type==DENSE_ARRAY_TYPE)
             {
                 result.C = &tree[rootidx].lhs;
                 result.beta = value_scalar(1, dtype);
                 result.alpha = value_scalar(is_add?1:-1,  dtype);
             }
 
-            if(tree[rootidx].rhs.subtype==COMPOSITE_OPERATOR_TYPE)
+            if(tree[rootidx].rhs.type==COMPOSITE_OPERATOR_TYPE)
                 handle_node(tree, tree[rootidx].rhs.index, result);
-            else if(tree[rootidx].rhs.subtype==DENSE_ARRAY_TYPE)
+            else if(tree[rootidx].rhs.type==DENSE_ARRAY_TYPE)
             {
                 result.C = &tree[rootidx].rhs;
                 result.alpha = value_scalar(1, dtype);

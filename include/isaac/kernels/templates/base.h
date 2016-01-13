@@ -30,7 +30,7 @@
 #include "isaac/types.h"
 #include "isaac/kernels/parse.h"
 #include "isaac/kernels/stream.h"
-#include "isaac/symbolic/expression.h"
+#include "isaac/symbolic/expression/expression.h"
 
 namespace isaac
 {
@@ -82,7 +82,7 @@ public:
   };
 protected:
   static int_t vector_size(expression_tree::node const & node);
-  static std::pair<int_t, int_t> matrix_size(expression_tree::container_type const & tree, expression_tree::node const & node);
+  static std::pair<int_t, int_t> matrix_size(expression_tree::data_type const & tree, expression_tree::node const & node);
   static bool requires_fallback(expression_tree const & expressions);
 private:
   virtual std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::mapping_type const & mapping) const = 0;

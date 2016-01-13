@@ -23,7 +23,7 @@
 #define _ISAAC_SCHEDULER_EXECUTE_H
 
 #include "isaac/profiles/profiles.h"
-#include "isaac/symbolic/expression.h"
+#include "isaac/symbolic/expression/expression.h"
 
 namespace isaac
 {

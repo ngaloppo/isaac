@@ -31,7 +31,7 @@
 #include "isaac/common/numeric_type.h"
 #include "isaac/kernels/templates/base.h"
 #include "isaac/profiles/predictors/random_forest.h"
-#include "isaac/symbolic/expression.h"
+#include "isaac/symbolic/expression/expression.h"
 
 namespace isaac
 {

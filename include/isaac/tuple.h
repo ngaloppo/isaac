@@ -26,7 +26,7 @@
 
 #include "isaac/defines.h"
 #include "isaac/value_scalar.h"
-#include "isaac/symbolic/expression.h"
+#include "isaac/symbolic/expression/expression.h"
 
 namespace isaac
 {
@@ -42,11 +42,11 @@ template<typename T, typename... Args>
 ISAACAPI expression_tree make_tuple(driver::Context const & context, T const & x, Args... args)
 { return expression_tree(wrap_generic(x), make_tuple(context, args...), op_element(BINARY_TYPE_FAMILY, PAIR_TYPE), context, numeric_type_of(x), {1}); }
 
-inline value_scalar tuple_get(expression_tree::container_type const & tree, size_t root, size_t idx)
+inline value_scalar tuple_get(expression_tree::data_type const & tree, size_t root, size_t idx)
 {
   for(unsigned int i = 0 ; i < idx ; ++i){
       expression_tree::node node = tree[root];
-      if(node.rhs.subtype==COMPOSITE_OPERATOR_TYPE)
+      if(node.rhs.type==COMPOSITE_OPERATOR_TYPE)
         root = node.rhs.index;
       else
         return value_scalar(node.rhs.scalar, node.rhs.dtype);

@@ -48,11 +48,11 @@ inline symbolic::mapping_type symbolize(binding_policy_t binding_policy, isaac::
   //make_leaf
   auto symbolize_leaf = [&](std::string const & dtype, tree_node const & leaf, bool is_assigned)
   {
-    if(leaf.subtype==VALUE_SCALAR_TYPE)
+    if(leaf.type==VALUE_SCALAR_TYPE)
       return make_symbolic<symbolic::host_scalar>(dtype, binder->get());
-    else if(leaf.subtype==DENSE_ARRAY_TYPE)
+    else if(leaf.type==DENSE_ARRAY_TYPE)
       return make_symbolic<symbolic::buffer>(dtype, binder->get(leaf.array, is_assigned), leaf.array->shape());
-    else if(leaf.subtype==PLACEHOLDER_TYPE)
+    else if(leaf.type==PLACEHOLDER_TYPE)
       return make_symbolic<symbolic::placeholder>(leaf.ph.level);
     else
       throw;
@@ -62,12 +62,12 @@ inline symbolic::mapping_type symbolize(binding_policy_t binding_policy, isaac::
   auto symbolize_impl = [&](size_t idx, leaf_t leaf)
   {
     symbolic::mapping_type::key_type key(idx, leaf);
-    expression_tree::node const & node = expression.tree()[idx];
+    expression_tree::node const & node = expression.data()[idx];
     std::string dtype = to_string(expression.dtype());
 
-    if (leaf == LHS_NODE_TYPE && node.lhs.subtype != COMPOSITE_OPERATOR_TYPE)
+    if (leaf == LHS_NODE_TYPE && node.lhs.type != COMPOSITE_OPERATOR_TYPE)
       result.insert({key, symbolize_leaf(dtype, node.lhs, detail::is_assignment(node.op.type))});
-    else if (leaf == RHS_NODE_TYPE && node.rhs.subtype != COMPOSITE_OPERATOR_TYPE)
+    else if (leaf == RHS_NODE_TYPE && node.rhs.type != COMPOSITE_OPERATOR_TYPE)
       result.insert({key, symbolize_leaf(dtype, node.rhs, false)});
     else if (leaf== PARENT_NODE_TYPE)
     {

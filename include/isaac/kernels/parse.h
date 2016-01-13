@@ -25,7 +25,7 @@
 #include <set>
 #include "isaac/kernels/symbolic_object.h"
 #include "isaac/kernels/binder.h"
-#include "isaac/symbolic/expression.h"
+#include "isaac/symbolic/expression/expression.h"
 
 namespace isaac
 {
