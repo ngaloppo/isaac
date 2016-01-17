@@ -27,8 +27,8 @@
 #include "../parse/filter.hpp"
 #include "../parse/set_arguments.hpp"
 
-#include "isaac/kernels/templates/elementwise_1d.h"
-#include "isaac/kernels/keywords.h"
+#include "isaac/templates/elementwise_1d.h"
+#include "isaac/templates/keywords.h"
 #include "isaac/driver/backend.h"
 
 #include "tools/loop.hpp"
@@ -71,7 +71,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   if(sfors.size())
       root = tree[sfors.back()].lhs.index;
 
-  std::vector<std::size_t> assigned = filter(expressions, root, PARENT_NODE_TYPE, [](expression_tree::node const & node){return detail::is_assignment(node.op.type);});
+  std::vector<std::size_t> assigned = filter(expressions, root, PARENT_NODE_TYPE, [](expression_tree::node const & node){return is_assignment(node.op.type);});
 
   switch(backend)
   {

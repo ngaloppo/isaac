@@ -27,9 +27,8 @@
 #include "isaac/array.h"
 #include "isaac/tuple.h"
 #include "isaac/exception/operation_not_supported.h"
-#include "isaac/kernels/symbolic_object.h"
-#include "isaac/kernels/parse.h"
-#include "isaac/kernels/stream.h"
+#include "isaac/symbolic/engine/object.h"
+#include "isaac/templates/stream.h"
 #include "isaac/symbolic/expression/expression.h"
 #include "isaac/tools/cpp/string.hpp"
 

@@ -23,9 +23,8 @@
 #define ISAAC_KERNELS_PARSE_EXTRACT_HPP
 
 #include <cstring>
-
+#include "isaac/symbolic/expression/expression.h"
 #include "traverse.hpp"
-#include "isaac/kernels/parse.h"
 
 namespace isaac
 {

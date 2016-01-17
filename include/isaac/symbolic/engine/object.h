@@ -26,7 +26,7 @@
 #include <map>
 #include <string>
 #include "isaac/types.h"
-#include "isaac/kernels/stream.h"
+#include "isaac/templates/stream.h"
 #include "isaac/symbolic/expression/expression.h"
 
 namespace isaac

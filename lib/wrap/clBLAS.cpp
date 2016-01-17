@@ -51,7 +51,7 @@ extern "C"
         {
             std::list<sc::driver::Event> levents;
             sc::execution_options_type options(sc::driver::CommandQueue(commandQueues[i],false), &levents, &waitlist);
-            sc::execute(sc::execution_handler(operation, options), sc::profiles::get(options.queue(context)));
+            sc::symbolic::execute(sc::execution_handler(operation, options), sc::profiles::get(options.queue(context)));
             if(events)
             {
                 events[i] = levents.front().handle().cl();

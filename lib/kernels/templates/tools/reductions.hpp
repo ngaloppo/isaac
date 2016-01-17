@@ -23,10 +23,10 @@
 #include <stdexcept>
 
 #include "isaac/driver/common.h"
-#include "isaac/kernels/keywords.h"
-#include "isaac/kernels/stream.h"
+#include "isaac/templates/keywords.h"
+#include "isaac/templates/stream.h"
 #include "isaac/symbolic/expression/expression.h"
-#include "isaac/kernels/symbolic_object.h"
+#include "isaac/symbolic/engine/object.h"
 #include "isaac/types.h"
 
 namespace isaac
@@ -36,7 +36,7 @@ namespace templates
 
 inline void compute_reduce_1d(kernel_generation_stream & os, std::string acc, std::string cur, op_element const & op)
 {
-  if (detail::is_elementwise_function(op))
+  if (is_function(op))
     os << acc << "=" << to_string(op.type) << "(" << acc << "," << cur << ");" << std::endl;
   else
     os << acc << "= (" << acc << ")" << to_string(op.type)  << "(" << cur << ");" << std::endl;

@@ -19,27 +19,41 @@
  * MA 02110-1301  USA
  */
 
-#ifndef ISAAC_BACKEND_PARSE_H
-#define ISAAC_BACKEND_PARSE_H
-
-#include <set>
-#include "isaac/kernels/symbolic_object.h"
-#include "isaac/kernels/binder.h"
-#include "isaac/symbolic/expression/expression.h"
+#include "isaac/templates/stream.h"
 
 namespace isaac
 {
 
-namespace detail
+kernel_generation_stream::kgenstream::kgenstream(std::ostringstream& oss,unsigned int const & tab_count) :
+  oss_(oss), tab_count_(tab_count)
+{ }
+
+int kernel_generation_stream::kgenstream::sync()
 {
-
-  bool is_scalar_reduce_1d(expression_tree::node const & node);
-  bool is_reduce_2d(expression_tree::node const & node);
-  bool is_assignment(operation_type op);
-  bool is_elementwise_operator(op_element const & op);
-  bool is_elementwise_function(op_element const & op);
-  bool is_cast(op_element const & op);
+  for (unsigned int i=0; i<tab_count_;++i)
+    oss_ << "  ";
+  oss_ << str();
+  str("");
+  return !oss_;
 }
 
+kernel_generation_stream::kgenstream:: ~kgenstream()
+{  pubsync(); }
+
+kernel_generation_stream::kernel_generation_stream() : std::ostream(new kgenstream(oss,tab_count_)), tab_count_(0)
+{ }
+
+kernel_generation_stream::~kernel_generation_stream()
+{ delete rdbuf(); }
+
+std::string kernel_generation_stream::str()
+{ return oss.str(); }
+
+void kernel_generation_stream::inc_tab()
+{ ++tab_count_; }
+
+void kernel_generation_stream::dec_tab()
+{ --tab_count_; }
+
 }
-#endif
+

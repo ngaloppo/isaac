@@ -26,8 +26,7 @@
 
 #include "../../parse/extract.hpp"
 
-#include "isaac/kernels/symbolic_object.h"
-#include "isaac/kernels/parse.h"
+#include "isaac/symbolic/engine/object.h"
 #include "isaac/array.h"
 
 namespace isaac

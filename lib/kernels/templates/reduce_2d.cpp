@@ -23,9 +23,9 @@
 #include <iostream>
 
 
-#include "isaac/kernels/stream.h"
-#include "isaac/kernels/keywords.h"
-#include "isaac/kernels/templates/reduce_2d.h"
+#include "isaac/templates/stream.h"
+#include "isaac/templates/keywords.h"
+#include "isaac/templates/reduce_2d.h"
 
 #include "../parse/extract.hpp"
 #include "../parse/set_arguments.hpp"

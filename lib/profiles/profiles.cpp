@@ -29,12 +29,11 @@
 
 #include "isaac/driver/program_cache.h"
 #include "isaac/profiles/profiles.h"
-#include "isaac/kernels/parse.h"
-#include "isaac/kernels/templates/elementwise_1d.h"
-#include "isaac/kernels/templates/reduce_1d.h"
-#include "isaac/kernels/templates/elementwise_2d.h"
-#include "isaac/kernels/templates/reduce_2d.h"
-#include "isaac/kernels/templates/matrix_product.h"
+#include "isaac/templates/elementwise_1d.h"
+#include "isaac/templates/reduce_1d.h"
+#include "isaac/templates/elementwise_2d.h"
+#include "isaac/templates/reduce_2d.h"
+#include "isaac/templates/matrix_product.h"
 #include "isaac/exception/operation_not_supported.h"
 
 #include "../kernels/parse/hash.hpp"

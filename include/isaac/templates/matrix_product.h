@@ -22,7 +22,7 @@
 #ifndef ISAAC_BACKEND_TEMPLATES_MPRODUCT_H
 #define ISAAC_BACKEND_TEMPLATES_MPRODUCT_H
 
-#include "isaac/kernels/templates/base.h"
+#include "isaac/templates/base.h"
 #include "isaac/symbolic/expression/expression.h"
 #include "isaac/symbolic/expression/preset.h"
 

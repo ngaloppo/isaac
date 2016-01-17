@@ -163,7 +163,7 @@ array_base & array_base::operator=(array_base const & rhs)
     if(min(shape_)==0) return *this;
     assert(dtype_ == rhs.dtype());
     expression_tree expression(*this, rhs, op_element(BINARY_TYPE_FAMILY, ASSIGN_TYPE), context_, dtype_, shape_);
-    execute(execution_handler(expression));
+    symbolic::execute(execution_handler(expression));
     return *this;
 }
 
@@ -172,7 +172,7 @@ array_base & array_base::operator=(value_scalar const & rhs)
     if(min(shape_)==0) return *this;
     assert(dtype_ == rhs.dtype());
     expression_tree expression(*this, rhs, op_element(BINARY_TYPE_FAMILY, ASSIGN_TYPE), context_, dtype_, shape_);
-    execute(execution_handler(expression));
+    symbolic::execute(execution_handler(expression));
     return *this;
 }
 
@@ -182,7 +182,7 @@ array_base& array_base::operator=(execution_handler const & c)
   if(min(shape_)==0) return *this;
   assert(dtype_ == c.x().dtype());
   expression_tree expression(*this, c.x(), op_element(BINARY_TYPE_FAMILY, ASSIGN_TYPE), context_, dtype_, shape_);
-  execute(execution_handler(expression, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
+  symbolic::execute(execution_handler(expression, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
   return *this;
 }
 
@@ -878,7 +878,7 @@ namespace detail
 ISAACAPI void swap(view x, view y)
 {
   //Seems like some compilers will generate incorrect code without the 1*...
-  execute(fuse(assign(y,1*x), assign(x,1*y)));
+  symbolic::execute(fuse(assign(y,1*x), assign(x,1*y)));
 }
 
 //Reshape

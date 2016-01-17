@@ -19,52 +19,32 @@
  * MA 02110-1301  USA
  */
 
-#include "isaac/kernels/binder.h"
+#include "isaac/templates/keywords.h"
 
 namespace isaac
 {
 
-symbolic_binder::~symbolic_binder()
+keyword::keyword(driver::backend_type backend, std::string const & opencl, std::string const & cuda) : backend_(backend), opencl_(opencl), cuda_(cuda)
 {
+
 }
 
-symbolic_binder::symbolic_binder() : current_arg_(0)
+std::string const & keyword::get() const
 {
+  switch(backend_)
+  {
+    case driver::OPENCL:
+      return opencl_;
+    case driver::CUDA:
+      return cuda_;
+    default: throw;
+  }
 }
 
-unsigned int symbolic_binder::get()
+std::ostream &  operator<<(std::ostream & ss, keyword const & kw)
 {
-    return current_arg_++;
+  return ss << kw.get();
 }
 
-//Sequential
-bind_sequential::bind_sequential()
-{
-}
-
-bool bind_sequential::bind(array_base const * a, bool)
-{
-    return memory.insert(std::make_pair(a, current_arg_)).second;
-}
-
-unsigned int bind_sequential::get(array_base const * a, bool is_assigned)
-{
-    return bind(a, is_assigned)?current_arg_++:memory.at(a);
-}
-
-//Independent
-bind_independent::bind_independent()
-{
-}
-
-bool bind_independent::bind(array_base const * a, bool is_assigned)
-{
-    return is_assigned?true:memory.insert(std::make_pair(a, current_arg_)).second;
-}
-
-unsigned int bind_independent::get(array_base const * a, bool is_assigned)
-{
-    return bind(a, is_assigned)?current_arg_++:memory.at(a);
-}
 
 }

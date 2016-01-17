@@ -30,66 +30,6 @@
 namespace isaac
 {
 
-std::string to_string(operation_type type)
-{
-  switch (type)
-  {
-    //Function
-    case ABS_TYPE : return "abs";
-    case ACOS_TYPE : return "acos";
-    case ASIN_TYPE : return "asin";
-    case ATAN_TYPE : return "atan";
-    case CEIL_TYPE : return "ceil";
-    case COS_TYPE : return "cos";
-    case COSH_TYPE : return "cosh";
-    case EXP_TYPE : return "exp";
-    case FABS_TYPE : return "fabs";
-    case FLOOR_TYPE : return "floor";
-    case LOG_TYPE : return "log";
-    case LOG10_TYPE : return "log10";
-    case SIN_TYPE : return "sin";
-    case SINH_TYPE : return "sinh";
-    case SQRT_TYPE : return "sqrt";
-    case TAN_TYPE : return "tan";
-    case TANH_TYPE : return "tanh";
-
-    case ELEMENT_ARGFMAX_TYPE : return "argfmax";
-    case ELEMENT_ARGMAX_TYPE : return "argmax";
-    case ELEMENT_ARGFMIN_TYPE : return "argfmin";
-    case ELEMENT_ARGMIN_TYPE : return "argmin";
-    case ELEMENT_POW_TYPE : return "pow";
-
-    //Arithmetic
-    case MINUS_TYPE : return "-";
-    case ASSIGN_TYPE : return "=";
-    case INPLACE_ADD_TYPE : return "+=";
-    case INPLACE_SUB_TYPE : return "-=";
-    case ADD_TYPE : return "+";
-    case SUB_TYPE : return "-";
-    case MULT_TYPE : return "*";
-    case ELEMENT_PROD_TYPE : return "*";
-    case DIV_TYPE : return "/";
-    case ELEMENT_DIV_TYPE : return "/";
-
-    //Relational
-    case NEGATE_TYPE: return "!";
-    case ELEMENT_EQ_TYPE : return "==";
-    case ELEMENT_NEQ_TYPE : return "!=";
-    case ELEMENT_GREATER_TYPE : return ">";
-    case ELEMENT_GEQ_TYPE : return ">=";
-    case ELEMENT_LESS_TYPE : return "<";
-    case ELEMENT_LEQ_TYPE : return "<=";
-
-    case ELEMENT_FMAX_TYPE : return "fmax";
-    case ELEMENT_FMIN_TYPE : return "fmin";
-    case ELEMENT_MAX_TYPE : return "max";
-    case ELEMENT_MIN_TYPE : return "min";
-
-    default : throw operation_not_supported_exception("Unsupported operator");
-  }
-}
-
-
 void fill(tree_node &x, invalid_node)
 {
   x.type = INVALID_SUBTYPE;

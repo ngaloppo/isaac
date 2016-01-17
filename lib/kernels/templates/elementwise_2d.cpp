@@ -21,9 +21,9 @@
 
 #include <cstring>
 #include <iostream>
-#include "isaac/kernels/templates/elementwise_2d.h"
+#include "isaac/templates/elementwise_2d.h"
 #include "isaac/symbolic/expression/io.h"
-#include "isaac/kernels/keywords.h"
+#include "isaac/templates/keywords.h"
 
 #include "tools/arguments.hpp"
 #include "tools/loop.hpp"
@@ -60,7 +60,7 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   std::string init0, upper_bound0, inc0, init1, upper_bound1, inc1;
   std::string data_type = append_width("#scalartype",p_.simd_width);
   driver::backend_type backend = device.backend();
-  std::vector<std::size_t> assigned = filter(expressions, [](expression_tree::node const & node){return detail::is_assignment(node.op.type);});
+  std::vector<std::size_t> assigned = filter(expressions, [](expression_tree::node const & node){return is_assignment(node.op.type);});
 
   switch(backend)
   {

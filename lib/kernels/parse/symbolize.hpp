@@ -24,8 +24,7 @@
 
 #include <cstring>
 
-#include "isaac/kernels/symbolic_object.h"
-#include "isaac/kernels/parse.h"
+#include "isaac/symbolic/engine/object.h"
 #include "traverse.hpp"
 
 namespace isaac
@@ -66,7 +65,7 @@ inline symbolic::mapping_type symbolize(binding_policy_t binding_policy, isaac::
     std::string dtype = to_string(expression.dtype());
 
     if (leaf == LHS_NODE_TYPE && node.lhs.type != COMPOSITE_OPERATOR_TYPE)
-      result.insert({key, symbolize_leaf(dtype, node.lhs, detail::is_assignment(node.op.type))});
+      result.insert({key, symbolize_leaf(dtype, node.lhs, is_assignment(node.op.type))});
     else if (leaf == RHS_NODE_TYPE && node.rhs.type != COMPOSITE_OPERATOR_TYPE)
       result.insert({key, symbolize_leaf(dtype, node.rhs, false)});
     else if (leaf== PARENT_NODE_TYPE)
@@ -97,7 +96,7 @@ inline symbolic::mapping_type symbolize(binding_policy_t binding_policy, isaac::
         result.insert({key, make_symbolic<symbolic::array_access>(dtype, id, idx, result)});
       else if(node.op.type==RESHAPE_TYPE)
         result.insert({key, make_symbolic<symbolic::reshape>(dtype, id, idx, expression, result)});
-      else if (detail::is_cast(node.op))
+      else if (is_cast(node.op))
         result.insert({key, make_symbolic<symbolic::cast>(node.op.type, id)});
     }
   };

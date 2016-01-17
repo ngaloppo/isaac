@@ -28,9 +28,10 @@
 #include <cmath>
 
 #include "isaac/types.h"
-#include "isaac/kernels/parse.h"
-#include "isaac/kernels/stream.h"
+#include "isaac/templates/stream.h"
 #include "isaac/symbolic/expression/expression.h"
+#include "isaac/symbolic/engine/binder.h"
+#include "isaac/symbolic/engine/object.h"
 
 namespace isaac
 {

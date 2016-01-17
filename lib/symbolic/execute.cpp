@@ -32,6 +32,9 @@
 namespace isaac
 {
 
+namespace symbolic
+{
+
   namespace detail
   {
     typedef std::vector<std::pair<expression_type, tree_node*> > breakpoints_t;
@@ -170,6 +173,8 @@ namespace isaac
   /** @brief Executes a expression_tree on the given models map*/
   void execute(execution_handler const & c, profiles::map_type & profiles)
   {
+    typedef isaac::array array;
+
     expression_tree expression = c.x();
     driver::Context const & context = expression.context();
     size_t rootidx = expression.root();
@@ -251,5 +256,7 @@ namespace isaac
   {
     execute(c, isaac::profiles::get(c.execution_options().queue(c.x().context())));
   }
+
+}
 
 }

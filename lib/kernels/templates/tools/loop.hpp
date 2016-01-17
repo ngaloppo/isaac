@@ -19,8 +19,8 @@
  * MA 02110-1301  USA
  */
 
-#include "isaac/kernels/stream.h"
-#include "isaac/kernels/templates/base.h"
+#include "isaac/templates/stream.h"
+#include "isaac/templates/base.h"
 #include <string>
 #include "isaac/tools/cpp/string.hpp"
 

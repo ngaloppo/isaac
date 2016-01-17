@@ -21,8 +21,8 @@
 
 #include <cstring>
 #include <iostream>
-#include "isaac/kernels/templates/reduce_1d.h"
-#include "isaac/kernels/keywords.h"
+#include "isaac/templates/reduce_1d.h"
+#include "isaac/templates/keywords.h"
 
 #include "../parse/extract.hpp"
 #include "../parse/set_arguments.hpp"

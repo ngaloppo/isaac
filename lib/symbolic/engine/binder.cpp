@@ -19,41 +19,52 @@
  * MA 02110-1301  USA
  */
 
-#include "isaac/kernels/stream.h"
+#include "isaac/symbolic/engine/binder.h"
 
 namespace isaac
 {
 
-kernel_generation_stream::kgenstream::kgenstream(std::ostringstream& oss,unsigned int const & tab_count) :
-  oss_(oss), tab_count_(tab_count)
-{ }
-
-int kernel_generation_stream::kgenstream::sync()
+symbolic_binder::~symbolic_binder()
 {
-  for (unsigned int i=0; i<tab_count_;++i)
-    oss_ << "  ";
-  oss_ << str();
-  str("");
-  return !oss_;
 }
 
-kernel_generation_stream::kgenstream:: ~kgenstream()
-{  pubsync(); }
-
-kernel_generation_stream::kernel_generation_stream() : std::ostream(new kgenstream(oss,tab_count_)), tab_count_(0)
-{ }
-
-kernel_generation_stream::~kernel_generation_stream()
-{ delete rdbuf(); }
-
-std::string kernel_generation_stream::str()
-{ return oss.str(); }
-
-void kernel_generation_stream::inc_tab()
-{ ++tab_count_; }
-
-void kernel_generation_stream::dec_tab()
-{ --tab_count_; }
-
+symbolic_binder::symbolic_binder() : current_arg_(0)
+{
 }
 
+unsigned int symbolic_binder::get()
+{
+    return current_arg_++;
+}
+
+//Sequential
+bind_sequential::bind_sequential()
+{
+}
+
+bool bind_sequential::bind(array_base const * a, bool)
+{
+    return memory.insert(std::make_pair(a, current_arg_)).second;
+}
+
+unsigned int bind_sequential::get(array_base const * a, bool is_assigned)
+{
+    return bind(a, is_assigned)?current_arg_++:memory.at(a);
+}
+
+//Independent
+bind_independent::bind_independent()
+{
+}
+
+bool bind_independent::bind(array_base const * a, bool is_assigned)
+{
+    return is_assigned?true:memory.insert(std::make_pair(a, current_arg_)).second;
+}
+
+unsigned int bind_independent::get(array_base const * a, bool is_assigned)
+{
+    return bind(a, is_assigned)?current_arg_++:memory.at(a);
+}
+
+}

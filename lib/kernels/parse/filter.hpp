@@ -23,9 +23,8 @@
 #define ISAAC_KERNELS_PARSE_FILTER_HPP
 
 #include <cstring>
-
+#include <vector>
 #include "traverse.hpp"
-#include "isaac/kernels/parse.h"
 
 namespace isaac
 {

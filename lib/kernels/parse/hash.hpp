@@ -52,7 +52,7 @@ inline std::string hash(expression_tree const & expression)
   {
     expression_tree::node const & node = expression.data()[idx];
     if (leaf==LHS_NODE_TYPE && node.lhs.type != COMPOSITE_OPERATOR_TYPE)
-      hash_leaf(node.lhs, detail::is_assignment(node.op.type));
+      hash_leaf(node.lhs, is_assignment(node.op.type));
     else if (leaf==RHS_NODE_TYPE && node.rhs.type != COMPOSITE_OPERATOR_TYPE)
       hash_leaf(node.rhs, false);
     else if (leaf==PARENT_NODE_TYPE)

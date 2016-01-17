@@ -25,7 +25,7 @@
 #include <vector>
 
 #include "isaac/symbolic/expression/expression.h"
-#include "isaac/kernels/templates/base.h"
+#include "isaac/templates/base.h"
 
 namespace isaac
 {

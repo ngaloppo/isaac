@@ -24,8 +24,9 @@
 
 #include <cstring>
 
-#include "isaac/kernels/symbolic_object.h"
-#include "isaac/kernels/parse.h"
+#include "isaac/symbolic/expression/expression.h"
+#include "isaac/symbolic/engine/binder.h"
+#include "isaac/symbolic/engine/object.h"
 #include "traverse.hpp"
 #include "isaac/array.h"
 
@@ -68,7 +69,7 @@ inline void set_arguments(expression_tree const & expression, driver::Kernel & k
   {
     expression_tree::node const & node = expression.data()[root_idx];
     if (leaf==LHS_NODE_TYPE && node.lhs.type != COMPOSITE_OPERATOR_TYPE)
-      set_leaf_arguments(node.lhs, detail::is_assignment(node.op.type));
+      set_leaf_arguments(node.lhs, is_assignment(node.op.type));
     else if (leaf==RHS_NODE_TYPE && node.rhs.type != COMPOSITE_OPERATOR_TYPE)
       set_leaf_arguments(node.rhs, false);
     if(leaf==PARENT_NODE_TYPE && node.op.type == RESHAPE_TYPE)

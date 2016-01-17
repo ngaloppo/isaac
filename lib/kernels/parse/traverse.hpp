@@ -24,7 +24,8 @@
 
 #include <cstring>
 
-#include "isaac/kernels/parse.h"
+#include "isaac/symbolic/engine/object.h"
+#include "isaac/symbolic/expression/expression.h"
 
 namespace isaac
 {

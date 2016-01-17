@@ -20,8 +20,8 @@
  */
 
 #include "isaac/array.h"
-#include "isaac/kernels/templates/matrix_product.h"
-#include "isaac/kernels/keywords.h"
+#include "isaac/templates/matrix_product.h"
+#include "isaac/templates/keywords.h"
 #include "isaac/symbolic/expression/preset.h"
 #include "isaac/exception/operation_not_supported.h"
 
