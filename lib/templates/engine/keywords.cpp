@@ -19,7 +19,7 @@
  * MA 02110-1301  USA
  */
 
-#include "isaac/templates/keywords.h"
+#include "isaac/templates/engine/keywords.h"
 
 namespace isaac
 {

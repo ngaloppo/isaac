@@ -56,27 +56,27 @@ namespace symbolic
         bool result = false;
         switch(op.type_family)
         {
-            case UNARY_TYPE_FAMILY:
-            case BINARY_TYPE_FAMILY:
+            case UNARY:
+            case BINARY:
                 result |= is_mmprod(expression)
                           || (result |= expression==REDUCE_2D_ROWS && other==REDUCE_2D_COLS)
                           || (result |= expression==REDUCE_2D_COLS && other==REDUCE_2D_ROWS);
                 break;
-            case VECTOR_DOT_TYPE_FAMILY:
+            case REDUCE:
                 result |= is_mvprod(expression)
                           || expression==REDUCE_1D;
                 break;
-            case ROWS_DOT_TYPE_FAMILY:
+            case REDUCE_ROWS:
                 result |= is_mmprod(expression)
                           || is_mvprod(expression)
                           || expression==REDUCE_1D;
                 break;
-            case COLUMNS_DOT_TYPE_FAMILY:
+            case REDUCE_COLUMNS:
                 result |= is_mmprod(expression)
                           || is_mvprod(expression)
                           || expression==REDUCE_1D;
                 break;
-            case MATRIX_PRODUCT_TYPE_FAMILY:
+            case MATRIX_PRODUCT:
                 result |= (is_mmprod(expression) && !is_first)
                           || is_mvprod(expression)
                           || expression==REDUCE_1D;
@@ -98,11 +98,11 @@ namespace symbolic
     {
         switch(op.type_family)
         {
-            case UNARY_TYPE_FAMILY:
+            case UNARY:
                 if(is_mmprod(left))
                     return ELEMENTWISE_2D;
                 return left;
-            case BINARY_TYPE_FAMILY:
+            case BINARY:
                 if(left == REDUCE_2D_ROWS || right == REDUCE_2D_ROWS) return REDUCE_2D_ROWS;
                 else if(left == REDUCE_2D_COLS || right == REDUCE_2D_COLS) return REDUCE_2D_COLS;
                 else if(left == REDUCE_1D || right == REDUCE_1D) return REDUCE_1D;
@@ -112,13 +112,13 @@ namespace symbolic
                 else if(right == INVALID_EXPRESSION_TYPE) return left;
                 else if(left == INVALID_EXPRESSION_TYPE) return right;
                 throw;
-            case VECTOR_DOT_TYPE_FAMILY:
+            case REDUCE:
                 return REDUCE_1D;
-            case ROWS_DOT_TYPE_FAMILY:
+            case REDUCE_ROWS:
                 return REDUCE_2D_ROWS;
-            case COLUMNS_DOT_TYPE_FAMILY:
+            case REDUCE_COLUMNS:
                 return REDUCE_2D_COLS;
-            case MATRIX_PRODUCT_TYPE_FAMILY:
+            case MATRIX_PRODUCT:
                 if(op.type==MATRIX_PRODUCT_NN_TYPE) return MATRIX_PRODUCT_NN;
                 else if(op.type==MATRIX_PRODUCT_TN_TYPE) return MATRIX_PRODUCT_TN;
                 else if(op.type==MATRIX_PRODUCT_NT_TYPE) return MATRIX_PRODUCT_NT;

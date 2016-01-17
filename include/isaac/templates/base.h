@@ -28,7 +28,7 @@
 #include <cmath>
 
 #include "isaac/types.h"
-#include "isaac/templates/stream.h"
+#include "isaac/templates/engine/stream.h"
 #include "isaac/symbolic/expression/expression.h"
 #include "isaac/symbolic/engine/binder.h"
 #include "isaac/symbolic/engine/object.h"
@@ -86,9 +86,9 @@ protected:
   static std::pair<int_t, int_t> matrix_size(expression_tree::data_type const & tree, expression_tree::node const & node);
   static bool requires_fallback(expression_tree const & expressions);
 private:
-  virtual std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::mapping_type const & mapping) const = 0;
+  virtual std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::symbols_table const & mapping) const = 0;
 public:
-  base(binding_policy_t binding_policy);
+  base(fusion_policy_t fusion_policy);
   virtual unsigned int temporary_workspace(expression_tree const &) const;
   virtual unsigned int lmem_usage(expression_tree const &) const;
   virtual unsigned int registers_usage(expression_tree const &) const;
@@ -99,7 +99,7 @@ public:
   virtual void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base & fallback, execution_handler const & expressions) = 0;
   virtual std::shared_ptr<base> clone() const = 0;
 private:
-  binding_policy_t binding_policy_;
+  fusion_policy_t fusion_policy_;
 };
 
 
@@ -110,7 +110,7 @@ private:
   virtual int is_invalid_impl(driver::Device const &, expression_tree const &) const;
 public:
   typedef ParametersType parameters_type;
-  base_impl(parameters_type const & parameters, binding_policy_t binding_policy);
+  base_impl(parameters_type const & parameters, fusion_policy_t fusion_policy);
   unsigned int local_size_0() const;
   unsigned int local_size_1() const;
   std::shared_ptr<base> clone() const;
@@ -118,7 +118,7 @@ public:
   int is_invalid(expression_tree const & expressions, driver::Device const & device) const;
 protected:
   parameters_type p_;
-  binding_policy_t binding_policy_;
+  fusion_policy_t fusion_policy_;
 };
 
 }

@@ -20,15 +20,15 @@
  */
 
 #include "isaac/array.h"
-#include "isaac/templates/matrix_product.h"
-#include "isaac/templates/keywords.h"
 #include "isaac/symbolic/expression/preset.h"
+#include "isaac/symbolic/engine/process.h"
+#include "isaac/templates/matrix_product.h"
+#include "isaac/templates/engine/keywords.h"
 #include "isaac/exception/operation_not_supported.h"
 
 #include "tools/arguments.hpp"
 #include "tools/vector_types.hpp"
 
-#include "../parse/set_arguments.hpp"
 
 #include <string>
 #include "isaac/tools/cpp/align.hpp"
@@ -126,7 +126,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     return TEMPLATE_VALID;
   }
 
-  std::string matrix_product::generate_impl(std::string const & suffix, expression_tree const & expression, driver::Device const & device, symbolic::mapping_type const &) const
+  std::string matrix_product::generate_impl(std::string const & suffix, expression_tree const & tree, driver::Device const & device, symbolic::symbols_table const &) const
   {
     using std::string;
     using tools::to_string;
@@ -145,12 +145,10 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     //////////////////
     /// INIT
     /// //////////////
-    kernel_generation_stream stream;
-    numeric_type dtype = lhs_most(expression.data(), expression.root()).lhs.dtype;
+    kernel_generation_stream stream(backend);
+    numeric_type dtype = lhs_most(tree.data(), tree.root()).lhs.dtype;
     std::string sdtype = to_string(dtype);
     std::string vdtype = append_width(sdtype, p_.simd_width);
-    std::string _size_t = size_type(device);
-    std::string vint = append_width("int", p_.simd_width);
 
     //////////////////
     /// DECLARATIONS
@@ -169,11 +167,11 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
         stream << " __attribute__((reqd_work_group_size(" << p_.local_size_0 << "," << p_.local_size_1 << ",1)))" << std::endl; break;
     }
 
-    stream << KernelPrefix(backend) << " void " << matrix_product_name << "(" << _size_t << " M, " << _size_t << " N, " << _size_t << " K, "
-                               << Global(backend) << " " << sdtype << "* C, "  << _size_t << " ldc," << _size_t << " offc," << _size_t << " Cstride1, "
+    stream << "$KERNEL void matrix_product" << suffix << "($SIZE_T M, $SIZE_T N, $SIZE_T K, "
+                               << "$GLOBAL " << sdtype << "* C, $SIZE_T ldc, $SIZE_T offc, $SIZE_T Cstride1, "
                                << sdtype << " alpha,"
-                               << Global(backend) << " " << sdtype << "* A, "  << _size_t << " lda," << _size_t << " offa," << _size_t << " Astride1,"
-                               << Global(backend) << " " << sdtype << "* B, "  << _size_t << " ldb," << _size_t << " offb," << _size_t << " Bstride1,"
+                               << "$GLOBAL " << sdtype << "* A, $SIZE_T lda, $SIZE_T offa, $SIZE_T Astride1,"
+                               << "$GLOBAL " << sdtype << "* B, $SIZE_T ldb, $SIZE_T offb, $SIZE_T Bstride1,"
                                << sdtype << " beta)"
                                << std::endl;
     stream << "{" << std::endl;
@@ -189,12 +187,12 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     stream << "//pointers" << std::endl;
     size_t llda = (A_trans_=='N')?p_.mL:p_.kL;
     size_t lldb = (B_trans_=='T')?p_.nL:p_.kL;
-    stream << Local(backend) << " " << sdtype << " lA[" << p_.kL*p_.mL << "];" << std::endl;
-    stream << Local(backend) << " " << sdtype << " lB[" << p_.kL*p_.nL << "];" << std::endl;
+    stream << "$LOCAL " << sdtype << " lA[" << p_.kL*p_.mL << "];" << std::endl;
+    stream << "$LOCAL " << sdtype << " lB[" << p_.kL*p_.nL << "];" << std::endl;
     unsigned int npA = p_.mL/(A_trans_=='N'?p_.local_fetch_0*p_.simd_width:p_.local_fetch_1);
     unsigned int npB = p_.nL/(B_trans_=='T'?p_.local_fetch_0*p_.simd_width:p_.local_fetch_1);
-    stream << Global(backend) << " " << sdtype << "* Ai[" << npA << "];" << std::endl;
-    stream << Global(backend) << " " << sdtype << "* Bi[" << npB << "];" << std::endl;
+    stream << "$GLOBAL " << sdtype << "* Ai[" << npA << "];" << std::endl;
+    stream << "$GLOBAL " << sdtype << "* Bi[" << npB << "];" << std::endl;
     stream << std::endl;
 
     stream << "//identifiers" << std::endl;
@@ -203,10 +201,10 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     if(has_depth)
         stream << "int gidz, div, offz;" << std::endl;
     stream << "uint4 ids;" << std::endl;
-    stream << "ids.x = " << GroupIdx0(backend) << ";" << std::endl;
-    stream << "ids.y = " << GroupIdx1(backend) << ";" << std::endl;
-    stream << "ids.z = " << LocalIdx0(backend) << ";" << std::endl;
-    stream << "ids.w = " << LocalIdx1(backend) << ";" << std::endl;
+    stream << "ids.x = $GROUP_IDX_0;" << std::endl;
+    stream << "ids.y = $GROUP_IDX_1;" << std::endl;
+    stream << "ids.z = $LOCAL_IDX_0;" << std::endl;
+    stream << "ids.w = $LOCAL_IDX_1;" << std::endl;
     stream << std::endl;
 
     stream << "//offsets" << std::endl;
@@ -216,10 +214,10 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
     if(has_depth)
     {
-      stream << "gidz = " << GroupIdx2(backend) << ";" << std::endl;
+      stream << "gidz = $GROUP_IDX_2;" << std::endl;
       stream << "div = (K+" << p_.depth-1 << ")/" << p_.depth << ";" << std::endl;
       stream << "offz = div*gidz;" << std::endl;
-      stream << "K = min(K - div*gidz, (" << _size_t << ")div);" << std::endl;
+      stream << "K = min(K - div*gidz, ($SIZE_T)div);" << std::endl;
     }
 
     stream << "idt = " << p_.local_size_0 << "*ids.w + ids.z;" << std::endl;
@@ -312,9 +310,9 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
     auto fetch_to_lds = [&](bool last_iteration)
     {
-        stream << LocalBarrier(backend) << ";" << std::endl;
-        stream << LocalPtr(backend) << " " << sdtype << "* ldsA = lA + idT.y*" << llda << " + idT.x;" << std::endl;
-        stream << LocalPtr(backend) << " " << sdtype << "* ldsB = lB + idT.y*" << lldb << " + idT.x;" << std::endl;
+        stream << "$LOCAL_BARRIER;" << std::endl;
+        stream << "$LOCAL_PTR " << sdtype << "* ldsA = lA + idT.y*" << llda << " + idT.x;" << std::endl;
+        stream << "$LOCAL_PTR " << sdtype << "* ldsB = lB + idT.y*" << lldb << " + idT.x;" << std::endl;
 
         stream << "//Fetch A to local memory" << std::endl;
         if (A_trans_=='N')
@@ -388,7 +386,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
         else
             stream << "ldsB = lB + ids.w*" << lldb*p_.simd_width << ";" << std::endl;
 
-        stream << LocalBarrier(backend) << ";" << std::endl;
+        stream << "$LOCAL_BARRIER;" << std::endl;
 
         stream << "//Inner loop" << std::endl;
         stream << "for(unsigned int k = 0; k < " << p_.kL << "; k+=" << p_.kS << "){" << std::endl;
@@ -450,7 +448,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
             rhs_str = "rB[" + to_string(kk) + "]["+to_string(nn)+"]";
           else
             rhs_str = access_vector_type("rB[" + to_string(kk) + "]["+to_string(nn/p_.simd_width)+"]", nn%p_.simd_width);
-          stream << res_str << "=" << (backend==driver::CUDA?"fma":"mad") << "(" << lhs_str << "," << rhs_str << "," << res_str << ");" << std::endl;
+          stream << res_str << "= $MAD(" << lhs_str << "," << rhs_str << "," << res_str << ");" << std::endl;
         }
 
         stream.dec_tab();
@@ -558,19 +556,19 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
     if(has_depth)
     {
-      stream << KernelPrefix(backend) << " void " << reduce_name << "(" << _size_t << " M, " << _size_t << " N, " << _size_t << " D, "
-                                 << Global(backend) << " " << sdtype << "* Z, "  << _size_t << " Zld,"
-                                 << Global(backend) << " " << sdtype << "* C, "  << _size_t << " ldc," << _size_t << " Cstart," << _size_t << " Cstride,"
+      stream << "$KERNEL void reduce" << suffix << "($SIZE_T M, $SIZE_T N, $SIZE_T D, "
+                                 << "$GLOBAL " << sdtype << "* Z, $SIZE_T Zld,"
+                                 << "$GLOBAL " << sdtype << "* C, $SIZE_T ldc, $SIZE_T Cstart, $SIZE_T Cstride,"
                                  << sdtype << " beta)"
                                  << std::endl;
       stream << "{" << std::endl;
       stream.inc_tab();
 
       stream << "C += Cstart;" << std::endl;
-      stream << "for(unsigned int i = " << GlobalIdx0(backend) << " ;  i < M ;  i += " << GlobalSize0(backend) << ")" << std::endl;
+      stream << "for(unsigned int i = $GLOBAL_IDX_0 ;  i < M ;  i += $GLOBAL_SIZE_0)" << std::endl;
       stream << "{" << std::endl;
       stream.inc_tab();
-      stream << "for(unsigned int j = " << GlobalIdx1(backend) << " ;  j < N ;  j += " << GlobalSize1(backend) << ")" << std::endl;
+      stream << "for(unsigned int j = $GLOBAL_IDX_1 ;  j < N ;  j += $GLOBAL_SIZE_1)" << std::endl;
       stream << "{" << std::endl;
       stream.inc_tab();
       stream << sdtype << " acc = 0;" << std::endl;
@@ -682,7 +680,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     return {M, N, K};
   }
 
-  matrix_product::matrix_product(matrix_product_parameters const & parameters, bool check_bounds, char A_trans, char B_trans) : base_impl<matrix_product, matrix_product_parameters>(parameters, BIND_INDEPENDENT), A_trans_(A_trans), B_trans_(B_trans), check_bounds_(check_bounds)
+  matrix_product::matrix_product(matrix_product_parameters const & parameters, bool check_bounds, char A_trans, char B_trans) : base_impl<matrix_product, matrix_product_parameters>(parameters, FUSE_INDEPENDENT), A_trans_(A_trans), B_trans_(B_trans), check_bounds_(check_bounds)
   {
     if(A_trans_=='N' && B_trans_=='N') type_ = MATRIX_PRODUCT_NN;
     else if(A_trans_=='T' && B_trans_=='N') type_ = MATRIX_PRODUCT_TN;

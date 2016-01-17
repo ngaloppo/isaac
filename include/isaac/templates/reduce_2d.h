@@ -50,12 +50,12 @@ protected:
     REDUCE_ROWS,
     REDUCE_COLUMNS
   };
-  reduce_2d(reduce_2d::parameters_type const & , reduce_1d_type, binding_policy_t);
+  reduce_2d(reduce_2d::parameters_type const & , reduce_1d_type, fusion_policy_t);
 private:
   int is_invalid_impl(driver::Device const &, expression_tree const &) const;
   unsigned int lmem_usage(expression_tree const &) const;
   unsigned int temporary_workspace(expression_tree const & expressions) const;
-  std::string generate_impl(std::string const & suffix, expression_tree const &, driver::Device const & device, symbolic::mapping_type const &) const;
+  std::string generate_impl(std::string const & suffix, expression_tree const &, driver::Device const & device, symbolic::symbols_table const &) const;
 public:
   virtual std::vector<int_t> input_sizes(expression_tree const & expressions) const;
   void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base & fallback, execution_handler const &);
@@ -66,15 +66,15 @@ private:
 class reduce_2d_rows : public reduce_2d
 {
 public:
-  reduce_2d_rows(reduce_2d::parameters_type  const &, binding_policy_t binding_policy = BIND_INDEPENDENT);
-  reduce_2d_rows(unsigned int simd, unsigned int ls1, unsigned int ls2, unsigned int ng1, unsigned int ng2, fetching_policy_type fetch, binding_policy_t bind = BIND_INDEPENDENT);
+  reduce_2d_rows(reduce_2d::parameters_type  const &, fusion_policy_t fusion_policy = FUSE_INDEPENDENT);
+  reduce_2d_rows(unsigned int simd, unsigned int ls1, unsigned int ls2, unsigned int ng1, unsigned int ng2, fetching_policy_type fetch, fusion_policy_t bind = FUSE_INDEPENDENT);
 };
 
 class reduce_2d_cols : public reduce_2d
 {
 public:
-  reduce_2d_cols(reduce_2d::parameters_type  const &, binding_policy_t binding_policy = BIND_INDEPENDENT);
-  reduce_2d_cols(unsigned int simd, unsigned int ls1, unsigned int ls2, unsigned int ng1, unsigned int ng2, fetching_policy_type fetch, binding_policy_t bind = BIND_INDEPENDENT);
+  reduce_2d_cols(reduce_2d::parameters_type  const &, fusion_policy_t fusion_policy = FUSE_INDEPENDENT);
+  reduce_2d_cols(unsigned int simd, unsigned int ls1, unsigned int ls2, unsigned int ng1, unsigned int ng2, fetching_policy_type fetch, fusion_policy_t bind = FUSE_INDEPENDENT);
 };
 
 }

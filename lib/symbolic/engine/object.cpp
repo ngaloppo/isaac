@@ -19,16 +19,12 @@
  * MA 02110-1301  USA
  */
 
-#include <cassert>
-#include <iostream>
-#include <set>
 #include <string>
 
 #include "isaac/array.h"
 #include "isaac/tuple.h"
 #include "isaac/exception/operation_not_supported.h"
 #include "isaac/symbolic/engine/object.h"
-#include "isaac/templates/stream.h"
 #include "isaac/symbolic/expression/expression.h"
 #include "isaac/tools/cpp/string.hpp"
 
@@ -138,10 +134,10 @@ std::string object::evaluate(const std::string & str) const
 { return process(str); }
 
 //
-arithmetic_node::arithmetic_node(operation_type type, size_t index, expression_tree const & expression, mapping_type const & mapping) : object("", "", ""), type_(type), op_str_(to_string(type)), lhs(NULL), rhs(NULL)
+arithmetic_node::arithmetic_node(operation_type type, size_t index, expression_tree const & expression, symbols_table const & mapping) : object("", "", ""), type_(type), op_str_(to_string(type)), lhs(NULL), rhs(NULL)
 {
   expression_tree::node const & node = expression.data()[index];
-  mapping_type::const_iterator it;
+  symbols_table::const_iterator it;
 
   if((it = mapping.find({index, LHS_NODE_TYPE}))!=mapping.end())
     lhs = it->second.get();
@@ -155,13 +151,21 @@ arithmetic_node::arithmetic_node(operation_type type, size_t index, expression_t
 }
 
 //
-binary_node::binary_node(operation_type type, size_t index, expression_tree const & expression, mapping_type const & mapping) : arithmetic_node(type, index, expression, mapping){}
+binary_node::binary_node(operation_type type, size_t index, expression_tree const & expression, symbols_table const & mapping) : arithmetic_node(type, index, expression, mapping){}
 
 std::string binary_node::evaluate(std::string const & str) const
-{ return "(" + lhs->evaluate(str) + op_str_ + rhs->evaluate(str) + ")"; }
+{
+  std::string arg0 = lhs->evaluate(str);
+  std::string arg1 = rhs->evaluate(str);
+
+  if(is_function(type_))
+    return op_str_ + "(" + arg0 + ", " + arg1 + ")";
+  else
+    return "(" + arg0 + op_str_ + arg1 + ")";
+}
 
 //
-unary_node::unary_node(operation_type type, size_t index, expression_tree const & expression, mapping_type const & mapping) : arithmetic_node(type, index, expression, mapping){}
+unary_node::unary_node(operation_type type, size_t index, expression_tree const & expression, symbols_table const & mapping) : arithmetic_node(type, index, expression, mapping){}
 
 std::string unary_node::evaluate(std::string const & str) const
 { return op_str_ + "(" + lhs->evaluate(str) + ")"; }
@@ -243,11 +247,11 @@ buffer::buffer(std::string const & scalartype, unsigned int id, const tuple &sha
 }
 
 //
-index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t index, mapping_type const & mapping) : array(scalartype, id), index_(index), mapping_(mapping)
+index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t index, symbols_table const & mapping) : array(scalartype, id), index_(index), mapping_(mapping)
 { }
 
 //Reshaping
-reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, expression_tree const & expression, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
+reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, expression_tree const & expression, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping)
 {
   expression_tree::node node = expression.data()[index];
   tuple new_shape = node.shape;
@@ -284,62 +288,39 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, 
 }
 
 //
-diag_matrix::diag_matrix(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping){}
+diag_matrix::diag_matrix(std::string const & scalartype, unsigned int id, size_t index, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping){}
 
 //
-array_access::array_access(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
-{ }
-
-//
-matrix_row::matrix_row(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
+array_access::array_access(std::string const & scalartype, unsigned int id, size_t index, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping)
 { }
 
 //
-matrix_column::matrix_column(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
+matrix_row::matrix_row(std::string const & scalartype, unsigned int id, size_t index, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping)
 { }
 
 //
-diag_vector::diag_vector(std::string const & scalartype, unsigned int id, size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
-{ }
-
-repeat::repeat(std::string const & scalartype, unsigned int id,  size_t index, mapping_type const & mapping) : index_modifier(scalartype, id, index, mapping)
+matrix_column::matrix_column(std::string const & scalartype, unsigned int id, size_t index, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping)
 { }
 
 //
-std::string cast::operator_to_str(operation_type type)
-{
-  switch(type)
-  {
-    case CAST_BOOL_TYPE : return "bool";
-    case CAST_CHAR_TYPE : return "char";
-    case CAST_UCHAR_TYPE : return "uchar";
-    case CAST_SHORT_TYPE : return "short";
-    case CAST_USHORT_TYPE : return "ushort";
-    case CAST_INT_TYPE : return "int";
-    case CAST_UINT_TYPE : return "uint";
-    case CAST_LONG_TYPE : return "long";
-    case CAST_ULONG_TYPE : return "ulong";
-    case CAST_HALF_TYPE : return "half";
-    case CAST_FLOAT_TYPE : return "float";
-    case CAST_DOUBLE_TYPE : return "double";
-    default : return "invalid";
-  }
-}
-
-cast::cast(operation_type type, unsigned int id) : object(operator_to_str(type), id, "cast")
+diag_vector::diag_vector(std::string const & scalartype, unsigned int id, size_t index, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping)
 { }
 
-object& get(expression_tree::data_type const & tree, size_t root, mapping_type const & mapping, size_t idx)
-{
-  for(unsigned int i = 0 ; i < idx ; ++i){
-      expression_tree::node node = tree[root];
-      if(node.rhs.type==COMPOSITE_OPERATOR_TYPE)
-        root = node.rhs.index;
-      else
-        return *(mapping.at(std::make_pair(root, RHS_NODE_TYPE)));
-  }
-  return *(mapping.at(std::make_pair(root, LHS_NODE_TYPE)));
-}
+repeat::repeat(std::string const & scalartype, unsigned int id,  size_t index, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping)
+{ }
+
+////
+//object& get(expression_tree::data_type const & tree, size_t root, symbols_table const & mapping, size_t idx)
+//{
+//  for(unsigned int i = 0 ; i < idx ; ++i){
+//      expression_tree::node node = tree[root];
+//      if(node.rhs.type==COMPOSITE_OPERATOR_TYPE)
+//        root = node.rhs.index;
+//      else
+//        return *(mapping.at(std::make_pair(root, RHS_NODE_TYPE)));
+//  }
+//  return *(mapping.at(std::make_pair(root, LHS_NODE_TYPE)));
+//}
 
 }
 }

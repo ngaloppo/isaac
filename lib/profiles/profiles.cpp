@@ -35,9 +35,7 @@
 #include "isaac/templates/reduce_2d.h"
 #include "isaac/templates/matrix_product.h"
 #include "isaac/exception/operation_not_supported.h"
-
-#include "../kernels/parse/hash.hpp"
-
+#include "isaac/symbolic/engine/process.h"
 #include "isaac/tools/sys/getenv.hpp"
 #include "isaac/tools/cpp/string.hpp"
 
@@ -55,7 +53,7 @@ driver::Program const & profiles::value_type::init(execution_handler const & exp
   std::string pname;
   compilation_options_type const & opt = expression.compilation_options();
   if(opt.program_name.empty())
-    pname = hash(expression.x());
+    pname = symbolic::hash(expression.x());
   else
     pname = opt.program_name;
 

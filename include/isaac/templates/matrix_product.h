@@ -66,7 +66,7 @@ private:
   unsigned int lmem_usage(expression_tree const & expressions) const;
   unsigned int registers_usage(expression_tree const & expressions) const;
   int is_invalid_impl(driver::Device const &, expression_tree const &) const;
-  std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::mapping_type const &) const;
+  std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::symbols_table const &) const;
   void enqueue_block(driver::CommandQueue & queue, int_t M, int_t N, int_t K, array_base const & A, array_base const & B, array_base const & C,
                      value_scalar const &alpha, value_scalar const &beta, driver::Program const & program, std::string const & suffix, execution_options_type const & options);
   std::vector<int_t> infos(expression_tree const & expressions,  isaac::symbolic::preset::matrix_product::args &arguments) const;

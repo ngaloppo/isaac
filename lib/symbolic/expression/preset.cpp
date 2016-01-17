@@ -33,7 +33,7 @@ namespace preset
 void matrix_product::handle_node(expression_tree::data_type const & tree, size_t rootidx, args & a)
 {
     //Matrix-Matrix product node
-    if(tree[rootidx].op.type_family==MATRIX_PRODUCT_TYPE_FAMILY)
+    if(tree[rootidx].op.type_family==MATRIX_PRODUCT)
     {
         if(tree[rootidx].lhs.type==DENSE_ARRAY_TYPE) a.A = &tree[rootidx].lhs;
         if(tree[rootidx].rhs.type==DENSE_ARRAY_TYPE) a.B = &tree[rootidx].rhs;
@@ -52,7 +52,7 @@ void matrix_product::handle_node(expression_tree::data_type const & tree, size_t
     {
         //alpha*PROD
         if(tree[rootidx].lhs.type==VALUE_SCALAR_TYPE  && tree[rootidx].rhs.type==COMPOSITE_OPERATOR_TYPE
-           && tree[tree[rootidx].rhs.index].op.type_family==MATRIX_PRODUCT_TYPE_FAMILY)
+           && tree[tree[rootidx].rhs.index].op.type_family==MATRIX_PRODUCT)
         {
             a.alpha = value_scalar(tree[rootidx].lhs.scalar, tree[rootidx].lhs.dtype);
             handle_node(tree, tree[rootidx].rhs.index, a);

@@ -195,10 +195,10 @@ int_t expression_tree::dim() const
 { return (int_t)shape_.size(); }
 
 expression_tree expression_tree::operator-()
-{ return expression_tree(*this,  invalid_node(), op_element(UNARY_TYPE_FAMILY, SUB_TYPE), *context_, dtype_, shape_); }
+{ return expression_tree(*this,  invalid_node(), op_element(UNARY, SUB_TYPE), *context_, dtype_, shape_); }
 
 expression_tree expression_tree::operator!()
-{ return expression_tree(*this, invalid_node(), op_element(UNARY_TYPE_FAMILY, NEGATE_TYPE), *context_, INT_TYPE, shape_); }
+{ return expression_tree(*this, invalid_node(), op_element(UNARY, NEGATE_TYPE), *context_, INT_TYPE, shape_); }
 
 //
 
@@ -214,8 +214,8 @@ expression_tree::node const & lhs_most(expression_tree::data_type const & array,
 { return lhs_most(array, array[root]); }
 
 //
-expression_tree placeholder::operator=(value_scalar const & r) const { return expression_tree(*this, r, op_element(BINARY_TYPE_FAMILY,ASSIGN_TYPE), r.dtype()); }
-expression_tree placeholder::operator=(expression_tree const & r) const { return expression_tree(*this, r, op_element(BINARY_TYPE_FAMILY,ASSIGN_TYPE), r.context(), r.dtype(), r.shape()); }
+expression_tree placeholder::operator=(value_scalar const & r) const { return expression_tree(*this, r, op_element(BINARY,ASSIGN_TYPE), r.dtype()); }
+expression_tree placeholder::operator=(expression_tree const & r) const { return expression_tree(*this, r, op_element(BINARY,ASSIGN_TYPE), r.context(), r.dtype(), r.shape()); }
 
 expression_tree placeholder::operator+=(value_scalar const & r) const { return *this = *this + r; }
 expression_tree placeholder::operator-=(value_scalar const & r) const { return *this = *this - r; }

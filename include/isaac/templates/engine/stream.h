@@ -19,41 +19,43 @@
  * MA 02110-1301  USA
  */
 
-#include "isaac/templates/stream.h"
+#ifndef ISAAC_BACKEND_STREAM_H
+#define ISAAC_BACKEND_STREAM_H
+
+#include <sstream>
+#include "isaac/driver/common.h"
 
 namespace isaac
 {
 
-kernel_generation_stream::kgenstream::kgenstream(std::ostringstream& oss,unsigned int const & tab_count) :
-  oss_(oss), tab_count_(tab_count)
-{ }
-
-int kernel_generation_stream::kgenstream::sync()
+class kernel_generation_stream : public std::ostream
 {
-  for (unsigned int i=0; i<tab_count_;++i)
-    oss_ << "  ";
-  oss_ << str();
-  str("");
-  return !oss_;
+  class kgenstream : public std::stringbuf
+  {
+  public:
+    kgenstream(std::ostringstream& oss,unsigned int const & tab_count) ;
+    int sync();
+    ~kgenstream();
+  private:
+    std::ostream& oss_;
+    unsigned int const & tab_count_;
+  };
+
+  void process(std::string& str);
+
+public:
+  kernel_generation_stream(driver::backend_type backend);
+  ~kernel_generation_stream();
+
+  std::string str();
+  void inc_tab();
+  void dec_tab();
+private:
+  unsigned int tab_count_;
+  driver::backend_type backend_;
+  std::ostringstream oss;
+};
+
 }
 
-kernel_generation_stream::kgenstream:: ~kgenstream()
-{  pubsync(); }
-
-kernel_generation_stream::kernel_generation_stream() : std::ostream(new kgenstream(oss,tab_count_)), tab_count_(0)
-{ }
-
-kernel_generation_stream::~kernel_generation_stream()
-{ delete rdbuf(); }
-
-std::string kernel_generation_stream::str()
-{ return oss.str(); }
-
-void kernel_generation_stream::inc_tab()
-{ ++tab_count_; }
-
-void kernel_generation_stream::dec_tab()
-{ --tab_count_; }
-
-}
-
+#endif

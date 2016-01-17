@@ -44,10 +44,10 @@ class elementwise_2d : public base_impl<elementwise_2d, elementwise_2d_parameter
 {
 private:
   int is_invalid_impl(driver::Device const &, expression_tree const  &) const;
-  std::string generate_impl(std::string const & suffix, expression_tree const  & expressions, driver::Device const & device, symbolic::mapping_type const & mapping) const;
+  std::string generate_impl(std::string const & suffix, expression_tree const  & expressions, driver::Device const & device, symbolic::symbols_table const & mapping) const;
 public:
-  elementwise_2d(parameters_type const & parameters, binding_policy_t binding_policy = BIND_INDEPENDENT);
-  elementwise_2d(unsigned int simd, unsigned int ls1, unsigned int ls2,  unsigned int ng1, unsigned int ng2, fetching_policy_type fetch, binding_policy_t bind = BIND_INDEPENDENT);
+  elementwise_2d(parameters_type const & parameters, fusion_policy_t fusion_policy = FUSE_INDEPENDENT);
+  elementwise_2d(unsigned int simd, unsigned int ls1, unsigned int ls2,  unsigned int ng1, unsigned int ng2, fetching_policy_type fetch, fusion_policy_t bind = FUSE_INDEPENDENT);
   std::vector<int_t> input_sizes(expression_tree const  & expressions) const;
   void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base & fallback, execution_handler const &);
 };

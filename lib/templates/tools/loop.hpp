@@ -19,7 +19,7 @@
  * MA 02110-1301  USA
  */
 
-#include "isaac/templates/stream.h"
+#include "isaac/templates/engine/stream.h"
 #include "isaac/templates/base.h"
 #include <string>
 #include "isaac/tools/cpp/string.hpp"
@@ -29,7 +29,7 @@ namespace isaac
 namespace templates
 {
 
-inline void fetching_loop_info(fetching_policy_type policy, std::string const & bound, kernel_generation_stream & stream, std::string & init, std::string & upper_bound, std::string & inc, std::string const & domain_id, std::string const & domain_size, driver::Device const & device)
+inline void fetching_loop_info(fetching_policy_type policy, std::string const & bound, kernel_generation_stream & stream, std::string & init, std::string & upper_bound, std::string & inc, std::string const & domain_id, std::string const & domain_size, driver::Device const &)
 {
   if (policy==FETCH_FROM_GLOBAL_STRIDED)
   {
@@ -39,14 +39,13 @@ inline void fetching_loop_info(fetching_policy_type policy, std::string const & 
   }
   else if (policy==FETCH_FROM_GLOBAL_CONTIGUOUS)
   {
-    std::string _size_t = size_type(device);
     std::string chunk_size = "chunk_size";
     std::string chunk_start = "chunk_start";
     std::string chunk_end = "chunk_end";
 
-    stream << _size_t << " " << chunk_size << " = (" << bound << "+" << domain_size << "-1)/" << domain_size << ";" << std::endl;
-    stream << _size_t << " " << chunk_start << " =" << domain_id << "*" << chunk_size << ";" << std::endl;
-    stream << _size_t << " " << chunk_end << " = min(" << chunk_start << "+" << chunk_size << ", " << bound << ");" << std::endl;
+    stream << "$SIZE_T " << chunk_size << " = (" << bound << "+" << domain_size << "-1)/" << domain_size << ";" << std::endl;
+    stream << "$SIZE_T " << chunk_start << " =" << domain_id << "*" << chunk_size << ";" << std::endl;
+    stream << "$SIZE_T " << chunk_end << " = min(" << chunk_start << "+" << chunk_size << ", " << bound << ");" << std::endl;
     init = chunk_start;
     upper_bound = chunk_end;
     inc = "1";

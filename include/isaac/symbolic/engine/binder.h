@@ -28,13 +28,15 @@
 namespace isaac
 {
 
-enum binding_policy_t
+class array_base;
+
+
+enum fusion_policy_t
 {
-  BIND_INDEPENDENT,
-  BIND_SEQUENTIAL
+  FUSE_INDEPENDENT,
+  FUSE_SEQUENTIAL
 };
 
-class array_base;
 
 class symbolic_binder
 {

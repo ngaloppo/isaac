@@ -4,7 +4,7 @@ namespace sc = isaac;
 
 int main()
 {
-    static const char * sline = "--------------------";
+//    static const char * sline = "--------------------";
     static const char * dline = "====================";
 
     std::cout << dline << std::endl;

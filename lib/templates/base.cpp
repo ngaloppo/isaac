@@ -25,7 +25,7 @@
 
 #include "isaac/array.h"
 #include "isaac/tuple.h"
-#include "isaac/templates/keywords.h"
+#include "isaac/templates/engine/keywords.h"
 #include "isaac/templates/elementwise_1d.h"
 #include "isaac/templates/reduce_1d.h"
 #include "isaac/templates/elementwise_2d.h"
@@ -35,8 +35,7 @@
 #include "isaac/exception/unknown_datatype.h"
 #include "isaac/exception/operation_not_supported.h"
 #include "isaac/symbolic/expression/io.h"
-
-#include "../parse/symbolize.hpp"
+#include "isaac/symbolic/engine/process.h"
 #include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
@@ -88,7 +87,7 @@ std::pair<int_t, int_t> base::matrix_size(expression_tree::data_type const & tre
 }
 
 
-base::base(binding_policy_t binding_policy) : binding_policy_(binding_policy)
+base::base(fusion_policy_t fusion_policy) : fusion_policy_(fusion_policy)
 {}
 
 unsigned int base::lmem_usage(expression_tree const  &) const
@@ -111,7 +110,7 @@ std::string base::generate(std::string const & suffix, expression_tree const  & 
     throw operation_not_supported_exception("The supplied parameters for this template are invalid : err " + tools::to_string(err));
 
   //Create mapping
-  symbolic::mapping_type mapping = symbolize(binding_policy_, expression);
+  symbolic::symbols_table mapping = symbolic::symbolize(fusion_policy_, expression);
   return generate_impl(suffix, expression, device, mapping);
 }
 
@@ -120,7 +119,7 @@ int base_impl<TType, PType>::is_invalid_impl(driver::Device const &, expression_
 { return TEMPLATE_VALID; }
 
 template<class TType, class PType>
-base_impl<TType, PType>::base_impl(parameters_type const & parameters, binding_policy_t binding_policy) : base(binding_policy), p_(parameters)
+base_impl<TType, PType>::base_impl(parameters_type const & parameters, fusion_policy_t fusion_policy) : base(fusion_policy), p_(parameters)
 { }
 
 template<class TType, class PType>

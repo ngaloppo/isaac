@@ -23,14 +23,12 @@
 #include <iostream>
 #include "isaac/templates/elementwise_2d.h"
 #include "isaac/symbolic/expression/io.h"
-#include "isaac/templates/keywords.h"
 
 #include "tools/arguments.hpp"
 #include "tools/loop.hpp"
 #include "tools/vector_types.hpp"
 
-#include "../parse/set_arguments.hpp"
-#include "../parse/filter.hpp"
+#include "isaac/symbolic/engine/process.h"
 
 namespace isaac
 {
@@ -53,14 +51,12 @@ int elementwise_2d::is_invalid_impl(driver::Device const &, expression_tree cons
   return TEMPLATE_VALID;
 }
 
-std::string elementwise_2d::generate_impl(std::string const & suffix, expression_tree const  & expressions, driver::Device const & device, symbolic::mapping_type const & mappings) const
+std::string elementwise_2d::generate_impl(std::string const & suffix, expression_tree const  & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const
 {
-  kernel_generation_stream stream;
-  std::string _size_t = size_type(device);
   std::string init0, upper_bound0, inc0, init1, upper_bound1, inc1;
-  std::string data_type = append_width("#scalartype",p_.simd_width);
   driver::backend_type backend = device.backend();
-  std::vector<std::size_t> assigned = filter(expressions, [](expression_tree::node const & node){return is_assignment(node.op.type);});
+  kernel_generation_stream stream(backend);
+  std::vector<std::size_t> assigned = symbolic::filter(tree, [](expression_tree::node const & node){return is_assignment(node.op.type);});
 
   switch(backend)
   {
@@ -70,33 +66,33 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
       stream << " __attribute__((reqd_work_group_size(" << p_.local_size_0 << "," << p_.local_size_1 << ",1)))" << std::endl; break;
   }
 
-  stream << KernelPrefix(backend) << " void elementwise_2d" << suffix << "(" << _size_t << " M, " << _size_t << " N, " << tools::join(kernel_arguments(device, mappings, expressions), ", ") << ")" << std::endl;
+  stream << "$KERNEL void elementwise_2d" << suffix << "($SIZE_T M, $SIZE_T N, " << tools::join(kernel_arguments(device, symbols, tree), ", ") << ")" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
 
 
-  fetching_loop_info(p_.fetching_policy, "M", stream, init0, upper_bound0, inc0,  GlobalIdx0(backend).get(), GlobalSize0(backend).get(), device);
-  stream << "for(" << _size_t << " i = " << init0 << "; i < " << upper_bound0 << "; i += " << inc0 << ")" << std::endl;
+  fetching_loop_info(p_.fetching_policy, "M", stream, init0, upper_bound0, inc0,  "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device);
+  stream << "for($SIZE_T i = " << init0 << "; i < " << upper_bound0 << "; i += " << inc0 << ")" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
-  fetching_loop_info(p_.fetching_policy, "N", stream, init1, upper_bound1, inc1, GlobalIdx1(backend).get(), GlobalSize1(backend).get(), device);
-  stream << "for(" << _size_t << " j = " << init1 << "; j < " << upper_bound1 << "; j += " << inc1 << ")" << std::endl;
+  fetching_loop_info(p_.fetching_policy, "N", stream, init1, upper_bound1, inc1, "$GLOBAL_IDX_1", "$GLOBAL_SIZE_1", device);
+  stream << "for($SIZE_T j = " << init1 << "; j < " << upper_bound1 << "; j += " << inc1 << ")" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
 
   //Declares register to store results
-  for(symbolic::array* sym: extract<symbolic::array>(expressions, mappings, assigned, LHS_NODE_TYPE))
+  for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned, LHS_NODE_TYPE))
     stream << sym->process("#scalartype #name;") << std::endl;
 
   //Load to registers
-  for(symbolic::array* sym: extract<symbolic::array>(expressions, mappings, assigned, RHS_NODE_TYPE))
+  for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned, RHS_NODE_TYPE))
     stream << sym->process("#scalartype #name = at(i, j);") << std::endl;
 
   for(std::size_t idx: assigned)
-    stream << mappings.at({idx, PARENT_NODE_TYPE})->evaluate("#name") << ";" << std::endl;
+    stream << symbols.at({idx, PARENT_NODE_TYPE})->evaluate("#name") << ";" << std::endl;
 
   //Writes back
-  for(symbolic::array* sym: extract<symbolic::buffer>(expressions, mappings, assigned, LHS_NODE_TYPE))
+  for(symbolic::array* sym: symbolic::extract<symbolic::buffer>(tree, symbols, assigned, LHS_NODE_TYPE))
     stream << sym->process("at(i, j) = #name;") << std::endl;
 
   stream.dec_tab();
@@ -113,12 +109,12 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   return stream.str();
 }
 
-elementwise_2d::elementwise_2d(parameters_type const & parameters, binding_policy_t binding_policy) :
-  base_impl<elementwise_2d, elementwise_2d_parameters>(parameters, binding_policy){ }
+elementwise_2d::elementwise_2d(parameters_type const & parameters, fusion_policy_t fusion_policy) :
+  base_impl<elementwise_2d, elementwise_2d_parameters>(parameters, fusion_policy){ }
 
 elementwise_2d::elementwise_2d(unsigned int simd, unsigned int ls1, unsigned int ls2,
                                unsigned int ng1, unsigned int ng2, fetching_policy_type fetch,
-                               binding_policy_t bind):
+                               fusion_policy_t bind):
     base_impl<elementwise_2d, elementwise_2d_parameters>(elementwise_2d_parameters(simd, ls1, ls2, ng1, ng2, fetch), bind)
 {}
 
@@ -140,7 +136,7 @@ void elementwise_2d::enqueue(driver::CommandQueue & /*queue*/, driver::Program c
   std::vector<int_t> MN = input_sizes(expressions);
   kernel.setSizeArg(current_arg++, MN[0]);
   kernel.setSizeArg(current_arg++, MN[1]);
-  set_arguments(expressions, kernel, current_arg, binding_policy_);
+  symbolic::set_arguments(expressions, kernel, current_arg, fusion_policy_);
 
   control.execution_options().enqueue(program.context(), kernel, global, local);
 }

@@ -23,8 +23,8 @@
 #include <stdexcept>
 
 #include "isaac/driver/common.h"
-#include "isaac/templates/keywords.h"
-#include "isaac/templates/stream.h"
+#include "isaac/templates/engine/keywords.h"
+#include "isaac/templates/engine/stream.h"
 #include "isaac/symbolic/expression/expression.h"
 #include "isaac/symbolic/engine/object.h"
 #include "isaac/types.h"
@@ -36,7 +36,7 @@ namespace templates
 
 inline void compute_reduce_1d(kernel_generation_stream & os, std::string acc, std::string cur, op_element const & op)
 {
-  if (is_function(op))
+  if (is_function(op.type))
     os << acc << "=" << to_string(op.type) << "(" << acc << "," << cur << ");" << std::endl;
   else
     os << acc << "= (" << acc << ")" << to_string(op.type)  << "(" << cur << ");" << std::endl;
@@ -79,9 +79,9 @@ inline std::string neutral_element(op_element const & op, driver::backend_type b
 
 inline bool is_reduce_1d(expression_tree::node const & node)
 {
-  return node.op.type_family==VECTOR_DOT_TYPE_FAMILY
-      || node.op.type_family==COLUMNS_DOT_TYPE_FAMILY
-      || node.op.type_family==ROWS_DOT_TYPE_FAMILY;
+  return node.op.type_family==REDUCE
+      || node.op.type_family==REDUCE_COLUMNS
+      || node.op.type_family==REDUCE_ROWS;
 }
 
 

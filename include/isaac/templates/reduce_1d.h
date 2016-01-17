@@ -46,11 +46,11 @@ private:
   unsigned int temporary_workspace(expression_tree const & expressions) const;
   inline void reduce_1d_local_memory(kernel_generation_stream & stream, unsigned int size, std::vector<symbolic::reduce_1d*> exprs,
                                      std::string const & buf_str, std::string const & buf_value_str, driver::backend_type backend) const;
-  std::string generate_impl(std::string const & suffix,  expression_tree const  & expressions, driver::Device const & device, symbolic::mapping_type const & mapping) const;
+  std::string generate_impl(std::string const & suffix,  expression_tree const  & expressions, driver::Device const & device, symbolic::symbols_table const & mapping) const;
 
 public:
-  reduce_1d(reduce_1d::parameters_type const & parameters, binding_policy_t binding_policy = BIND_INDEPENDENT);
-  reduce_1d(unsigned int simd, unsigned int ls, unsigned int ng, fetching_policy_type fetch, binding_policy_t bind = BIND_INDEPENDENT);
+  reduce_1d(reduce_1d::parameters_type const & parameters, fusion_policy_t fusion_policy = FUSE_INDEPENDENT);
+  reduce_1d(unsigned int simd, unsigned int ls, unsigned int ng, fetching_policy_type fetch, fusion_policy_t bind = FUSE_INDEPENDENT);
   std::vector<int_t> input_sizes(expression_tree const  & expressions) const;
   void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base & fallback, execution_handler const &);
 private:

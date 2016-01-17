@@ -24,9 +24,8 @@
 #include <memory>
 #include <algorithm>
 
-#include "../../parse/extract.hpp"
-
 #include "isaac/symbolic/engine/object.h"
+#include "isaac/symbolic/engine/process.h"
 #include "isaac/array.h"
 
 namespace isaac
@@ -35,26 +34,24 @@ namespace templates
 {
 
 //Generate
-inline std::vector<std::string> kernel_arguments(driver::Device const & device, symbolic::mapping_type const & mappings, expression_tree const & expressions)
+inline std::vector<std::string> kernel_arguments(driver::Device const &, symbolic::symbols_table const & symbols, expression_tree const & expressions)
 {
-    std::string kwglobal = Global(device.backend()).get();
-    std::string _size_t = size_type(device);
     std::vector<std::string> result;
-    for(symbolic::object* obj: extract<symbolic::object>(expressions, mappings))
+    for(symbolic::object* obj: symbolic::extract<symbolic::object>(expressions, symbols))
     {
       if(symbolic::host_scalar* sym = dynamic_cast<symbolic::host_scalar*>(obj))
         result.push_back(sym->process("#scalartype #name"));
       if(symbolic::buffer* sym = dynamic_cast<symbolic::buffer*>(obj))
       {
-        result.push_back(kwglobal + " " + sym->process("#scalartype* #pointer"));
-        if(sym->hasattr("off")) result.push_back(_size_t + " " + sym->process("#off"));
-        if(sym->hasattr("inc0")) result.push_back(_size_t + " " + sym->process("#inc0"));
-        if(sym->hasattr("inc1")) result.push_back(_size_t + " " + sym->process("#inc1"));
+        result.push_back("$GLOBAL " + sym->process("#scalartype* #pointer"));
+        if(sym->hasattr("off")) result.push_back("$SIZE_T " + sym->process("#off"));
+        if(sym->hasattr("inc0")) result.push_back("$SIZE_T " + sym->process("#inc0"));
+        if(sym->hasattr("inc1")) result.push_back("$SIZE_T " + sym->process("#inc1"));
       }
       if(symbolic::reshape* sym = dynamic_cast<symbolic::reshape*>(obj))
       {
-        if(sym->hasattr("new_inc1")) result.push_back(_size_t + " " + sym->process("#new_inc1"));
-        if(sym->hasattr("old_inc1")) result.push_back(_size_t + " " + sym->process("#old_inc1"));
+        if(sym->hasattr("new_inc1")) result.push_back("$SIZE_T " + sym->process("#new_inc1"));
+        if(sym->hasattr("old_inc1")) result.push_back("$SIZE_T " + sym->process("#old_inc1"));
       }
     }
     return result;

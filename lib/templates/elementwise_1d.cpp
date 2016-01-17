@@ -23,12 +23,9 @@
 #include <cstring>
 #include <algorithm>
 
-#include "../parse/extract.hpp"
-#include "../parse/filter.hpp"
-#include "../parse/set_arguments.hpp"
+#include "isaac/symbolic/engine/process.h"
 
 #include "isaac/templates/elementwise_1d.h"
-#include "isaac/templates/keywords.h"
 #include "isaac/driver/backend.h"
 
 #include "tools/loop.hpp"
@@ -58,20 +55,18 @@ int elementwise_1d::is_invalid_impl(driver::Device const &, expression_tree cons
   return TEMPLATE_VALID;
 }
 
-std::string elementwise_1d::generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::mapping_type const & mappings) const
+std::string elementwise_1d::generate_impl(std::string const & suffix, expression_tree const & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const
 {
   driver::backend_type backend = device.backend();
-  std::string _size_t = size_type(device);
+  kernel_generation_stream stream(backend);
 
-  kernel_generation_stream stream;
-
-  expression_tree::data_type const & tree = expressions.data();
-  std::vector<std::size_t> sfors = filter(expressions, [](expression_tree::node const & node){return node.op.type==SFOR_TYPE;});
-  size_t root = expressions.root();
+  expression_tree::data_type const & data = tree.data();
+  std::vector<std::size_t> sfors = symbolic::filter(tree, [](expression_tree::node const & node){return node.op.type==SFOR_TYPE;});
+  size_t root = tree.root();
   if(sfors.size())
-      root = tree[sfors.back()].lhs.index;
+      root = data[sfors.back()].lhs.index;
 
-  std::vector<std::size_t> assigned = filter(expressions, root, PARENT_NODE_TYPE, [](expression_tree::node const & node){return is_assignment(node.op.type);});
+  std::vector<std::size_t> assigned = symbolic::filter(tree, root, PARENT_NODE_TYPE, [](expression_tree::node const & node){return is_assignment(node.op.type);});
 
   switch(backend)
   {
@@ -81,14 +76,12 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
       stream << " __attribute__((reqd_work_group_size(" << p_.local_size_0 << "," << p_.local_size_1 << ",1)))" << std::endl; break;
   }
 
-  stream << KernelPrefix(backend) << " void " << "elementwise_1d" << suffix << "("
-         << _size_t << " N"
-         << ", " << tools::join(kernel_arguments(device, mappings, expressions), ", ") << ")";
+  stream << "$KERNEL void elementwise_1d" << suffix << "($SIZE_T N, " << tools::join(kernel_arguments(device, symbols, tree), ", ") << ")";
 
   stream << "{" << std::endl;
   stream.inc_tab();
 
-  element_wise_loop_1D(stream, p_.fetching_policy, p_.simd_width, "i", "N", GlobalIdx0(backend).get(), GlobalSize0(backend).get(), device, [&](unsigned int simd_width)
+  element_wise_loop_1D(stream, p_.fetching_policy, p_.simd_width, "i", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](unsigned int simd_width)
   {
     std::string dtype = append_width("#scalartype",simd_width);
 
@@ -98,11 +91,11 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
       std::string info[3];
       int idx =  sfors[i];
       for(int i = 0 ; i < 2 ; ++i){
-          idx = tree[idx].rhs.index;
-          info[i] = mappings.at({idx, LHS_NODE_TYPE})->process("#name");
+          idx = data[idx].rhs.index;
+          info[i] = symbols.at({idx, LHS_NODE_TYPE})->process("#name");
 
       }
-      info[2] = mappings.at({idx, RHS_NODE_TYPE})->process("#name");
+      info[2] = symbols.at({idx, RHS_NODE_TYPE})->process("#name");
       info[0] = info[0].substr(1, info[0].size()-2);
       stream << "for(int " << info[0] << " ; " << info[1] << "; " << info[2] << ")" << std::endl;
     }
@@ -113,11 +106,11 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
     }
 
     //Declares register to store results
-    for(symbolic::array* sym: extract<symbolic::array>(expressions, mappings, assigned, LHS_NODE_TYPE))
+    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned, LHS_NODE_TYPE))
       stream << sym->process(dtype + " #name;") << std::endl;
 
     //Load to registers
-    for(symbolic::array* sym: extract<symbolic::array>(expressions, mappings, assigned, RHS_NODE_TYPE))
+    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned, RHS_NODE_TYPE))
     {
       if(simd_width==1)
         stream << sym->process(dtype + " #name = at(i);") << std::endl;
@@ -130,11 +123,11 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
     //Compute
     for(std::size_t idx: assigned)
       for(unsigned int s = 0 ; s < simd_width ; ++s)
-         stream << mappings.at({idx, PARENT_NODE_TYPE})->evaluate(access_vector_type("#name", s, simd_width)) << ";" << std::endl;
+         stream << symbols.at({idx, PARENT_NODE_TYPE})->evaluate(access_vector_type("#name", s, simd_width)) << ";" << std::endl;
 
 
     //Writes back
-    for(symbolic::array* sym: extract<symbolic::array>(expressions, mappings, assigned, LHS_NODE_TYPE))
+    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned, LHS_NODE_TYPE))
       for(unsigned int s = 0 ; s < simd_width ; ++s)
           stream << sym->process("at(i+" + tools::to_string(s)+") = " + access_vector_type("#name", s, simd_width) + ";") << std::endl;
 
@@ -154,12 +147,12 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
 }
 
 elementwise_1d::elementwise_1d(elementwise_1d_parameters const & parameters,
-                               binding_policy_t binding_policy) :
-    base_impl<elementwise_1d, elementwise_1d_parameters>(parameters, binding_policy)
+                               fusion_policy_t fusion_policy) :
+    base_impl<elementwise_1d, elementwise_1d_parameters>(parameters, fusion_policy)
 {}
 
 elementwise_1d::elementwise_1d(unsigned int simd, unsigned int ls, unsigned int ng,
-                               fetching_policy_type fetch, binding_policy_t bind):
+                               fetching_policy_type fetch, fusion_policy_t bind):
     base_impl<elementwise_1d, elementwise_1d_parameters>(elementwise_1d_parameters(simd,ls,ng,fetch), bind)
 {}
 
@@ -184,7 +177,7 @@ void elementwise_1d::enqueue(driver::CommandQueue &, driver::Program const & pro
   //Arguments
   unsigned int current_arg = 0;
   kernel.setSizeArg(current_arg++, size);
-  set_arguments(expressions, kernel, current_arg, binding_policy_);
+  symbolic::set_arguments(expressions, kernel, current_arg, fusion_policy_);
   control.execution_options().enqueue(program.context(), kernel, global, local);
 }
 

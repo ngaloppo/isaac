@@ -162,7 +162,7 @@ array_base & array_base::operator=(array_base const & rhs)
 {
     if(min(shape_)==0) return *this;
     assert(dtype_ == rhs.dtype());
-    expression_tree expression(*this, rhs, op_element(BINARY_TYPE_FAMILY, ASSIGN_TYPE), context_, dtype_, shape_);
+    expression_tree expression(*this, rhs, op_element(BINARY, ASSIGN_TYPE), context_, dtype_, shape_);
     symbolic::execute(execution_handler(expression));
     return *this;
 }
@@ -171,7 +171,7 @@ array_base & array_base::operator=(value_scalar const & rhs)
 {
     if(min(shape_)==0) return *this;
     assert(dtype_ == rhs.dtype());
-    expression_tree expression(*this, rhs, op_element(BINARY_TYPE_FAMILY, ASSIGN_TYPE), context_, dtype_, shape_);
+    expression_tree expression(*this, rhs, op_element(BINARY, ASSIGN_TYPE), context_, dtype_, shape_);
     symbolic::execute(execution_handler(expression));
     return *this;
 }
@@ -181,7 +181,7 @@ array_base& array_base::operator=(execution_handler const & c)
 {
   if(min(shape_)==0) return *this;
   assert(dtype_ == c.x().dtype());
-  expression_tree expression(*this, c.x(), op_element(BINARY_TYPE_FAMILY, ASSIGN_TYPE), context_, dtype_, shape_);
+  expression_tree expression(*this, c.x(), op_element(BINARY, ASSIGN_TYPE), context_, dtype_, shape_);
   symbolic::execute(execution_handler(expression, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
   return *this;
 }
@@ -221,53 +221,53 @@ INSTANTIATE(double);
 
 
 expression_tree array_base::operator-()
-{ return expression_tree(*this, invalid_node(), op_element(UNARY_TYPE_FAMILY, SUB_TYPE), context_, dtype_, shape_); }
+{ return expression_tree(*this, invalid_node(), op_element(UNARY, SUB_TYPE), context_, dtype_, shape_); }
 
 expression_tree array_base::operator!()
-{ return expression_tree(*this, invalid_node(), op_element(UNARY_TYPE_FAMILY, NEGATE_TYPE), context_, INT_TYPE, shape_); }
+{ return expression_tree(*this, invalid_node(), op_element(UNARY, NEGATE_TYPE), context_, INT_TYPE, shape_); }
 
 //
 array_base & array_base::operator+=(value_scalar const & rhs)
-{ return *this = expression_tree(*this, rhs, op_element(BINARY_TYPE_FAMILY, ADD_TYPE), context_, dtype_, shape_); }
+{ return *this = expression_tree(*this, rhs, op_element(BINARY, ADD_TYPE), context_, dtype_, shape_); }
 
 array_base & array_base::operator+=(array_base const & rhs)
-{ return *this = expression_tree(*this, rhs, op_element(BINARY_TYPE_FAMILY, ADD_TYPE), context_, dtype_, shape_); }
+{ return *this = expression_tree(*this, rhs, op_element(BINARY, ADD_TYPE), context_, dtype_, shape_); }
 
 array_base & array_base::operator+=(expression_tree const & rhs)
-{ return *this = expression_tree(*this, rhs, op_element(BINARY_TYPE_FAMILY, ADD_TYPE), rhs.context(), dtype_, shape_); }
+{ return *this = expression_tree(*this, rhs, op_element(BINARY, ADD_TYPE), rhs.context(), dtype_, shape_); }
 //----
 array_base & array_base::operator-=(value_scalar const & rhs)
-{ return *this = expression_tree(*this, rhs, op_element(BINARY_TYPE_FAMILY, SUB_TYPE), context_, dtype_, shape_); }
+{ return *this = expression_tree(*this, rhs, op_element(BINARY, SUB_TYPE), context_, dtype_, shape_); }
 
 array_base & array_base::operator-=(array_base const & rhs)
-{ return *this = expression_tree(*this, rhs, op_element(BINARY_TYPE_FAMILY, SUB_TYPE), context_, dtype_, shape_); }
+{ return *this = expression_tree(*this, rhs, op_element(BINARY, SUB_TYPE), context_, dtype_, shape_); }
 
 array_base & array_base::operator-=(expression_tree const & rhs)
-{ return *this = expression_tree(*this, rhs, op_element(BINARY_TYPE_FAMILY, SUB_TYPE), rhs.context(), dtype_, shape_); }
+{ return *this = expression_tree(*this, rhs, op_element(BINARY, SUB_TYPE), rhs.context(), dtype_, shape_); }
 //----
 array_base & array_base::operator*=(value_scalar const & rhs)
-{ return *this = expression_tree(*this, rhs, op_element(BINARY_TYPE_FAMILY, MULT_TYPE), context_, dtype_, shape_); }
+{ return *this = expression_tree(*this, rhs, op_element(BINARY, MULT_TYPE), context_, dtype_, shape_); }
 
 array_base & array_base::operator*=(array_base const & rhs)
-{ return *this = expression_tree(*this, rhs, op_element(BINARY_TYPE_FAMILY, MULT_TYPE), context_, dtype_, shape_); }
+{ return *this = expression_tree(*this, rhs, op_element(BINARY, MULT_TYPE), context_, dtype_, shape_); }
 
 array_base & array_base::operator*=(expression_tree const & rhs)
-{ return *this = expression_tree(*this, rhs, op_element(BINARY_TYPE_FAMILY, MULT_TYPE), rhs.context(), dtype_, shape_); }
+{ return *this = expression_tree(*this, rhs, op_element(BINARY, MULT_TYPE), rhs.context(), dtype_, shape_); }
 //----
 array_base & array_base::operator/=(value_scalar const & rhs)
-{ return *this = expression_tree(*this, rhs, op_element(BINARY_TYPE_FAMILY, DIV_TYPE), context_, dtype_, shape_); }
+{ return *this = expression_tree(*this, rhs, op_element(BINARY, DIV_TYPE), context_, dtype_, shape_); }
 
 array_base & array_base::operator/=(array_base const & rhs)
-{ return *this = expression_tree(*this, rhs, op_element(BINARY_TYPE_FAMILY, DIV_TYPE), context_, dtype_, shape_); }
+{ return *this = expression_tree(*this, rhs, op_element(BINARY, DIV_TYPE), context_, dtype_, shape_); }
 
 array_base & array_base::operator/=(expression_tree const & rhs)
-{ return *this = expression_tree(*this, rhs, op_element(BINARY_TYPE_FAMILY, DIV_TYPE), rhs.context(), dtype_, shape_); }
+{ return *this = expression_tree(*this, rhs, op_element(BINARY, DIV_TYPE), rhs.context(), dtype_, shape_); }
 
 /*--- Indexing operators -----*/
 //---------------------------------------
 expression_tree array_base::operator[](placeholder idx) const
 {
-  return expression_tree(*this, idx, op_element(BINARY_TYPE_FAMILY, ACCESS_INDEX_TYPE), context_, dtype_, {1});
+  return expression_tree(*this, idx, op_element(BINARY, ACCESS_INDEX_TYPE), context_, dtype_, {1});
 }
 
 scalar array_base::operator [](int_t idx)
@@ -505,52 +505,52 @@ tuple broadcast(tuple const & a, tuple const & b)
 
 #define DEFINE_ELEMENT_BINARY_OPERATOR(OP, OPNAME, DTYPE) \
 expression_tree OPNAME (array_base const & x, expression_tree const & y) \
-{ return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, broadcast(x.shape(), y.shape())); } \
+{ return expression_tree(x, y, op_element(BINARY, OP), x.context(), DTYPE, broadcast(x.shape(), y.shape())); } \
 \
 expression_tree OPNAME (array_base const & x, array_base const & y) \
-{ return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, broadcast(x.shape(), y.shape())); }\
+{ return expression_tree(x, y, op_element(BINARY, OP), x.context(), DTYPE, broadcast(x.shape(), y.shape())); }\
 \
 expression_tree OPNAME (array_base const & x, value_scalar const & y) \
-{ return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); }\
+{ return expression_tree(x, y, op_element(BINARY, OP), x.context(), DTYPE, x.shape()); }\
 \
 expression_tree OPNAME (array_base const & x, placeholder const & y) \
-{ return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); }\
+{ return expression_tree(x, y, op_element(BINARY, OP), x.context(), DTYPE, x.shape()); }\
 \
 \
 expression_tree OPNAME (expression_tree const & x, expression_tree const & y) \
-{ return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, broadcast(x.shape(), y.shape())); } \
+{ return expression_tree(x, y, op_element(BINARY, OP), x.context(), DTYPE, broadcast(x.shape(), y.shape())); } \
  \
 expression_tree OPNAME (expression_tree const & x, array_base const & y) \
-{ return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, broadcast(x.shape(), y.shape())); } \
+{ return expression_tree(x, y, op_element(BINARY, OP), x.context(), DTYPE, broadcast(x.shape(), y.shape())); } \
 \
 expression_tree OPNAME (expression_tree const & x, value_scalar const & y) \
-{ return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); } \
+{ return expression_tree(x, y, op_element(BINARY, OP), x.context(), DTYPE, x.shape()); } \
 \
 expression_tree OPNAME (expression_tree const & x, placeholder const & y) \
-{ return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); } \
+{ return expression_tree(x, y, op_element(BINARY, OP), x.context(), DTYPE, x.shape()); } \
 \
 \
 expression_tree OPNAME (value_scalar const & y, expression_tree const & x) \
-{ return expression_tree(y, x, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); } \
+{ return expression_tree(y, x, op_element(BINARY, OP), x.context(), DTYPE, x.shape()); } \
 \
 expression_tree OPNAME (value_scalar const & y, array_base const & x) \
-{ return expression_tree(y, x, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); }\
+{ return expression_tree(y, x, op_element(BINARY, OP), x.context(), DTYPE, x.shape()); }\
 \
 expression_tree OPNAME (value_scalar const & x, placeholder const & y) \
-{ return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OP), DTYPE); }\
+{ return expression_tree(x, y, op_element(BINARY, OP), DTYPE); }\
 \
 \
 expression_tree OPNAME (placeholder const & y, expression_tree const & x) \
-{ return expression_tree(y, x, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); } \
+{ return expression_tree(y, x, op_element(BINARY, OP), x.context(), DTYPE, x.shape()); } \
 \
 expression_tree OPNAME (placeholder const & y, value_scalar const & x) \
-{ return expression_tree(y, x, op_element(BINARY_TYPE_FAMILY, OP), DTYPE); } \
+{ return expression_tree(y, x, op_element(BINARY, OP), DTYPE); } \
 \
 expression_tree OPNAME (placeholder const & y, array_base const & x) \
-{ return expression_tree(y, x, op_element(BINARY_TYPE_FAMILY, OP), x.context(), DTYPE, x.shape()); }\
+{ return expression_tree(y, x, op_element(BINARY, OP), x.context(), DTYPE, x.shape()); }\
 \
 expression_tree OPNAME (placeholder const & y, placeholder const & x) \
-{ return expression_tree(y, x, op_element(BINARY_TYPE_FAMILY, OP)); }
+{ return expression_tree(y, x, op_element(BINARY, OP)); }
 
 
 DEFINE_ELEMENT_BINARY_OPERATOR(ADD_TYPE, operator +, x.dtype())
@@ -578,7 +578,7 @@ expression_tree outer(LTYPE const & x, RTYPE const & y)\
     assert(x.dim()<=1 && y.dim()<=1);\
     if(x.dim()<1 || y.dim()<1)\
       return x*y;\
-    return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OUTER_PROD_TYPE), x.context(), x.dtype(), {max(x.shape()), max(y.shape())} );\
+    return expression_tree(x, y, op_element(BINARY, OUTER_PROD_TYPE), x.context(), x.dtype(), {max(x.shape()), max(y.shape())} );\
 }\
 
 DEFINE_OUTER(array_base, array_base)
@@ -615,10 +615,10 @@ DEFINE_ROT(expression_tree, expression_tree, expression_tree, expression_tree)
 //---------------------------------------
 #define DEFINE_ELEMENT_UNARY_OPERATOR(OP, OPNAME) \
 expression_tree OPNAME (array_base  const & x) \
-{ return expression_tree(x, invalid_node(), op_element(UNARY_TYPE_FAMILY, OP), x.context(), x.dtype(), x.shape()); }\
+{ return expression_tree(x, invalid_node(), op_element(UNARY, OP), x.context(), x.dtype(), x.shape()); }\
 \
 expression_tree OPNAME (expression_tree const & x) \
-{ return expression_tree(x, invalid_node(), op_element(UNARY_TYPE_FAMILY, OP), x.context(), x.dtype(), x.shape()); }
+{ return expression_tree(x, invalid_node(), op_element(UNARY, OP), x.context(), x.dtype(), x.shape()); }
 
 DEFINE_ELEMENT_UNARY_OPERATOR((x.dtype()==FLOAT_TYPE || x.dtype()==DOUBLE_TYPE)?FABS_TYPE:ABS_TYPE,  abs)
 DEFINE_ELEMENT_UNARY_OPERATOR(ACOS_TYPE, acos)
@@ -663,13 +663,13 @@ inline operation_type casted(numeric_type dtype)
 }
 
 expression_tree cast(array_base const & x, numeric_type dtype)
-{ return expression_tree(x, invalid_node(), op_element(UNARY_TYPE_FAMILY, casted(dtype)), x.context(), dtype, x.shape()); }
+{ return expression_tree(x, invalid_node(), op_element(UNARY, casted(dtype)), x.context(), dtype, x.shape()); }
 
 expression_tree cast(expression_tree const & x, numeric_type dtype)
-{ return expression_tree(x, invalid_node(), op_element(UNARY_TYPE_FAMILY, casted(dtype)), x.context(), dtype, x.shape()); }
+{ return expression_tree(x, invalid_node(), op_element(UNARY, casted(dtype)), x.context(), dtype, x.shape()); }
 
 isaac::expression_tree eye(int_t M, int_t N, isaac::numeric_type dtype, driver::Context const & ctx)
-{ return expression_tree(value_scalar(1), value_scalar(0), op_element(UNARY_TYPE_FAMILY, VDIAG_TYPE), ctx, dtype, {M, N}); }
+{ return expression_tree(value_scalar(1), value_scalar(0), op_element(UNARY, VDIAG_TYPE), ctx, dtype, {M, N}); }
 
 array diag(array_base & x, int offset)
 {
@@ -682,7 +682,7 @@ array diag(array_base & x, int offset)
 
 
 isaac::expression_tree zeros(tuple const & shape, isaac::numeric_type dtype, driver::Context  const & ctx)
-{ return expression_tree(value_scalar(0, dtype), invalid_node(), op_element(UNARY_TYPE_FAMILY, ADD_TYPE), ctx, dtype, shape); }
+{ return expression_tree(value_scalar(0, dtype), invalid_node(), op_element(UNARY, ADD_TYPE), ctx, dtype, shape); }
 
 inline tuple flip(tuple const & shape)
 {
@@ -696,28 +696,28 @@ inline tuple flip(tuple const & shape)
 //{ return size4(shape1[0]*shape2[0], shape1[1]*shape2[1]);}
 
 expression_tree trans(array_base  const & x) \
-{ return expression_tree(x, invalid_node(), op_element(UNARY_TYPE_FAMILY, TRANS_TYPE), x.context(), x.dtype(), flip(x.shape())); }\
+{ return expression_tree(x, invalid_node(), op_element(UNARY, TRANS_TYPE), x.context(), x.dtype(), flip(x.shape())); }\
 \
 expression_tree trans(expression_tree const & x) \
-{ return expression_tree(x, invalid_node(), op_element(UNARY_TYPE_FAMILY, TRANS_TYPE), x.context(), x.dtype(), flip(x.shape())); }
+{ return expression_tree(x, invalid_node(), op_element(UNARY, TRANS_TYPE), x.context(), x.dtype(), flip(x.shape())); }
 
 expression_tree repmat(array_base const & A, int_t const & rep1, int_t const & rep2)
 {
   int_t sub1 = A.shape()[0];
   int_t sub2 = A.dim()==2?A.shape()[1]:1;
-  return expression_tree(A, make_tuple(A.context(), rep1, rep2, sub1, sub2), op_element(BINARY_TYPE_FAMILY, REPEAT_TYPE), A.context(), A.dtype(), {rep1*sub1, rep2*sub2});
+  return expression_tree(A, make_tuple(A.context(), rep1, rep2, sub1, sub2), op_element(BINARY, REPEAT_TYPE), A.context(), A.dtype(), {rep1*sub1, rep2*sub2});
 }
 
 expression_tree repmat(expression_tree const & A, int_t const & rep1, int_t const & rep2)
 {
   int_t sub1 = A.shape()[0];
   int_t sub2 = A.dim()==2?A.shape()[1]:1;
-  return expression_tree(A, make_tuple(A.context(), rep1, rep2, sub1, sub2), op_element(BINARY_TYPE_FAMILY, REPEAT_TYPE), A.context(), A.dtype(), {rep1*sub1, rep2*sub2});
+  return expression_tree(A, make_tuple(A.context(), rep1, rep2, sub1, sub2), op_element(BINARY, REPEAT_TYPE), A.context(), A.dtype(), {rep1*sub1, rep2*sub2});
 }
 
 #define DEFINE_ACCESS_ROW(TYPEA, TYPEB) \
   expression_tree row(TYPEA const & x, TYPEB const & i)\
-  { return expression_tree(x, i, op_element(UNARY_TYPE_FAMILY, MATRIX_ROW_TYPE), x.context(), x.dtype(), {x.shape()[1]}); }
+  { return expression_tree(x, i, op_element(UNARY, MATRIX_ROW_TYPE), x.context(), x.dtype(), {x.shape()[1]}); }
 
 DEFINE_ACCESS_ROW(array_base, value_scalar)
 DEFINE_ACCESS_ROW(array_base, placeholder)
@@ -729,7 +729,7 @@ DEFINE_ACCESS_ROW(expression_tree, expression_tree)
 
 #define DEFINE_ACCESS_COL(TYPEA, TYPEB) \
   expression_tree col(TYPEA const & x, TYPEB const & i)\
-  { return expression_tree(x, i, op_element(UNARY_TYPE_FAMILY, MATRIX_COLUMN_TYPE), x.context(), x.dtype(), {x.shape()[0]}); }
+  { return expression_tree(x, i, op_element(UNARY, MATRIX_COLUMN_TYPE), x.context(), x.dtype(), {x.shape()[0]}); }
 
 DEFINE_ACCESS_COL(array_base, value_scalar)
 DEFINE_ACCESS_COL(array_base, placeholder)
@@ -749,11 +749,11 @@ expression_tree OPNAME(array_base const & x, int_t axis)\
   if(axis < -1 || axis > x.dim())\
     throw std::out_of_range("The axis entry is out of bounds");\
   else if(axis==-1)\
-    return expression_tree(x, invalid_node(), op_element(VECTOR_DOT_TYPE_FAMILY, OP), x.context(), x.dtype(), {1});\
+    return expression_tree(x, invalid_node(), op_element(REDUCE, OP), x.context(), x.dtype(), {1});\
   else if(axis==0)\
-    return expression_tree(x, invalid_node(), op_element(COLUMNS_DOT_TYPE_FAMILY, OP), x.context(), x.dtype(), {x.shape()[1]});\
+    return expression_tree(x, invalid_node(), op_element(REDUCE_COLUMNS, OP), x.context(), x.dtype(), {x.shape()[1]});\
   else\
-    return expression_tree(x, invalid_node(), op_element(ROWS_DOT_TYPE_FAMILY, OP), x.context(), x.dtype(), {x.shape()[0]});\
+    return expression_tree(x, invalid_node(), op_element(REDUCE_ROWS, OP), x.context(), x.dtype(), {x.shape()[0]});\
 }\
 \
 expression_tree OPNAME(expression_tree const & x, int_t axis)\
@@ -761,11 +761,11 @@ expression_tree OPNAME(expression_tree const & x, int_t axis)\
   if(axis < -1 || axis > x.dim())\
     throw std::out_of_range("The axis entry is out of bounds");\
   if(axis==-1)\
-    return expression_tree(x, invalid_node(), op_element(VECTOR_DOT_TYPE_FAMILY, OP), x.context(), x.dtype(), {1});\
+    return expression_tree(x, invalid_node(), op_element(REDUCE, OP), x.context(), x.dtype(), {1});\
   else if(axis==0)\
-    return expression_tree(x, invalid_node(), op_element(COLUMNS_DOT_TYPE_FAMILY, OP), x.context(), x.dtype(), {x.shape()[1]});\
+    return expression_tree(x, invalid_node(), op_element(REDUCE_COLUMNS, OP), x.context(), x.dtype(), {x.shape()[1]});\
   else\
-    return expression_tree(x, invalid_node(), op_element(ROWS_DOT_TYPE_FAMILY, OP), x.context(), x.dtype(), {x.shape()[0]});\
+    return expression_tree(x, invalid_node(), op_element(REDUCE_ROWS, OP), x.context(), x.dtype(), {x.shape()[0]});\
 }
 
 DEFINE_REDUCTION(ADD_TYPE, sum)
@@ -782,7 +782,7 @@ namespace detail
   expression_tree matmatprod(array_base const & A, array_base const & B)
   {
     tuple shape{A.shape()[0], B.shape()[1]};
-    return expression_tree(A, B, op_element(MATRIX_PRODUCT_TYPE_FAMILY, MATRIX_PRODUCT_NN_TYPE), A.context(), A.dtype(), shape);
+    return expression_tree(A, B, op_element(MATRIX_PRODUCT, MATRIX_PRODUCT_NN_TYPE), A.context(), A.dtype(), shape);
   }
 
   expression_tree matmatprod(expression_tree const & A, array_base const & B)
@@ -796,7 +796,7 @@ namespace detail
       type = MATRIX_PRODUCT_TN_TYPE;
     }
 
-    expression_tree res(A, B, op_element(MATRIX_PRODUCT_TYPE_FAMILY, type), A.context(), A.dtype(), shape);
+    expression_tree res(A, B, op_element(MATRIX_PRODUCT, type), A.context(), A.dtype(), shape);
     expression_tree::node & res_root = const_cast<expression_tree::node &>(res.data()[res.root()]);
     if(A_trans) res_root.lhs = A_root.lhs;
     return res;
@@ -813,7 +813,7 @@ namespace detail
       type = MATRIX_PRODUCT_NT_TYPE;
     }
 
-    expression_tree res(A, B, op_element(MATRIX_PRODUCT_TYPE_FAMILY, type), A.context(), A.dtype(), shape);
+    expression_tree res(A, B, op_element(MATRIX_PRODUCT, type), A.context(), A.dtype(), shape);
     expression_tree::node & res_root = const_cast<expression_tree::node &>(res.data()[res.root()]);
     if(B_trans) res_root.rhs = B_root.lhs;
     return res;
@@ -834,7 +834,7 @@ namespace detail
     else if(!A_trans && B_trans) type = MATRIX_PRODUCT_NT_TYPE;
     else type = MATRIX_PRODUCT_NN_TYPE;
 
-    expression_tree res(A, B, op_element(MATRIX_PRODUCT_TYPE_FAMILY, type), A.context(), A.dtype(), shape);
+    expression_tree res(A, B, op_element(MATRIX_PRODUCT, type), A.context(), A.dtype(), shape);
     expression_tree::node & res_root = const_cast<expression_tree::node &>(res.data()[res.root()]);
     if(A_trans) res_root.lhs = A_root.lhs;
     if(B_trans) res_root.rhs = B_root.lhs;
@@ -862,7 +862,7 @@ namespace detail
     }
     if(A_trans)
     {
-      expression_tree tmp(A, repmat(x, 1, M), op_element(BINARY_TYPE_FAMILY, ELEMENT_PROD_TYPE), A.context(), A.dtype(), {N, M});
+      expression_tree tmp(A, repmat(x, 1, M), op_element(BINARY, ELEMENT_PROD_TYPE), A.context(), A.dtype(), {N, M});
       //Remove trans
       tmp.data()[tmp.root()].lhs = A.data()[A.root()].lhs;
       return sum(tmp, 0);
@@ -883,10 +883,10 @@ ISAACAPI void swap(view x, view y)
 
 //Reshape
 expression_tree reshape(array_base const & x, tuple const & shape)
-{  return expression_tree(x, invalid_node(), op_element(UNARY_TYPE_FAMILY, RESHAPE_TYPE), x.context(), x.dtype(), shape); }
+{  return expression_tree(x, invalid_node(), op_element(UNARY, RESHAPE_TYPE), x.context(), x.dtype(), shape); }
 
 expression_tree reshape(expression_tree const & x, tuple const & shape)
-{  return expression_tree(x, invalid_node(), op_element(UNARY_TYPE_FAMILY, RESHAPE_TYPE), x.context(), x.dtype(), shape); }
+{  return expression_tree(x, invalid_node(), op_element(UNARY, RESHAPE_TYPE), x.context(), x.dtype(), shape); }
 
 expression_tree ravel(array_base const & x)
 { return reshape(x, {prod(x.shape())}); }
@@ -901,7 +901,7 @@ expression_tree dot(LTYPE const & x, RTYPE const & y)\
   if(x.dim()==2 && x.shape()[1]==0)\
     return zeros({x.shape()[0], y.shape()[1]}, dtype, context);\
   if(x.shape()[0]==0 || (y.dim()==2 && y.shape()[1]==0))\
-    return expression_tree(invalid_node(), invalid_node(), op_element(UNARY_TYPE_FAMILY, INVALID_TYPE), context, dtype, {0});\
+    return expression_tree(invalid_node(), invalid_node(), op_element(UNARY, INVALID_TYPE), context, dtype, {0});\
   if(x.dim()==1 && y.dim()==1)\
     return sum(x*y);\
   if(x.dim()==2 && x.shape()[0]==1 && y.dim()==1){\
@@ -960,13 +960,13 @@ DEFINE_NORM(expression_tree)
 expression_tree fuse(expression_tree const & x, expression_tree const & y)
 {
   assert(x.context()==y.context());
-  return expression_tree(x, y, op_element(BINARY_TYPE_FAMILY, OPERATOR_FUSE), x.context(), x.dtype(), x.shape());
+  return expression_tree(x, y, op_element(BINARY, OPERATOR_FUSE), x.context(), x.dtype(), x.shape());
 }
 
 /*--- For loops ---*/
 ISAACAPI expression_tree sfor(expression_tree const & start, expression_tree const & end, expression_tree const & inc, expression_tree const & x)
 {
-  return expression_tree(x, make_tuple(x.context(), start, end, inc), op_element(UNARY_TYPE_FAMILY, SFOR_TYPE), x.context(), x.dtype(), x.shape());
+  return expression_tree(x, make_tuple(x.context(), start, end, inc), op_element(UNARY, SFOR_TYPE), x.context(), x.dtype(), x.shape());
 }
 
 
