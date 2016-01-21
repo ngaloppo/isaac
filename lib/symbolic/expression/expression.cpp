@@ -71,33 +71,9 @@ op_element::op_element() {}
 op_element::op_element(operation_type_family const & _type_family, operation_type const & _type) : type_family(_type_family), type(_type){}
 
 //
-expression_tree::expression_tree(placeholder const &lhs, placeholder const &rhs, const op_element &op)
- : tree_(1), root_(0), context_(NULL), dtype_(INVALID_NUMERIC_TYPE), shape_(1)
-{
-  fill(tree_[0].lhs, lhs);
-  tree_[0].op = op;
-  fill(tree_[0].rhs, rhs);
-}
-
-expression_tree::expression_tree(placeholder const &lhs, value_scalar const &rhs, const op_element &op, const numeric_type &dtype)
- : tree_(1), root_(0), context_(NULL), dtype_(dtype), shape_(1)
-{
-  fill(tree_[0].lhs, lhs);
-  tree_[0].op = op;
-  fill(tree_[0].rhs, rhs);
-}
-
-expression_tree::expression_tree(value_scalar const &lhs, placeholder const &rhs, const op_element &op, const numeric_type &dtype)
- : tree_(1), root_(0), context_(NULL), dtype_(dtype), shape_(1)
-{
-  fill(tree_[0].lhs, lhs);
-  tree_[0].op = op;
-  fill(tree_[0].rhs, rhs);
-}
-
 template<class LT, class RT>
-expression_tree::expression_tree(LT const & lhs, RT const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, tuple const & shape) :
-  tree_(1), root_(0), context_(&context), dtype_(dtype), shape_(shape)
+expression_tree::expression_tree(LT const & lhs, RT const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
+  tree_(1), root_(0), context_(context), dtype_(dtype), shape_(shape)
 {
   fill(tree_[0].lhs, lhs);
   tree_[0].op = op;
@@ -106,8 +82,8 @@ expression_tree::expression_tree(LT const & lhs, RT const & rhs, op_element cons
 }
 
 template<class RT>
-expression_tree::expression_tree(expression_tree const & lhs, RT const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, tuple const & shape) :
- tree_(lhs.tree_.size() + 1), root_(tree_.size()-1), context_(&context), dtype_(dtype), shape_(shape)
+expression_tree::expression_tree(expression_tree const & lhs, RT const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
+ tree_(lhs.tree_.size() + 1), root_(tree_.size()-1), context_(context), dtype_(dtype), shape_(shape)
 {
   std::copy(lhs.tree_.begin(), lhs.tree_.end(), tree_.begin());
   fill(tree_[root_].lhs, lhs.root_);
@@ -117,8 +93,8 @@ expression_tree::expression_tree(expression_tree const & lhs, RT const & rhs, op
 }
 
 template<class LT>
-expression_tree::expression_tree(LT const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, tuple const & shape) :
-  tree_(rhs.tree_.size() + 1), root_(tree_.size() - 1), context_(&context), dtype_(dtype), shape_(shape)
+expression_tree::expression_tree(LT const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
+  tree_(rhs.tree_.size() + 1), root_(tree_.size() - 1), context_(context), dtype_(dtype), shape_(shape)
 {
   std::copy(rhs.tree_.begin(), rhs.tree_.end(), tree_.begin());
   fill(tree_[root_].lhs, lhs);
@@ -127,8 +103,8 @@ expression_tree::expression_tree(LT const & lhs, expression_tree const & rhs, op
   fill(tree_[root_].rhs, rhs.root_);
 }
 
-expression_tree::expression_tree(expression_tree const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, tuple const & shape):
-  tree_(lhs.tree_.size() + rhs.tree_.size() + 1), root_(tree_.size()-1), context_(&context), dtype_(dtype), shape_(shape)
+expression_tree::expression_tree(expression_tree const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape):
+  tree_(lhs.tree_.size() + rhs.tree_.size() + 1), root_(tree_.size()-1), context_(context), dtype_(dtype), shape_(shape)
 {  
   std::size_t lsize = lhs.tree_.size();
   std::copy(lhs.tree_.begin(), lhs.tree_.end(), tree_.begin());
@@ -144,29 +120,32 @@ expression_tree::expression_tree(expression_tree const & lhs, expression_tree co
   root_ = tree_.size() - 1;
 }
 
-template expression_tree::expression_tree(expression_tree const &, value_scalar const &, op_element const &,  driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(expression_tree const &, invalid_node const &, op_element const &,  driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(expression_tree const &, array_base const &,        op_element const &,  driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(expression_tree const &, placeholder const &,        op_element const &,  driver::Context const &, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(expression_tree const &, value_scalar const &, op_element const &,  driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(expression_tree const &, invalid_node const &, op_element const &,  driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(expression_tree const &, array_base const &,        op_element const &,  driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(expression_tree const &, placeholder const &,        op_element const &,  driver::Context const *, numeric_type const &, tuple const &);
 
-template expression_tree::expression_tree(value_scalar const &, value_scalar const &,        op_element const &, driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(value_scalar const &, invalid_node const &,        op_element const &, driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(value_scalar const &, array_base const &,        op_element const &, driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(value_scalar const &, expression_tree const &, op_element const &,  driver::Context const &, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(value_scalar const &, value_scalar const &,        op_element const &, driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(value_scalar const &, invalid_node const &,        op_element const &, driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(value_scalar const &, array_base const &,        op_element const &, driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(value_scalar const &, expression_tree const &, op_element const &,  driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(value_scalar const &, placeholder const &, op_element const &,  driver::Context const *, numeric_type const &, tuple const &);
 
-template expression_tree::expression_tree(invalid_node const &, value_scalar const &, op_element const &,  driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(invalid_node const &, expression_tree const &, op_element const &,  driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(invalid_node const &, invalid_node const &, op_element const &, driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(invalid_node const &, array_base const &,        op_element const &, driver::Context const &, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(invalid_node const &, value_scalar const &, op_element const &,  driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(invalid_node const &, expression_tree const &, op_element const &,  driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(invalid_node const &, invalid_node const &, op_element const &, driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(invalid_node const &, array_base const &,        op_element const &, driver::Context const *, numeric_type const &, tuple const &);
 
-template expression_tree::expression_tree(array_base const &, expression_tree const &, op_element const &,         driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(array_base const &, value_scalar const &, op_element const &, driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(array_base const &, invalid_node const &, op_element const &, driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(array_base const &, array_base const &,        op_element const &, driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(array_base const &, placeholder const &, op_element const &,         driver::Context const &, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(array_base const &, expression_tree const &, op_element const &,         driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(array_base const &, value_scalar const &, op_element const &, driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(array_base const &, invalid_node const &, op_element const &, driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(array_base const &, array_base const &,        op_element const &, driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(array_base const &, placeholder const &, op_element const &,         driver::Context const *, numeric_type const &, tuple const &);
 
-template expression_tree::expression_tree(placeholder const &, expression_tree const &, op_element const &,         driver::Context const &, numeric_type const &, tuple const &);
-template expression_tree::expression_tree(placeholder const &, array_base const &,        op_element const &, driver::Context const &, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(placeholder const &, expression_tree const &, op_element const &,         driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(placeholder const &, array_base const &,        op_element const &, driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(placeholder const &, value_scalar const &,        op_element const &, driver::Context const *, numeric_type const &, tuple const &);
+template expression_tree::expression_tree(placeholder const &, placeholder const &,        op_element const &, driver::Context const *, numeric_type const &, tuple const &);
 
 expression_tree::data_type & expression_tree::data()
 { return tree_; }
@@ -190,10 +169,10 @@ int_t expression_tree::dim() const
 { return (int_t)shape_.size(); }
 
 expression_tree expression_tree::operator-()
-{ return expression_tree(*this,  invalid_node(), op_element(UNARY, SUB_TYPE), *context_, dtype_, shape_); }
+{ return expression_tree(*this,  invalid_node(), op_element(UNARY, SUB_TYPE), context_, dtype_, shape_); }
 
 expression_tree expression_tree::operator!()
-{ return expression_tree(*this, invalid_node(), op_element(UNARY, NEGATE_TYPE), *context_, INT_TYPE, shape_); }
+{ return expression_tree(*this, invalid_node(), op_element(UNARY, NEGATE_TYPE), context_, INT_TYPE, shape_); }
 
 //
 
@@ -209,8 +188,8 @@ expression_tree::node const & lhs_most(expression_tree::data_type const & array,
 { return lhs_most(array, array[root]); }
 
 //
-expression_tree placeholder::operator=(value_scalar const & r) const { return expression_tree(*this, r, op_element(BINARY,ASSIGN_TYPE), r.dtype()); }
-expression_tree placeholder::operator=(expression_tree const & r) const { return expression_tree(*this, r, op_element(BINARY,ASSIGN_TYPE), r.context(), r.dtype(), r.shape()); }
+expression_tree placeholder::operator=(value_scalar const & r) const { return expression_tree(*this, r, op_element(BINARY,ASSIGN_TYPE), NULL, r.dtype(), {1}); }
+expression_tree placeholder::operator=(expression_tree const & r) const { return expression_tree(*this, r, op_element(BINARY,ASSIGN_TYPE), &r.context(), r.dtype(), r.shape()); }
 
 expression_tree placeholder::operator+=(value_scalar const & r) const { return *this = *this + r; }
 expression_tree placeholder::operator-=(value_scalar const & r) const { return *this = *this - r; }
