@@ -26,7 +26,6 @@
 #include <stdexcept>
 
 #include "isaac/array.h"
-#include "isaac/tuple.h"
 #include "isaac/exception/unknown_datatype.h"
 #include "isaac/profiles/profiles.h"
 #include "isaac/symbolic/execute.h"

@@ -52,19 +52,16 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
   unsigned int matrix_product::lmem_usage(expression_tree const & expression) const
   {
-    numeric_type numeric_t = lhs_most(expression.data(), expression.root()).lhs.dtype;
     unsigned int N = 0;
     N += p_.kL * p_.mL;
     N += p_.nL * p_.kL;
-    return N*size_of(numeric_t);
+    return N*size_of(expression.dtype());
   }
 
   unsigned int matrix_product::registers_usage(expression_tree const & expression) const
   {
-    numeric_type numeric_t = lhs_most(expression.data(), expression.root()).lhs.dtype;
-
     unsigned int N = p_.mS * p_.nS + p_.mS * p_.kS + p_.kS * p_.nS;
-    return N*size_of(numeric_t);
+    return N*size_of(expression.dtype());
   }
 
   unsigned int matrix_product::temporary_workspace(expression_tree const & expressions) const
@@ -146,7 +143,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     /// INIT
     /// //////////////
     kernel_generation_stream stream(backend);
-    numeric_type dtype = lhs_most(tree.data(), tree.root()).lhs.dtype;
+    numeric_type dtype = tree.dtype();
     std::string sdtype = to_string(dtype);
     std::string vdtype = append_width(sdtype, p_.simd_width);
 

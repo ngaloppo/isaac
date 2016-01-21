@@ -85,7 +85,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
       unsigned int offset = 0;
       for (symbolic::reduce_2d* rd : reductions)
       {
-        numeric_type dtype = lhs_most(tree.data(),  tree.root()).lhs.dtype;
+        numeric_type dtype = tree.dtype();
         std::string sdtype = to_string(dtype);
         if (is_index_reduction(rd->op()))
         {

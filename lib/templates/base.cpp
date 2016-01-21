@@ -24,7 +24,6 @@
 #include <string>
 
 #include "isaac/array.h"
-#include "isaac/tuple.h"
 #include "isaac/templates/engine/keywords.h"
 #include "isaac/templates/elementwise_1d.h"
 #include "isaac/templates/reduce_1d.h"

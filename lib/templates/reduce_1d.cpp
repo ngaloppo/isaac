@@ -43,8 +43,7 @@ reduce_1d_parameters::reduce_1d_parameters(unsigned int _simd_width,
 
 unsigned int reduce_1d::lmem_usage(expression_tree const  & x) const
 {
-  numeric_type numeric_t= lhs_most(x.data(), x.root()).lhs.dtype;
-  return p_.local_size_0*size_of(numeric_t);
+  return p_.local_size_0*size_of(x.dtype());
 }
 
 int reduce_1d::is_invalid_impl(driver::Device const &, expression_tree const  &) const
@@ -102,7 +101,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
       unsigned int offset = 0;
       for(symbolic::reduce_1d* rd: reductions)
       {
-        numeric_type dtype = lhs_most(tree.data(), tree.root()).lhs.dtype;
+        numeric_type dtype = tree.dtype();
         std::string sdtype = to_string(dtype);
         if (is_index_reduction(rd->op()))
         {

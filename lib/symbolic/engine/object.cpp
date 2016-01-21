@@ -22,7 +22,6 @@
 #include <string>
 
 #include "isaac/array.h"
-#include "isaac/tuple.h"
 #include "isaac/exception/operation_not_supported.h"
 #include "isaac/symbolic/engine/object.h"
 #include "isaac/symbolic/expression/expression.h"

@@ -95,11 +95,6 @@ expression_tree::expression_tree(value_scalar const &lhs, placeholder const &rhs
   fill(tree_[0].rhs, rhs);
 }
 
-
-
-//expression_tree(placeholder const &lhs, placeholder const &rhs, const op_element &op);
-//expression_tree(placeholder const &lhs, value_scalar const &rhs, const op_element &op, const numeric_type &dtype);
-
 template<class LT, class RT>
 expression_tree::expression_tree(LT const & lhs, RT const & rhs, op_element const & op, driver::Context const & context, numeric_type const & dtype, tuple const & shape) :
   tree_(1), root_(0), context_(&context), dtype_(dtype), shape_(shape)

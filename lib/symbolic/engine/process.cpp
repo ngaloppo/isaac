@@ -31,7 +31,7 @@ std::vector<size_t> filter(expression_tree const & expression, size_t idx, leaf_
 {
   std::vector<size_t> result;
   auto fun = [&](size_t index, leaf_t leaf) {  if(leaf==PARENT_NODE_TYPE && pred(expression.data()[index])) result.push_back(index); };
-  _traverse(expression, idx, leaf, fun);
+  traverse(expression, idx, leaf, fun);
   return result;
 }
 
@@ -70,7 +70,7 @@ std::string hash(expression_tree const & expression)
       tools::fast_append(ptr,node.op.type);
   };
 
-  _traverse(expression, hash_impl);
+  traverse(expression, hash_impl);
 
   *ptr='\0';
 
@@ -139,7 +139,7 @@ void set_arguments(expression_tree const & expression, driver::Kernel & kernel, 
 
 
   //Traverse
-  _traverse(expression, set_arguments_impl);
+  traverse(expression, set_arguments_impl);
 }
 
 //Symbolize
@@ -216,7 +216,7 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
   };
 
   //traverse
-  _traverse(expression, symbolize_impl);
+  traverse(expression, symbolize_impl);
 
   return result;
 }
