@@ -789,15 +789,15 @@ namespace detail
     operation_type type = MATRIX_PRODUCT_NN_TYPE;
     tuple shape{A.shape()[0], B.shape()[1]};
 
-    expression_tree::node & A_root = const_cast<expression_tree::node &>(A.data()[A.root()]);
-    bool A_trans = A_root.op.type==TRANS_TYPE;
+    expression_tree::node & A_root = const_cast<expression_tree::node &>(A[A.root()]);
+    bool A_trans = A_root.binary_operator.op.type==TRANS_TYPE;
     if(A_trans){
       type = MATRIX_PRODUCT_TN_TYPE;
     }
 
     expression_tree res(A, B, op_element(MATRIX_PRODUCT, type), &A.context(), A.dtype(), shape);
-    expression_tree::node & res_root = const_cast<expression_tree::node &>(res.data()[res.root()]);
-    if(A_trans) res_root.lhs = A_root.lhs;
+    expression_tree::node & res_root = const_cast<expression_tree::node &>(res[res.root()]);
+    if(A_trans) res_root.binary_operator.lhs = A_root.binary_operator.lhs;
     return res;
   }
 
@@ -806,27 +806,27 @@ namespace detail
     operation_type type = MATRIX_PRODUCT_NN_TYPE;
     tuple shape{A.shape()[0], B.shape()[1]};
 
-    expression_tree::node & B_root = const_cast<expression_tree::node &>(B.data()[B.root()]);
-    bool B_trans = B_root.op.type==TRANS_TYPE;
+    expression_tree::node & B_root = const_cast<expression_tree::node &>(B[B.root()]);
+    bool B_trans = B_root.binary_operator.op.type==TRANS_TYPE;
     if(B_trans){
       type = MATRIX_PRODUCT_NT_TYPE;
     }
 
     expression_tree res(A, B, op_element(MATRIX_PRODUCT, type), &A.context(), A.dtype(), shape);
-    expression_tree::node & res_root = const_cast<expression_tree::node &>(res.data()[res.root()]);
-    if(B_trans) res_root.rhs = B_root.lhs;
+    expression_tree::node & res_root = const_cast<expression_tree::node &>(res[res.root()]);
+    if(B_trans) res_root.binary_operator.rhs = B_root.binary_operator.lhs;
     return res;
   }
 
   expression_tree matmatprod(expression_tree const & A, expression_tree const & B)
   {
     operation_type type = MATRIX_PRODUCT_NN_TYPE;
-    expression_tree::node & A_root = const_cast<expression_tree::node &>(A.data()[A.root()]);
-    expression_tree::node & B_root = const_cast<expression_tree::node &>(B.data()[B.root()]);
+    expression_tree::node & A_root = const_cast<expression_tree::node &>(A[A.root()]);
+    expression_tree::node & B_root = const_cast<expression_tree::node &>(B[B.root()]);
     tuple shape{A.shape()[0], B.shape()[1]};
 
-    bool A_trans = A_root.op.type==TRANS_TYPE;
-    bool B_trans = B_root.op.type==TRANS_TYPE;
+    bool A_trans = A_root.binary_operator.op.type==TRANS_TYPE;
+    bool B_trans = B_root.binary_operator.op.type==TRANS_TYPE;
 
     if(A_trans && B_trans)  type = MATRIX_PRODUCT_TT_TYPE;
     else if(A_trans && !B_trans) type = MATRIX_PRODUCT_TN_TYPE;
@@ -834,9 +834,9 @@ namespace detail
     else type = MATRIX_PRODUCT_NN_TYPE;
 
     expression_tree res(A, B, op_element(MATRIX_PRODUCT, type), &A.context(), A.dtype(), shape);
-    expression_tree::node & res_root = const_cast<expression_tree::node &>(res.data()[res.root()]);
-    if(A_trans) res_root.lhs = A_root.lhs;
-    if(B_trans) res_root.rhs = B_root.lhs;
+    expression_tree::node & res_root = const_cast<expression_tree::node &>(res[res.root()]);
+    if(A_trans) res_root.binary_operator.lhs = A_root.binary_operator.lhs;
+    if(B_trans) res_root.binary_operator.rhs = B_root.binary_operator.lhs;
     return res;
   }
 
@@ -853,17 +853,17 @@ namespace detail
   {
     int_t M = A.shape()[0];
     int_t N = A.shape()[1];
-    expression_tree::node & A_root = const_cast<expression_tree::node &>(A.data()[A.root()]);
-    bool A_trans = A_root.op.type==TRANS_TYPE;
-    while(A_root.lhs.type==COMPOSITE_OPERATOR_TYPE){
-        A_root = A.data()[A_root.lhs.index];
-        A_trans ^= A_root.op.type==TRANS_TYPE;
+    expression_tree::node & A_root = const_cast<expression_tree::node &>(A[A.root()]);
+    bool A_trans = A_root.binary_operator.op.type==TRANS_TYPE;
+    while(A_root.type==COMPOSITE_OPERATOR_TYPE){
+        A_root = A[A_root.binary_operator.lhs];
+        A_trans ^= A_root.binary_operator.op.type==TRANS_TYPE;
     }
     if(A_trans)
     {
       expression_tree tmp(A, repmat(x, 1, M), op_element(BINARY, ELEMENT_PROD_TYPE), &A.context(), A.dtype(), {N, M});
       //Remove trans
-      tmp.data()[tmp.root()].lhs = A.data()[A.root()].lhs;
+      tmp[tmp.root()].binary_operator.lhs = A[A.root()].binary_operator.lhs;
       return sum(tmp, 0);
     }
     else

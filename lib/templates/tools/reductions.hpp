@@ -77,23 +77,6 @@ inline std::string neutral_element(op_element const & op, driver::backend_type b
   }
 }
 
-inline bool is_reduce_1d(expression_tree::node const & node)
-{
-  return node.op.type_family==REDUCE
-      || node.op.type_family==REDUCE_COLUMNS
-      || node.op.type_family==REDUCE_ROWS;
-}
-
-
-inline bool is_index_reduction(op_element const & op)
-{
-  return op.type==ELEMENT_ARGFMAX_TYPE
-      || op.type==ELEMENT_ARGMAX_TYPE
-      || op.type==ELEMENT_ARGFMIN_TYPE
-      || op.type==ELEMENT_ARGMIN_TYPE;
-}
-
-
 }
 
 }

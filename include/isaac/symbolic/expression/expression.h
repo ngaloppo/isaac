@@ -70,40 +70,38 @@ enum node_type
 };
 
 
-
-struct tree_node
-{
-  tree_node();
-  node_type type;
-  numeric_type dtype;
-  union
-  {
-    size_t   index;
-    values_holder scalar;
-    array_base* array;
-    placeholder ph;
-  };
-};
-
-
-void fill(tree_node & x, placeholder index);
-void fill(tree_node & x, invalid_node);
-void fill(tree_node & x, size_t index);
-void fill(tree_node & x, array_base const & a);
-void fill(tree_node & x, value_scalar const & v);
-
 class expression_tree
 {
 public:
   struct node
   {
-    tree_node    lhs;
-    op_element   op;
-    tree_node    rhs;
-    tuple        shape;
+    node();
+    node_type type;
+    numeric_type dtype;
+    tuple shape;
+    union
+    {
+      struct{
+        int_t lhs;
+        op_element op;
+        int_t rhs;
+      }binary_operator;
+      values_holder scalar;
+      array_base* array;
+      placeholder ph;
+    };
   };
 
   typedef std::vector<node>     data_type;
+
+private:
+  static void fill(node & x, placeholder index);
+  static void fill(node & x, invalid_node);
+  static void fill(node & x, int_t lhs, op_element op, int_t rhs, numeric_type dtype, tuple const & shape);
+  static void fill(node & x, value_scalar const & v);
+
+public:
+  static void fill(node & x, array_base const & a);
 
 public:
   template<class LT, class RT>
@@ -116,11 +114,13 @@ public:
 
   tuple shape() const;
   int_t dim() const;
-  data_type & data();
   data_type const & data() const;
   std::size_t root() const;
   driver::Context const & context() const;
   numeric_type const & dtype() const;
+
+  node const & operator[](size_t) const;
+  node & operator[](size_t);
 
   expression_tree operator-();
   expression_tree operator!();
@@ -217,23 +217,6 @@ ISAACAPI typename std::conditional<std::is_arithmetic<T>::value, value_scalar, T
 template<typename T, typename... Args>
 ISAACAPI expression_tree make_tuple(driver::Context const & context, T const & x, Args... args)
 { return expression_tree(wrap_generic(x), make_tuple(context, args...), op_element(BINARY, PAIR_TYPE), &context, numeric_type_of(x), {1}); }
-
-inline value_scalar tuple_get(expression_tree::data_type const & tree, size_t root, size_t idx)
-{
-  for(unsigned int i = 0 ; i < idx ; ++i){
-      expression_tree::node node = tree[root];
-      if(node.rhs.type==COMPOSITE_OPERATOR_TYPE)
-        root = node.rhs.index;
-      else
-        return value_scalar(node.rhs.scalar, node.rhs.dtype);
-  }
-  return value_scalar(tree[root].lhs.scalar, tree[root].lhs.dtype);
-}
-
-//
-expression_tree::node const & lhs_most(expression_tree::data_type const & array_base, expression_tree::node const & init);
-expression_tree::node const & lhs_most(expression_tree::data_type const & array_base, size_t root);
-
 
 }
 

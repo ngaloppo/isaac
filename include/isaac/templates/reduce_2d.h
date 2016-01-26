@@ -45,12 +45,7 @@ struct reduce_2d_parameters : public base::parameters_type
 class reduce_2d : public base_impl<reduce_2d, reduce_2d_parameters>
 {
 protected:
-  enum reduce_1d_type
-  {
-    REDUCE_ROWS,
-    REDUCE_COLUMNS
-  };
-  reduce_2d(reduce_2d::parameters_type const & , reduce_1d_type, fusion_policy_t);
+  reduce_2d(reduce_2d::parameters_type const & , operation_type_family, fusion_policy_t);
 private:
   int is_invalid_impl(driver::Device const &, expression_tree const &) const;
   unsigned int lmem_usage(expression_tree const &) const;
@@ -60,7 +55,7 @@ public:
   virtual std::vector<int_t> input_sizes(expression_tree const & expressions) const;
   void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base & fallback, execution_handler const &);
 private:
-  reduce_1d_type reduce_1d_type_;
+  operation_type_family reduction_type_;
 };
 
 class reduce_2d_rows : public reduce_2d

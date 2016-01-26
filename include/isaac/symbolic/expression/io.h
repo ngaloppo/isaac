@@ -29,7 +29,7 @@ namespace isaac
 {
 
 std::string to_string(node_type const & f);
-std::string to_string(tree_node const & e);
+std::string to_string(expression_tree::node const & e);
 std::ostream & operator<<(std::ostream & os, expression_tree::node const & s_node);
 std::string to_string(isaac::expression_tree const & s);
 

@@ -37,7 +37,7 @@ namespace symbolic
 
   namespace detail
   {
-    typedef std::vector<std::pair<expression_type, tree_node*> > breakpoints_t;
+    typedef std::vector<std::pair<expression_type, expression_tree::node*> > breakpoints_t;
 
 
     inline bool is_mmprod(expression_type x)
@@ -51,7 +51,7 @@ namespace symbolic
         return x==REDUCE_2D_ROWS || x==REDUCE_2D_COLS;
     }
 
-    inline bool has_temporary_impl(op_element op, expression_type expression, expression_type other, bool is_first)
+    inline bool has_temporary(op_element op, expression_type expression, expression_type other, bool is_first)
     {
         bool result = false;
         switch(op.type_family)
@@ -85,13 +85,6 @@ namespace symbolic
                 break;
         }
         return result;
-    }
-
-    inline std::pair<bool, bool> has_temporary(op_element op, expression_type left, expression_type right, bool is_first)
-    {
-        bool has_temporary_left = has_temporary_impl(op, left, right, is_first);
-        bool has_temporary_right = has_temporary_impl(op, right, left, is_first);
-        return std::make_pair(has_temporary_left, has_temporary_right);
     }
 
     inline expression_type merge(op_element op, expression_type left, expression_type right)
@@ -129,44 +122,27 @@ namespace symbolic
     }
 
     /** @brief Parses the breakpoints for a given expression tree */
-    static void parse(expression_tree::data_type&array, size_t idx,
-               breakpoints_t & breakpoints,
-               expression_type & final_type,
-               bool is_first = true)
+    expression_type parse(expression_tree&tree, size_t idx, breakpoints_t & breakpoints, bool is_first = true)
     {
-      expression_tree::node & node = array[idx];
-
-      auto ng1 = [](tuple const & shape){ size_t res = 0 ; for(size_t i = 0 ; i < shape.size() ; ++i) res += (shape[i] > 1); return res;};
-      //Left
-      expression_type type_left = INVALID_EXPRESSION_TYPE;
-      if (node.lhs.type == COMPOSITE_OPERATOR_TYPE)
-          parse(array, node.lhs.index, breakpoints, type_left, false);
-      else if(node.lhs.type == DENSE_ARRAY_TYPE)
+      expression_tree::node & node = tree[idx];
+      if (node.type == COMPOSITE_OPERATOR_TYPE)
       {
-          if(node.op.type==MATRIX_ROW_TYPE || node.op.type==MATRIX_COLUMN_TYPE || ng1(node.lhs.array->shape())<=1)
-              type_left = ELEMENTWISE_1D;
-          else
-              type_left = ELEMENTWISE_2D;
+          expression_type type_left = parse(tree, node.binary_operator.lhs, breakpoints, false);
+          expression_type type_right = parse(tree, node.binary_operator.rhs, breakpoints, false);
+          expression_type result = merge(node.binary_operator.op, type_left, type_right);
+          if(has_temporary(node.binary_operator.op, type_left, type_right, is_first))
+            breakpoints.push_back({result, &node});
+          return result;
       }
-
-      //Right
-      expression_type type_right = INVALID_EXPRESSION_TYPE;
-      if (node.rhs.type == COMPOSITE_OPERATOR_TYPE)
-          parse(array, node.rhs.index, breakpoints, type_right, false);
-      else if(node.rhs.type == DENSE_ARRAY_TYPE)
+      else if(node.type == DENSE_ARRAY_TYPE)
       {
-          if(node.op.type==MATRIX_ROW_TYPE || node.op.type==MATRIX_COLUMN_TYPE || ng1(node.rhs.array->shape())<=1)
-              type_right = ELEMENTWISE_1D;
+          if(numgt1(node.shape)<=1)
+            return ELEMENTWISE_1D;
           else
-              type_right = ELEMENTWISE_2D;
+            return ELEMENTWISE_2D;
       }
-
-      final_type = merge(array[idx].op, type_left, type_right);
-      std::pair<bool, bool> tmp = has_temporary(array[idx].op, type_left, type_right, is_first);
-      if(tmp.first)
-          breakpoints.push_back(std::make_pair(type_left, &array[idx].lhs));
-      if(tmp.second)
-          breakpoints.push_back(std::make_pair(type_right, &array[idx].rhs));
+      else
+        return INVALID_EXPRESSION_TYPE;
     }
   }
 
@@ -175,81 +151,63 @@ namespace symbolic
   {
     typedef isaac::array array;
 
-    expression_tree expression = c.x();
-    driver::Context const & context = expression.context();
-    size_t rootidx = expression.root();
-    expression_tree::data_type & tree = const_cast<expression_tree::data_type &>(expression.data());
-    expression_tree::node root_save = tree[rootidx];
-
-    //Todo: technically the datatype should be per temporary
-    numeric_type dtype = expression.dtype();
-    std::vector<std::shared_ptr<array> > temporaries_;
+    expression_tree tree = c.x();
+    driver::Context const & context = tree.context();
+    size_t rootidx = tree.root();
+    std::vector<std::shared_ptr<array> > temporaries;
 
     expression_type final_type;
     //MATRIX_PRODUCT
-    if(symbolic::preset::matrix_product::args args = symbolic::preset::matrix_product::check(tree, rootidx)){
+    if(symbolic::preset::matrix_product::args args = symbolic::preset::matrix_product::check(tree.data(), rootidx)){
         final_type = args.type;
     }
     //Default
     else
     {
+        expression_tree::node & root = tree[rootidx];
+        expression_tree::node & lhs = tree[root.binary_operator.lhs], &rhs = tree[root.binary_operator.rhs];
+        expression_tree::node root_save = root, lhs_save = lhs, rhs_save = rhs;
+
         detail::breakpoints_t breakpoints;
         breakpoints.reserve(8);
 
         //Init
         expression_type current_type;
-        auto ng1 = [](tuple const & shape){ size_t res = 0 ; for(size_t i = 0 ; i < shape.size() ; ++i) res += (shape[i] > 1); return res;};
-        if(ng1(expression.shape())<=1)
+        if(numgt1(tree.shape())<=1)
           current_type=ELEMENTWISE_1D;
         else
           current_type=ELEMENTWISE_2D;
         final_type = current_type;
 
         /*----Parse required temporaries-----*/
-        detail::parse(tree, rootidx, breakpoints, final_type);
+        final_type = detail::parse(tree, rootidx, breakpoints);
 
         /*----Compute required temporaries----*/
         for(detail::breakpoints_t::iterator it = breakpoints.begin() ; it != breakpoints.end() ; ++it)
         {
-          std::shared_ptr<profiles::value_type> const & profile = profiles[std::make_pair(it->first, dtype)];
-          expression_tree::node const & node = tree[it->second->index];
-          expression_tree::node const & lmost = lhs_most(tree, node);
+          expression_tree::node const & node = *it->second;
+          expression_type type = it->first;
+          std::shared_ptr<profiles::value_type> const & profile = profiles[std::make_pair(type, node.dtype)];
 
-          //Creates temporary
-          std::shared_ptr<array> tmp;
-          switch(it->first){
-            case REDUCE_1D:           tmp = std::shared_ptr<array>(new array(1, dtype, context));                                                        break;
+          //Create temporary
+          std::shared_ptr<array> tmp = std::make_shared<array>(node.shape, node.dtype, context);
+          temporaries.push_back(tmp);
 
-            case ELEMENTWISE_1D:         tmp = std::shared_ptr<array>(new array(lmost.lhs.array->shape()[0], dtype, context));                              break;
-            case REDUCE_2D_ROWS:  tmp = std::shared_ptr<array>(new array(lmost.lhs.array->shape()[0], dtype, context));                              break;
-            case REDUCE_2D_COLS:  tmp = std::shared_ptr<array>(new array(lmost.lhs.array->shape()[1], dtype, context));                              break;
+          //Compute temporary
+          root.binary_operator.op.type = ASSIGN_TYPE;
+          expression_tree::fill(lhs, (array&)*tmp);
+          rhs = node;
+          profile->execute(execution_handler(tree, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
 
-            case ELEMENTWISE_2D:         tmp = std::shared_ptr<array>(new array(lmost.lhs.array->shape()[0], lmost.lhs.array->shape()[1], dtype, context)); break;
-            case MATRIX_PRODUCT_NN:   tmp = std::shared_ptr<array>(new array(node.lhs.array->shape()[0], node.rhs.array->shape()[1], dtype, context));   break;
-            case MATRIX_PRODUCT_NT:   tmp = std::shared_ptr<array>(new array(node.lhs.array->shape()[0], node.rhs.array->shape()[0], dtype, context));   break;
-            case MATRIX_PRODUCT_TN:   tmp = std::shared_ptr<array>(new array(node.lhs.array->shape()[1], node.rhs.array->shape()[1], dtype, context));   break;
-            case MATRIX_PRODUCT_TT:   tmp = std::shared_ptr<array>(new array(node.lhs.array->shape()[1], node.rhs.array->shape()[0], dtype, context));   break;
-
-            default: throw std::invalid_argument("Unrecognized operation");
-          }
-          temporaries_.push_back(tmp);
-
-          tree[rootidx].op.type = ASSIGN_TYPE;
-          fill(tree[rootidx].lhs, (array&)*tmp);
-          tree[rootidx].rhs = *it->second;
-          tree[rootidx].rhs.type = it->second->type;
-
-          //Execute
-          profile->execute(execution_handler(expression, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
-          tree[rootidx] = root_save;
-
-          //Incorporates the temporary within, the expression_tree
-          fill(*it->second, (array&)*tmp);
+          //Update the expression tree
+          root = root_save;
+          lhs = lhs_save;
+          expression_tree::fill(rhs, (array&)*tmp);
         }
     }
 
     /*-----Compute final expression-----*/
-    profiles[std::make_pair(final_type, dtype)]->execute(execution_handler(expression, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
+    profiles[std::make_pair(final_type, tree[rootidx].dtype)]->execute(execution_handler(tree, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
   }
 
   void execute(execution_handler const & c)

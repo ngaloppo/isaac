@@ -152,6 +152,7 @@ bool is_assignment(operation_type op);
 bool is_operator(operation_type op);
 bool is_function(operation_type op);
 bool is_cast(operation_type op);
+bool is_indexing(operation_type op);
 
 }
 

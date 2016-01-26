@@ -82,8 +82,6 @@ public:
     unsigned int num_kernels;
   };
 protected:
-  static int_t vector_size(expression_tree::node const & node);
-  static std::pair<int_t, int_t> matrix_size(expression_tree::data_type const & tree, expression_tree::node const & node);
   static bool requires_fallback(expression_tree const & expressions);
 private:
   virtual std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::symbols_table const & mapping) const = 0;

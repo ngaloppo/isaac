@@ -86,13 +86,13 @@ bool lambda::operator<(lambda const & o) const
 }
 
 //
-object::object(std::string const & scalartype, std::string const & name, std::string const & type) : type_(type)
+object::object(std::string const & scalartype, std::string const & name)
 {
   attributes_["scalartype"] = scalartype;
   attributes_["name"] = name;
 }
 
-object::object(std::string const & scalartype, unsigned int id, std::string const & type) : object(scalartype, "obj" + tools::to_string(id), type)
+object::object(std::string const & scalartype, unsigned int id) : object(scalartype, "obj" + tools::to_string(id))
 {
 
 }
@@ -101,12 +101,6 @@ object::~object()
 {
 
 }
-
-std::string object::type() const
-{
-  return type_;
-}
-
 
 std::string object::process(std::string const & in) const
 {
@@ -133,73 +127,81 @@ std::string object::evaluate(const std::string & str) const
 { return process(str); }
 
 //
-arithmetic_node::arithmetic_node(operation_type type, size_t index, expression_tree const & expression, symbols_table const & mapping) : object("", "", ""), type_(type), op_str_(to_string(type)), lhs(NULL), rhs(NULL)
+binary_node::binary_node(size_t root, op_element op, expression_tree const & expression, symbols_table const & table) : op_(op), op_str_(to_string(op.type)), lhs_(NULL), rhs_(NULL)
 {
-  expression_tree::node const & node = expression.data()[index];
+  expression_tree::node const & node = expression[root];
   symbols_table::const_iterator it;
+  if((it = table.find(node.binary_operator.lhs))!=table.end())
+    lhs_ = it->second.get();
+  if((it = table.find(node.binary_operator.rhs))!=table.end())
+    rhs_ = it->second.get();
+}
 
-  if((it = mapping.find({index, LHS_NODE_TYPE}))!=mapping.end())
-    lhs = it->second.get();
-  else if(node.lhs.type==COMPOSITE_OPERATOR_TYPE)
-    lhs = mapping.at({node.lhs.index, PARENT_NODE_TYPE}).get();
+op_element binary_node::op() const
+{ return op_; }
 
-  if((it = mapping.find({index, RHS_NODE_TYPE}))!=mapping.end())
-    rhs = it->second.get();
-  else if(node.rhs.type==COMPOSITE_OPERATOR_TYPE)
-    rhs = mapping.at({node.rhs.index, PARENT_NODE_TYPE}).get();
+object const * binary_node::lhs() const
+{ return lhs_; }
+
+object const * binary_node::rhs() const
+{ return rhs_; }
+
+size_t binary_node::root() const
+{ return root_; }
+
+//sfor
+sfor::sfor(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & expression, symbols_table const & table) :
+  object(scalartype, id), binary_node(root, op, expression, table)
+{
+
 }
 
 //
-binary_node::binary_node(operation_type type, size_t index, expression_tree const & expression, symbols_table const & mapping) : arithmetic_node(type, index, expression, mapping){}
+binary_arithmetic_node::binary_arithmetic_node(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & expression, symbols_table const & table) :
+  object(scalartype, id), binary_node(root, op, expression, table){}
 
-std::string binary_node::evaluate(std::string const & str) const
+std::string binary_arithmetic_node::evaluate(std::string const & str) const
 {
-  std::string arg0 = lhs->evaluate(str);
-  std::string arg1 = rhs->evaluate(str);
-
-  if(is_function(type_))
+  std::string arg0 = lhs_->evaluate(str);
+  std::string arg1 = rhs_->evaluate(str);
+  if(is_function(op_.type))
     return op_str_ + "(" + arg0 + ", " + arg1 + ")";
   else
     return "(" + arg0 + op_str_ + arg1 + ")";
 }
 
 //
-unary_node::unary_node(operation_type type, size_t index, expression_tree const & expression, symbols_table const & mapping) : arithmetic_node(type, index, expression, mapping){}
+unary_arithmetic_node::unary_arithmetic_node(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) :
+  object(scalartype, id), binary_node(root, op, tree, table){}
 
-std::string unary_node::evaluate(std::string const & str) const
-{ return op_str_ + "(" + lhs->evaluate(str) + ")"; }
+std::string unary_arithmetic_node::evaluate(std::string const & str) const
+{ return op_str_ + "(" + lhs_->evaluate(str) + ")"; }
 
 //
-reduction::reduction(std::string const & scalartype, unsigned int id, size_t root, op_element op, std::string const & type) :
-  object(scalartype, id, type), index_(root), op_(op)
+reduction::reduction(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) :
+  object(scalartype, id), binary_node(root, op, tree, table)
 { }
 
-size_t reduction::index() const
-{ return index_; }
-
-op_element reduction::op() const
-{ return op_; }
+//
+reduce_1d::reduce_1d(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : reduction(scalartype, id, root, op, tree, table){ }
 
 //
-reduce_1d::reduce_1d(std::string const & scalartype, unsigned int id, size_t root, op_element op) : reduction(scalartype, id, root, op, "reduce_1d"){ }
+reduce_2d::reduce_2d(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : reduction(scalartype, id, root, op, tree, table) { }
 
 //
-reduce_2d::reduce_2d(std::string const & scalartype, unsigned int id, size_t root, op_element op) : reduction(scalartype, id, root, op, "reduce_2d") { }
-
-//
-placeholder::placeholder(unsigned int level) : object("int", "sforidx" + tools::to_string(level), "placeholder"){}
+placeholder::placeholder(unsigned int level) : object("int", "sforidx" + tools::to_string(level)){}
 
 std::string placeholder::evaluate(std::string const &) const
 { return process("#name"); }
 
 //
-host_scalar::host_scalar(std::string const & scalartype, unsigned int id) : object(scalartype, id, "host_scalar"){ }
+host_scalar::host_scalar(std::string const & scalartype, unsigned int id) : object(scalartype, id){ }
 
 std::string host_scalar::evaluate(std::string const &) const
 { return process("#name"); }
 
 //
-array::array(std::string const & scalartype, unsigned int id) : object(scalartype, id, "array")
+array::array(std::string const & scalartype, unsigned int id) : object(scalartype, id)
 {
   attributes_["pointer"] = process("#name_pointer");
 }
@@ -246,15 +248,14 @@ buffer::buffer(std::string const & scalartype, unsigned int id, const tuple &sha
 }
 
 //
-index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t index, symbols_table const & mapping) : array(scalartype, id), index_(index), mapping_(mapping)
+index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : array(scalartype, id), binary_node(root, op, tree, table)
 { }
 
 //Reshaping
-reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, expression_tree const & expression, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping)
+reshape::reshape(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
 {
-  expression_tree::node node = expression.data()[index];
-  tuple new_shape = node.shape;
-  tuple old_shape = node.lhs.type==DENSE_ARRAY_TYPE?node.lhs.array->shape():expression.data()[node.lhs.index].shape;
+  tuple new_shape = tree[root].shape;
+  tuple old_shape = tree[tree[root].binary_operator.lhs].shape;
 
   //Attributes
   for(unsigned int i = 1 ; i < new_shape.size() ; ++i)
@@ -273,13 +274,13 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, 
   size_t new_gt1 = numgt1(new_shape);
   size_t old_gt1 = numgt1(old_shape);
   if(new_gt1==1 && old_gt1==1)
-    lambdas_.insert("at(i): " + mapping.at({index, LHS_NODE_TYPE})->process("at(i)"));
+    lambdas_.insert("at(i): " + lhs_->process("at(i)"));
   if(new_gt1==1 && old_gt1==2)
-    lambdas_.insert("at(i): " + mapping.at({index, LHS_NODE_TYPE})->process("at(i%#old_inc1, i/#old_inc1)"));
+    lambdas_.insert("at(i): " + lhs_->process("at(i%#old_inc1, i/#old_inc1)"));
   if(new_gt1==2 && old_gt1==1)
-    lambdas_.insert("at(i,j): " + mapping.at({index, LHS_NODE_TYPE})-> process("at(i + j*#new_inc1)"));
+    lambdas_.insert("at(i,j): " + lhs_-> process("at(i + j*#new_inc1)"));
   if(new_gt1==2 && old_gt1==2)
-    lambdas_.insert("at(i,j): " + mapping.at({index, LHS_NODE_TYPE})->process("at((i + j*#new_inc1)%#old_inc1, (i+j*#new_inc1)/#old_inc1)"));
+    lambdas_.insert("at(i,j): " + lhs_->process("at((i + j*#new_inc1)%#old_inc1, (i+j*#new_inc1)/#old_inc1)"));
 
   //Broadcast
   if(new_gt1!=new_shape.size())
@@ -287,39 +288,28 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t index, 
 }
 
 //
-diag_matrix::diag_matrix(std::string const & scalartype, unsigned int id, size_t index, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping){}
+diag_matrix::diag_matrix(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table){}
 
 //
-array_access::array_access(std::string const & scalartype, unsigned int id, size_t index, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping)
+array_access::array_access(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
 { }
 
 //
-matrix_row::matrix_row(std::string const & scalartype, unsigned int id, size_t index, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping)
+matrix_row::matrix_row(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
 { }
 
 //
-matrix_column::matrix_column(std::string const & scalartype, unsigned int id, size_t index, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping)
+matrix_column::matrix_column(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
 { }
 
 //
-diag_vector::diag_vector(std::string const & scalartype, unsigned int id, size_t index, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping)
+diag_vector::diag_vector(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
 { }
 
-repeat::repeat(std::string const & scalartype, unsigned int id,  size_t index, symbols_table const & mapping) : index_modifier(scalartype, id, index, mapping)
+repeat::repeat(std::string const & scalartype, unsigned int id,  size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
 { }
 
 ////
-//object& get(expression_tree::data_type const & tree, size_t root, symbols_table const & mapping, size_t idx)
-//{
-//  for(unsigned int i = 0 ; i < idx ; ++i){
-//      expression_tree::node node = tree[root];
-//      if(node.rhs.type==COMPOSITE_OPERATOR_TYPE)
-//        root = node.rhs.index;
-//      else
-//        return *(mapping.at(std::make_pair(root, RHS_NODE_TYPE)));
-//  }
-//  return *(mapping.at(std::make_pair(root, LHS_NODE_TYPE)));
-//}
 
 }
 }

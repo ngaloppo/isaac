@@ -87,7 +87,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
       {
         numeric_type dtype = tree.dtype();
         std::string sdtype = to_string(dtype);
-        if (is_index_reduction(rd->op()))
+        if (is_indexing(rd->op().type))
         {
           stream << rd->process("$GLOBAL uint* #name_temp = ($GLOBAL uint*)(tmp + " + tools::to_string(offset) + "*M);");
           offset += 4*p_.num_groups_0;
@@ -101,7 +101,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
       }
   };
 
-  int col_simd_width = (reduce_1d_type_ == REDUCE_COLUMNS) ? 1 : p_.simd_width;
+  int col_simd_width = (reduction_type_ == REDUCE_COLUMNS) ? 1 : p_.simd_width;
   switch(backend)
   {
     case driver::CUDA:
@@ -139,16 +139,16 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   stream << "{" << std::endl;
   stream.inc_tab();
 
-  element_wise_loop_1D(stream, p_.fetch_policy, (reduce_1d_type_==REDUCE_COLUMNS)?p_.simd_width:1, "c", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](unsigned int row_simd_width)
+  element_wise_loop_1D(stream, p_.fetch_policy, (reduction_type_==REDUCE_COLUMNS)?p_.simd_width:1, "c", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](unsigned int row_simd_width)
   {
     std::string rdtype = append_width("#scalartype", row_simd_width);
     std::string cdtype = append_width("#scalartype", col_simd_width);
 
     std::set<std::string> fetched;
     for (symbolic::reduce_2d* rd : reductions)
-      for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, rd->index(), PARENT_NODE_TYPE)){
+      for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, rd->root())){
         if(fetched.insert(sym->process("#name")).second){
-          if(reduce_1d_type_==REDUCE_COLUMNS)
+          if(reduction_type_==REDUCE_COLUMNS)
             stream << sym->process(rdtype + " #name = " + vload(row_simd_width, "#scalartype", "c*#stride", "#pointer + r*#ld", "1", backend,false)+";") << std::endl;
           else
             stream << sym->process(cdtype + " #name = " + vload(col_simd_width, "#scalartype", "0", "#pointer + r*#stride + c*#ld", "1", backend,false) + ";") << std::endl;
@@ -158,8 +158,8 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
     for (symbolic::reduce_2d* rd : reductions)
       for (unsigned int s = 0; s < row_simd_width; ++s)
       {
-        std::string value = symbols.at({rd->index(), LHS_NODE_TYPE})->evaluate(access_vector_type("#name", s, row_simd_width));
-        if (is_index_reduction(rd->op()))
+        std::string value = rd->lhs()->evaluate(access_vector_type("#name", s, row_simd_width));
+        if (is_indexing(rd->op().type))
           compute_index_reduce_1d(stream, rd->process("#name_acc"), "c*"+to_string(row_simd_width) + to_string(s), rd->process("#name_acc_value"), value, rd->op());
         else
           compute_reduce_1d(stream, rd->process("#name_acc"), value,rd->op());
@@ -182,7 +182,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   stream.inc_tab();
 
   for (symbolic::reduce_2d* rd : reductions)
-    if (is_index_reduction(rd->op()))
+    if (is_indexing(rd->op().type))
       compute_index_reduce_1d(stream, rd->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx]"), rd->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx + stride]")
                                     , rd->process("#name_buf_value[lidy*" + local_size_0_ld_str + " + lidx]"), rd->process("#name_buf_value[lidy*" + local_size_0_ld_str + " + lidx + stride]")
                                     , rd->op());
@@ -219,7 +219,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
     {
       if(col_simd_width > 1)
           stream << "if(M - r > " << col_simd_width << "){" << std::endl;
-      if (is_index_reduction(rd->op()))
+      if (is_indexing(rd->op().type))
           stream << rd->process(vstore(col_simd_width,"uint", "#name_buf_value[lidy*" + local_size_0_ld_str + "]", "0", "#name_temp_value + r + M*$GROUP_IDX_0", "1", backend, false)) << ";" << std::endl;
       stream << rd->process(vstore(col_simd_width,"#scalartype", "#name_buf[lidy*" + local_size_0_ld_str + "]", "0", "#name_temp + r + M*$GROUP_IDX_0", "1", backend, false)) << ";" << std::endl;
       if(col_simd_width > 1)
@@ -228,7 +228,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
           stream << "else{" << std::endl;
           stream.inc_tab();
           for(int s = 0 ; s < col_simd_width ; ++s){
-              if (is_index_reduction(rd->op()))
+              if (is_indexing(rd->op().type))
                   stream << "if(r + " << s << "< M) " << rd->process("#name_temp_value[r + " + to_string(s) + " + M*$GROUP_IDX_0] = " + access_vector_type("#name_buf_value[lidy*" + local_size_0_ld_str + "]", s)) << ";" << std::endl;
               stream << "if(r + " << s << "< M) " << rd->process("#name_temp[r + " + to_string(s) + " + M*$GROUP_IDX_0] = " + access_vector_type("#name_buf[lidy*" + local_size_0_ld_str + "]", s)) << ";" << std::endl;
           }
@@ -305,7 +305,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   stream.inc_tab();
 
   for (symbolic::reduce_2d* rd : reductions)
-    if (is_index_reduction(rd->op()))
+    if (is_indexing(rd->op().type))
       compute_index_reduce_1d(stream, rd->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx]"), rd->process("#name_buf[lidy*" + local_size_0_ld_str + " + lidx + stride]")
                                     , rd->process("#name_buf_value[lidy*" + local_size_0_ld_str + " + lidx]"), rd->process("#name_buf_value[lidy*" + local_size_0_ld_str + " + lidx + stride]")
                                     , rd->op());
@@ -346,32 +346,27 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
 }
 
 reduce_2d::reduce_2d(reduce_2d::parameters_type const & parameters,
-                                         reduce_2d::reduce_1d_type rtype,
+                                         operation_type_family rtype,
                                          fusion_policy_t fusion_policy) :
   base_impl<reduce_2d, reduce_2d_parameters>(parameters, fusion_policy),
-  reduce_1d_type_(rtype){ }
+  reduction_type_(rtype){ }
 
-std::vector<int_t> reduce_2d::input_sizes(expression_tree const & expression) const
+std::vector<int_t> reduce_2d::input_sizes(expression_tree const & tree) const
 {
-  std::vector<std::size_t> idx = symbolic::filter(expression, &is_reduce_1d);
-  std::pair<int_t, int_t> MN = matrix_size(expression.data(), lhs_most(expression.data(), idx[0]));
-  if(reduce_1d_type_==REDUCE_COLUMNS)
-    std::swap(MN.first,MN.second);
-  return {MN.first, MN.second};
+  std::vector<size_t> idx = symbolic::find(tree, [this](expression_tree::node const & x){return x.binary_operator.op.type_family==reduction_type_;});
+  std::vector<int_t> shape = tree[idx[0]].shape;
+  if(reduction_type_==REDUCE_COLUMNS)
+    return {shape[1], shape[0]};
+  return {shape[0], shape[1]};
 }
 
 void reduce_2d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base & fallback, execution_handler const & control)
 {
-  expression_tree const & expression = control.x();
-
-  std::vector<int_t> MN = input_sizes(expression);
-  std::vector<expression_tree::node const *> reduce_1ds;
-  std::vector<size_t> reduce_1ds_idx = symbolic::filter(expression, &is_reduce_1d);
-  for (size_t idx : reduce_1ds_idx)
-    reduce_1ds.push_back(&expression.data()[idx]);
+  expression_tree const & tree = control.x();
+  std::vector<int_t> MN = input_sizes(tree);
 
   //Fallback
-  if(p_.simd_width>1 && requires_fallback(expression))
+  if(p_.simd_width>1 && requires_fallback(tree))
   {
       fallback.enqueue(queue, program, "fallback", fallback, control);
       return;
@@ -397,7 +392,7 @@ void reduce_2d::enqueue(driver::CommandQueue & queue, driver::Program const & pr
     kernel.setSizeArg(n_arg++, M);
     kernel.setSizeArg(n_arg++, N);
     kernel.setArg(n_arg++, driver::backend::workspaces::get(queue)); //Temporary buffers
-    symbolic::set_arguments(expression, kernel, n_arg, fusion_policy_);
+    symbolic::set_arguments(tree, kernel, n_arg, fusion_policy_);
   }
 
   //NDRange

@@ -30,14 +30,21 @@ namespace symbolic
 namespace preset
 {
 
-void matrix_product::handle_node(expression_tree::data_type const & tree, size_t rootidx, args & a)
+void matrix_product::handle_node(expression_tree::data_type const & tree, size_t root, args & a)
 {
+    expression_tree::node const & node = tree[root];
+    if(node.type != COMPOSITE_OPERATOR_TYPE)
+      return;
+
+    expression_tree::node const & left = tree[node.binary_operator.lhs];
+    expression_tree::node const & right = tree[node.binary_operator.rhs];
+
     //Matrix-Matrix product node
-    if(tree[rootidx].op.type_family==MATRIX_PRODUCT)
+    if(node.binary_operator.op.type_family==MATRIX_PRODUCT)
     {
-        if(tree[rootidx].lhs.type==DENSE_ARRAY_TYPE) a.A = &tree[rootidx].lhs;
-        if(tree[rootidx].rhs.type==DENSE_ARRAY_TYPE) a.B = &tree[rootidx].rhs;
-        switch(tree[rootidx].op.type)
+        if(left.type==DENSE_ARRAY_TYPE) a.A = &left;
+        if(right.type==DENSE_ARRAY_TYPE) a.B = &right;
+        switch(node.binary_operator.op.type)
         {
           case MATRIX_PRODUCT_NN_TYPE: a.type = MATRIX_PRODUCT_NN; break;
           case MATRIX_PRODUCT_NT_TYPE: a.type = MATRIX_PRODUCT_NT; break;
@@ -48,67 +55,72 @@ void matrix_product::handle_node(expression_tree::data_type const & tree, size_t
     }
 
     //Scalar multiplication node
-    if(tree[rootidx].op.type==MULT_TYPE)
+    if(node.binary_operator.op.type==MULT_TYPE)
     {
         //alpha*PROD
-        if(tree[rootidx].lhs.type==VALUE_SCALAR_TYPE  && tree[rootidx].rhs.type==COMPOSITE_OPERATOR_TYPE
-           && tree[tree[rootidx].rhs.index].op.type_family==MATRIX_PRODUCT)
+        if(left.type==VALUE_SCALAR_TYPE  && right.type==COMPOSITE_OPERATOR_TYPE
+           && right.binary_operator.op.type_family==MATRIX_PRODUCT)
         {
-            a.alpha = value_scalar(tree[rootidx].lhs.scalar, tree[rootidx].lhs.dtype);
-            handle_node(tree, tree[rootidx].rhs.index, a);
+            a.alpha = value_scalar(left.scalar, left.dtype);
+            handle_node(tree, node.binary_operator.rhs, a);
         }
 
         //beta*C
-        if(tree[rootidx].lhs.type==VALUE_SCALAR_TYPE  && tree[rootidx].rhs.type==DENSE_ARRAY_TYPE)
+        if(left.type==VALUE_SCALAR_TYPE  && right.type==DENSE_ARRAY_TYPE)
         {
-            a.beta = value_scalar(tree[rootidx].lhs.scalar, tree[rootidx].lhs.dtype);
-            a.C = &tree[rootidx].rhs;
+            a.beta = value_scalar(left.scalar, left.dtype);
+            a.C = &right;
         }
     }
 }
 
-matrix_product::args matrix_product::check(expression_tree::data_type const & tree, size_t rootidx)
+matrix_product::args matrix_product::check(expression_tree::data_type const & tree, size_t root)
 {
-    tree_node const * assigned = &tree[rootidx].lhs;
-    numeric_type dtype = assigned->dtype;
+    expression_tree::node const & node = tree[root];
+    expression_tree::node const & left = tree[node.binary_operator.lhs];
+    expression_tree::node const & right = tree[node.binary_operator.rhs];
+
+    numeric_type dtype = node.dtype;
     matrix_product::args result ;
     if(dtype==INVALID_NUMERIC_TYPE)
       return result;
     result.alpha = value_scalar(1, dtype);
     result.beta = value_scalar(0, dtype);
-    if(tree[rootidx].rhs.type==COMPOSITE_OPERATOR_TYPE)
+    if(right.type==COMPOSITE_OPERATOR_TYPE)
     {
-        rootidx = tree[rootidx].rhs.index;
-        bool is_add = tree[rootidx].op.type==ADD_TYPE;
-        bool is_sub = tree[rootidx].op.type==SUB_TYPE;
+        bool is_add = right.binary_operator.op.type==ADD_TYPE;
+        bool is_sub = right.binary_operator.op.type==SUB_TYPE;
         //Form X +- Y"
         if(is_add || is_sub)
         {
-            if(tree[rootidx].lhs.type==COMPOSITE_OPERATOR_TYPE)
-                handle_node(tree, tree[rootidx].lhs.index, result);
-            else if(tree[rootidx].lhs.type==DENSE_ARRAY_TYPE)
+            expression_tree::node const & rleft = tree[right.binary_operator.lhs];
+            expression_tree::node const & rright = tree[right.binary_operator.rhs];
+
+            if(rleft.type==COMPOSITE_OPERATOR_TYPE)
+                handle_node(tree, right.binary_operator.lhs, result);
+            else if(rleft.type==DENSE_ARRAY_TYPE)
             {
-                result.C = &tree[rootidx].lhs;
+                result.C = &rleft;
                 result.beta = value_scalar(1, dtype);
                 result.alpha = value_scalar(is_add?1:-1,  dtype);
             }
 
-            if(tree[rootidx].rhs.type==COMPOSITE_OPERATOR_TYPE)
-                handle_node(tree, tree[rootidx].rhs.index, result);
-            else if(tree[rootidx].rhs.type==DENSE_ARRAY_TYPE)
+            if(rright.type==COMPOSITE_OPERATOR_TYPE)
+                handle_node(tree, right.binary_operator.rhs, result);
+            else if(rright.type==DENSE_ARRAY_TYPE)
             {
-                result.C = &tree[rootidx].rhs;
+                result.C = &rright;
                 result.alpha = value_scalar(1, dtype);
                 result.beta = value_scalar(is_add?1:-1, dtype);
             }
         }
         else{
-            handle_node(tree, rootidx, result);
+            handle_node(tree, node.binary_operator.rhs, result);
         }
     }
     if(result.C == NULL)
-        result.C = assigned;
-    else if(result.C->array != assigned->array)
+        result.C = &left;
+    else if(result.C->array != left.array)
         result.C = NULL;
     return result;
 }

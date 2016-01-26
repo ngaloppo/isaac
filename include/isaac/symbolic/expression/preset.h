@@ -42,10 +42,10 @@ public:
     {
         args(): A(NULL), B(NULL), C(NULL), type(INVALID_EXPRESSION_TYPE){ }
         value_scalar alpha;
-        tree_node const * A;
-        tree_node const * B;
+        expression_tree::node const * A;
+        expression_tree::node const * B;
         value_scalar beta;
-        tree_node const * C;
+        expression_tree::node const * C;
         expression_type type;
 
         operator bool() const

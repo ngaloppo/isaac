@@ -56,8 +56,14 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   std::string init0, upper_bound0, inc0, init1, upper_bound1, inc1;
   driver::backend_type backend = device.backend();
   kernel_generation_stream stream(backend);
-  std::vector<std::size_t> assigned = symbolic::filter(tree, [](expression_tree::node const & node){return is_assignment(node.op.type);});
 
+  std::vector<std::size_t> assigned = symbolic::find(tree, [&](expression_tree::node const & node){return tree[node.binary_operator.lhs].type==DENSE_ARRAY_TYPE && is_assignment(node.binary_operator.op.type);});
+  std::vector<std::size_t> assigned_left;
+  std::vector<std::size_t> assigned_right;
+  for(std::size_t idx: assigned){
+    assigned_left.push_back(tree[idx].binary_operator.lhs);
+    assigned_right.push_back(tree[idx].binary_operator.rhs);
+  }
   switch(backend)
   {
     case driver::CUDA:
@@ -81,18 +87,18 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   stream.inc_tab();
 
   //Declares register to store results
-  for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned, LHS_NODE_TYPE))
+  for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_left))
     stream << sym->process("#scalartype #name;") << std::endl;
 
   //Load to registers
-  for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned, RHS_NODE_TYPE))
+  for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_right))
     stream << sym->process("#scalartype #name = at(i, j);") << std::endl;
 
   for(std::size_t idx: assigned)
-    stream << symbols.at({idx, PARENT_NODE_TYPE})->evaluate("#name") << ";" << std::endl;
+    stream << symbols.at(idx)->evaluate("#name") << ";" << std::endl;
 
   //Writes back
-  for(symbolic::array* sym: symbolic::extract<symbolic::buffer>(tree, symbols, assigned, LHS_NODE_TYPE))
+  for(symbolic::array* sym: symbolic::extract<symbolic::buffer>(tree, symbols, assigned_left))
     stream << sym->process("at(i, j) = #name;") << std::endl;
 
   stream.dec_tab();
@@ -120,8 +126,7 @@ elementwise_2d::elementwise_2d(unsigned int simd, unsigned int ls1, unsigned int
 
 std::vector<int_t> elementwise_2d::input_sizes(expression_tree const  & expression) const
 {
-  std::pair<int_t, int_t> size = matrix_size(expression.data(), lhs_most(expression.data(), expression.root()));
-  return {size.first, size.second};
+  return expression.shape();
 }
 
 void elementwise_2d::enqueue(driver::CommandQueue & /*queue*/, driver::Program const & program, std::string const & suffix, base &, execution_handler const & control)

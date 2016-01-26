@@ -49,42 +49,10 @@ base::parameters_type::parameters_type(unsigned int _simd_width, int_t _local_si
 bool base::requires_fallback(expression_tree const  & expression)
 {
   for(expression_tree::node const & node: expression.data())
-    if(  (node.lhs.type==DENSE_ARRAY_TYPE && (node.lhs.array->stride()[0]>1 || node.lhs.array->start()>0))
-      || (node.rhs.type==DENSE_ARRAY_TYPE && (node.rhs.array->stride()[0]>1 || node.rhs.array->start()>0)))
+    if(node.type==DENSE_ARRAY_TYPE && (node.array->stride()[0]>1 || node.array->start()>0))
       return true;
   return false;
 }
-
-int_t base::vector_size(expression_tree::node const & node)
-{
-  if (node.op.type==MATRIX_DIAG_TYPE)
-    return std::min<int_t>(node.lhs.array->shape()[0], node.lhs.array->shape()[1]);
-  else if (node.op.type==MATRIX_ROW_TYPE)
-    return node.lhs.array->shape()[1];
-  else if (node.op.type==MATRIX_COLUMN_TYPE)
-    return node.lhs.array->shape()[0];
-  else
-    return max(node.lhs.array->shape());
-
-}
-
-std::pair<int_t, int_t> base::matrix_size(expression_tree::data_type const & tree, expression_tree::node const & node)
-{
-  if (node.op.type==VDIAG_TYPE)
-  {
-    int_t size = node.lhs.array->shape()[0];
-    return std::make_pair(size,size);
-  }
-  else if(node.op.type==REPEAT_TYPE)
-  {
-    size_t rep0 = tuple_get(tree, node.rhs.index, 0);
-    size_t rep1 = tuple_get(tree, node.rhs.index, 1);
-    return std::make_pair(node.lhs.array->shape()[0]*rep0, node.lhs.array->shape()[1]*rep1);
-  }
-  else
-    return std::make_pair(node.lhs.array->shape()[0],node.lhs.array->shape()[1]);
-}
-
 
 base::base(fusion_policy_t fusion_policy) : fusion_policy_(fusion_policy)
 {}

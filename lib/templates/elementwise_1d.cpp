@@ -60,14 +60,13 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   driver::backend_type backend = device.backend();
   kernel_generation_stream stream(backend);
 
-  expression_tree::data_type const & data = tree.data();
-  std::vector<std::size_t> sfors = symbolic::filter(tree, [](expression_tree::node const & node){return node.op.type==SFOR_TYPE;});
-  size_t root = tree.root();
-  if(sfors.size())
-      root = data[sfors.back()].lhs.index;
-
-  std::vector<std::size_t> assigned = symbolic::filter(tree, root, PARENT_NODE_TYPE, [](expression_tree::node const & node){return is_assignment(node.op.type);});
-
+  std::vector<std::size_t> assigned = symbolic::find(tree, [&](expression_tree::node const & node){return tree[node.binary_operator.lhs].type==DENSE_ARRAY_TYPE && is_assignment(node.binary_operator.op.type);});
+  std::vector<std::size_t> assigned_left;
+  std::vector<std::size_t> assigned_right;
+  for(std::size_t idx: assigned){
+    assigned_left.push_back(tree[idx].binary_operator.lhs);
+    assigned_right.push_back(tree[idx].binary_operator.rhs);
+  }
   switch(backend)
   {
     case driver::CUDA:
@@ -81,36 +80,26 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   stream << "{" << std::endl;
   stream.inc_tab();
 
+  //Open user-provided for-loops
+  std::vector<symbolic::sfor*> sfors = symbolic::extract<symbolic::sfor>(tree, symbols);
+  for(symbolic::sfor* sym: sfors)
+    stream << sym->process("for(int #init ; #end ; #inc)") << std::endl;
+  if(sfors.size())
+  {
+    stream << "{" << std::endl;
+    stream.inc_tab();
+  }
+
   element_wise_loop_1D(stream, p_.fetching_policy, p_.simd_width, "i", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](unsigned int simd_width)
   {
     std::string dtype = append_width("#scalartype",simd_width);
 
-    //Open user-provided for-loops
-    for(unsigned int i = 0 ; i < sfors.size() ; ++i)
-    {
-      std::string info[3];
-      int idx =  sfors[i];
-      for(int i = 0 ; i < 2 ; ++i){
-          idx = data[idx].rhs.index;
-          info[i] = symbols.at({idx, LHS_NODE_TYPE})->process("#name");
-
-      }
-      info[2] = symbols.at({idx, RHS_NODE_TYPE})->process("#name");
-      info[0] = info[0].substr(1, info[0].size()-2);
-      stream << "for(int " << info[0] << " ; " << info[1] << "; " << info[2] << ")" << std::endl;
-    }
-
-    if(sfors.size()){
-      stream << "{" << std::endl;
-      stream.inc_tab();
-    }
-
     //Declares register to store results
-    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned, LHS_NODE_TYPE))
+    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_left))
       stream << sym->process(dtype + " #name;") << std::endl;
 
     //Load to registers
-    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned, RHS_NODE_TYPE))
+    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_right))
     {
       if(simd_width==1)
         stream << sym->process(dtype + " #name = at(i);") << std::endl;
@@ -123,22 +112,19 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
     //Compute
     for(std::size_t idx: assigned)
       for(unsigned int s = 0 ; s < simd_width ; ++s)
-         stream << symbols.at({idx, PARENT_NODE_TYPE})->evaluate(access_vector_type("#name", s, simd_width)) << ";" << std::endl;
+         stream << symbols.at(idx)->evaluate(access_vector_type("#name", s, simd_width)) << ";" << std::endl;
 
 
     //Writes back
-    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned, LHS_NODE_TYPE))
+    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_left))
       for(unsigned int s = 0 ; s < simd_width ; ++s)
           stream << sym->process("at(i+" + tools::to_string(s)+") = " + access_vector_type("#name", s, simd_width) + ";") << std::endl;
-
-    //Close user-provided for-loops
-    if(sfors.size())
-    {
-      stream.dec_tab();
-      stream << "}" << std::endl;
-    }
-
   });
+  //Close user-provided for-loops
+  if(sfors.size()){
+    stream.dec_tab();
+    stream << "}" << std::endl;
+  }
 
   stream.dec_tab();
   stream << "}" << std::endl;

@@ -42,43 +42,36 @@ inline std::string to_string(node_type const & f)
   }
 }
 
-inline std::string to_string(tree_node const & e)
+inline std::string to_string(const expression_tree::node &node)
 {
-  if(e.type==COMPOSITE_OPERATOR_TYPE)
+  if(node.type==COMPOSITE_OPERATOR_TYPE)
   {
-    return"COMPOSITE [" + tools::to_string(e.index) + "]";
+    std::string lhs = tools::to_string(node.binary_operator.lhs);
+    std::string op = tools::to_string(node.binary_operator.op.type);
+    std::string rhs = tools::to_string(node.binary_operator.rhs);
+    return"BINARY [LHS: " + lhs + "/OP: " + op + "/RHS: " + rhs + "]";
   }
-  return tools::to_string(e.type);
+  return tools::to_string(node.type);
 }
-
-inline std::ostream & operator<<(std::ostream & os, expression_tree::node const & s_node)
-{
-  os << "LHS: " << to_string(s_node.lhs) << "|" << s_node.lhs.dtype << ", "
-     << "OP: "  << s_node.op.type_family << " | " << s_node.op.type << ", "
-     << "RHS: " << to_string(s_node.rhs) << "|" << s_node.rhs.dtype;
-
-  return os;
-}
-
 
 namespace detail
 {
   /** @brief Recursive worker routine for printing a whole expression_tree */
   inline void print_node(std::ostream & os, isaac::expression_tree const & s, size_t index, size_t indent = 0)
   {
-    expression_tree::data_type const & nodes = s.data();
-    expression_tree::node const & current_node = nodes[index];
+    expression_tree::data_type const & data = s.data();
+    expression_tree::node const & node = data[index];
 
     for (size_t i=0; i<indent; ++i)
       os << " ";
 
-    os << "Node " << index << ": " << current_node << std::endl;
+    os << "Node " << index << ": " << to_string(node) << std::endl;
 
-    if (current_node.lhs.type == COMPOSITE_OPERATOR_TYPE)
-      print_node(os, s, current_node.lhs.index, indent+1);
-
-    if (current_node.rhs.type == COMPOSITE_OPERATOR_TYPE)
-      print_node(os, s, current_node.rhs.index, indent+1);
+    if (node.type == COMPOSITE_OPERATOR_TYPE)
+    {
+      print_node(os, s, node.binary_operator.lhs, indent+1);
+      print_node(os, s, node.binary_operator.rhs, indent+1);
+    }
   }
 }
 

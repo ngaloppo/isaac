@@ -29,6 +29,10 @@
 namespace isaac
 {
 
+op_element::op_element() {}
+
+op_element::op_element(operation_type_family const & _type_family, operation_type const & _type) : type_family(_type_family), type(_type){}
+
 std::string to_string(operation_type type)
 {
   switch (type)
@@ -167,6 +171,14 @@ bool is_function(operation_type op)
       || op == ELEMENT_MAX_TYPE
       || op == ELEMENT_MIN_TYPE;
 
+}
+
+bool is_indexing(operation_type op)
+{
+  return op == ELEMENT_ARGFMAX_TYPE
+      || op == ELEMENT_ARGMAX_TYPE
+      || op == ELEMENT_ARGFMIN_TYPE
+      || op == ELEMENT_ARGMIN_TYPE;
 }
 
 }

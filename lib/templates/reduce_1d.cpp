@@ -73,7 +73,7 @@ inline void reduce_1d::reduce_1d_local_memory(kernel_generation_stream & stream,
   stream.inc_tab();
 
   for (symbolic::reduce_1d* rd : exprs)
-    if (is_index_reduction(rd->op()))
+    if (is_indexing(rd->op().type))
       compute_index_reduce_1d(stream, rd->process(buf_str+"[lid]"), rd->process(buf_str+"[lid+stride]")
                               , rd->process(buf_value_str+"[lid]"), rd->process(buf_value_str+"[lid+stride]"),
                               rd->op());
@@ -103,7 +103,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
       {
         numeric_type dtype = tree.dtype();
         std::string sdtype = to_string(dtype);
-        if (is_index_reduction(rd->op()))
+        if (is_indexing(rd->op().type))
         {
           stream << rd->process("$GLOBAL uint* #name_temp = ($GLOBAL uint *)(tmp + " + tools::to_string(offset) + ");");
           offset += 4*p_.num_groups;
@@ -141,7 +141,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
 
   for(symbolic::reduce_1d* rd: reductions)
   {
-    if (is_index_reduction(rd->op()))
+    if (is_indexing(rd->op().type))
     {
       stream << rd->process("$LOCAL #scalartype #name_buf_value[" + tools::to_string(p_.local_size_0) + "];") << std::endl;
       stream << rd->process("#scalartype #name_acc_value = " + neutral_element(rd->op(), backend, "#scalartype") + ";") << std::endl;
@@ -163,7 +163,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
     //Fetch vector entry
     std::set<std::string> fetched;
      for (symbolic::reduce_1d* rd : reductions)
-       for(symbolic::buffer* array: symbolic::extract<symbolic::buffer>(tree, symbols, rd->index(), PARENT_NODE_TYPE))
+       for(symbolic::buffer* array: symbolic::extract<symbolic::buffer>(tree, symbols, rd->root()))
           if(fetched.insert(array->process("#name")).second)
            stream << array->process(append_width("#scalartype",simd_width) + " #name = " + vload(simd_width,"#scalartype",i,"#pointer","#stride",backend)+";") << std::endl;
 
@@ -172,8 +172,8 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
     for (symbolic::reduce_1d* rd : reductions)
       for (unsigned int s = 0; s < simd_width; ++s)
       {
-        std::string value = symbols.at({rd->index(), LHS_NODE_TYPE})->evaluate(access_vector_type("#name", s, simd_width));
-        if (is_index_reduction(rd->op()))
+        std::string value = rd->lhs()->evaluate(access_vector_type("#name", s, simd_width));
+        if (is_indexing(rd->op().type))
           compute_index_reduce_1d(stream, rd->process("#name_acc"),  "i*" + tools::to_string(simd_width) + "+" + tools::to_string(s), rd->process("#name_acc_value"), value,rd->op());
         else
           compute_reduce_1d(stream, rd->process("#name_acc"), value,rd->op());
@@ -183,7 +183,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
   //Fills local memory
   for(symbolic::reduce_1d* rd: reductions)
   {
-    if (is_index_reduction(rd->op()))
+    if (is_indexing(rd->op().type))
       stream << rd->process("#name_buf_value[lid] = #name_acc_value;") << std::endl;
     stream << rd->process("#name_buf[lid] = #name_acc;") << std::endl;
   }
@@ -197,7 +197,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
   stream.inc_tab();
   for(symbolic::reduce_1d* rd: reductions)
   {
-    if (is_index_reduction(rd->op()))
+    if (is_indexing(rd->op().type))
       stream << rd->process("#name_temp_value[gpid] = #name_buf_value[0];") << std::endl;
     stream << rd->process("#name_temp[gpid] = #name_buf[0];") << std::endl;
   }
@@ -224,7 +224,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
 
   for (symbolic::reduce_1d* rd: reductions)
   {
-    if (is_index_reduction(rd->op()))
+    if (is_indexing(rd->op().type))
     {
       stream << rd->process("$LOCAL unsigned int #name_buf[" + tools::to_string(p_.local_size_0) + "];");
       stream << rd->process("unsigned int #name_acc = 0;") << std::endl;
@@ -242,7 +242,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
   stream << "{" << std::endl;
   stream.inc_tab();
   for (symbolic::reduce_1d* rd: reductions)
-    if (is_index_reduction(rd->op()))
+    if (is_indexing(rd->op().type))
       compute_index_reduce_1d(stream, rd->process("#name_acc"), rd->process("#name_temp[i]"), rd->process("#name_acc_value"),rd->process("#name_temp_value[i]"),rd->op());
     else
       compute_reduce_1d(stream, rd->process("#name_acc"), rd->process("#name_temp[i]"), rd->op());
@@ -252,7 +252,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
 
   for(symbolic::reduce_1d* rd: reductions)
   {
-    if (is_index_reduction(rd->op()))
+    if (is_indexing(rd->op().type))
       stream << rd->process("#name_buf_value[lid] = #name_acc_value;") << std::endl;
     stream << rd->process("#name_buf[lid] = #name_acc;") << std::endl;
   }
@@ -264,7 +264,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
   stream << "if (lid==0)" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
-  stream << symbols.at({tree.root(), PARENT_NODE_TYPE})->evaluate("#name_buf[0]") << ";" << std::endl;
+  stream << symbols.at(tree.root())->evaluate("#name_buf[0]") << ";" << std::endl;
   stream.dec_tab();
   stream << "}" << std::endl;
 
@@ -285,9 +285,9 @@ reduce_1d::reduce_1d(unsigned int simd, unsigned int ls, unsigned int ng,
 
 std::vector<int_t> reduce_1d::input_sizes(expression_tree const  & x) const
 {
-  std::vector<size_t> reduce_1ds_idx = symbolic::filter(x, &is_reduce_1d);
-  int_t N = vector_size(lhs_most(x.data(), reduce_1ds_idx[0]));
-  return {N};
+  std::vector<size_t> idx = symbolic::find(x, [](expression_tree::node const & x){return x.binary_operator.op.type_family==REDUCE;});
+  size_t lhs = x[idx[0]].binary_operator.lhs;
+  return {max(x[lhs].shape)};
 }
 
 void reduce_1d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base & fallback, execution_handler const & control)
@@ -300,37 +300,33 @@ void reduce_1d::enqueue(driver::CommandQueue & queue, driver::Program const & pr
   //fallback
   if(p_.simd_width > 1 && (requires_fallback(x) || (size%p_.simd_width>0)))
   {
-      fallback.enqueue(queue, program, "fallback", fallback, control);
-      return;
+    fallback.enqueue(queue, program, "fallback", fallback, control);
   }
-
-  std::vector<expression_tree::node const *> reduce_1ds;
-    std::vector<size_t> reduce_1ds_idx = symbolic::filter(x, &is_reduce_1d);
-    for (size_t idx: reduce_1ds_idx)
-      reduce_1ds.push_back(&x.data()[idx]);
-
-  //Kernel
-  std::string name[2] = {"prod", "reduce"};
-  name[0] += suffix;
-  name[1] += suffix;
-
-  driver::Kernel kernels[2] = { driver::Kernel(program,name[0].c_str()), driver::Kernel(program,name[1].c_str()) };
-
-  //NDRange
-  driver::NDRange global[2] = { driver::NDRange(p_.local_size_0*p_.num_groups), driver::NDRange(p_.local_size_0) };
-  driver::NDRange local[2] = { driver::NDRange(p_.local_size_0), driver::NDRange(p_.local_size_0) };
-  //Arguments
-  for (auto & kernel : kernels)
+  else
   {
-    unsigned int n_arg = 0;
-    kernel.setSizeArg(n_arg++, size);
-    kernel.setArg(n_arg++, driver::backend::workspaces::get(queue));
-    symbolic::set_arguments(x, kernel, n_arg, fusion_policy_);
-  }
+    //Kernel
+    std::string name[2] = {"prod", "reduce"};
+    name[0] += suffix;
+    name[1] += suffix;
 
-  for (unsigned int k = 0; k < 2; k++)
-    control.execution_options().enqueue(program.context(), kernels[k], global[k], local[k]);
-  queue.synchronize();
+    driver::Kernel kernels[2] = { driver::Kernel(program,name[0].c_str()), driver::Kernel(program,name[1].c_str()) };
+
+    //NDRange
+    driver::NDRange global[2] = { driver::NDRange(p_.local_size_0*p_.num_groups), driver::NDRange(p_.local_size_0) };
+    driver::NDRange local[2] = { driver::NDRange(p_.local_size_0), driver::NDRange(p_.local_size_0) };
+    //Arguments
+    for (auto & kernel : kernels)
+    {
+      unsigned int n_arg = 0;
+      kernel.setSizeArg(n_arg++, size);
+      kernel.setArg(n_arg++, driver::backend::workspaces::get(queue));
+      symbolic::set_arguments(x, kernel, n_arg, fusion_policy_);
+    }
+
+    for (unsigned int k = 0; k < 2; k++)
+      control.execution_options().enqueue(program.context(), kernels[k], global[k], local[k]);
+    queue.synchronize();
+  }
 }
 
 }
