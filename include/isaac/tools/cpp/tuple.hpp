@@ -57,9 +57,9 @@ private:
     std::vector<int_t> data_;
 };
 
-inline ISAACAPI std::ostream& operator<<(std::ostream & oss, tuple const &shape)
+inline ISAACAPI std::ostream& operator<<(std::ostream & oss, tuple const &tp)
 {
-  for(int_t x: shape.data_)
+  for(int_t x: tp.data_)
     oss << x << ',';
   return oss;
 }
@@ -75,6 +75,13 @@ inline ISAACAPI int_t prod(tuple const & tp)
 
 inline ISAACAPI size_t numgt1(tuple const & tp)
 { return std::accumulate(tp.begin(), tp.end(), 0, [](size_t a, size_t b){ return a + (b>1); }); }
+
+inline ISAACAPI tuple pad(tuple const & tp, size_t numones)
+{
+  std::vector<int_t> data = tp;
+  data.insert(data.begin(), numones, 1);
+  return tuple(data);
+}
 
 }
 

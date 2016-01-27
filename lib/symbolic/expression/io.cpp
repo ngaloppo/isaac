@@ -49,7 +49,7 @@ inline std::string to_string(const expression_tree::node &node)
     std::string lhs = tools::to_string(node.binary_operator.lhs);
     std::string op = tools::to_string(node.binary_operator.op.type);
     std::string rhs = tools::to_string(node.binary_operator.rhs);
-    return"BINARY [LHS: " + lhs + "/OP: " + op + "/RHS: " + rhs + "]";
+    return"BINARY [LHS = " + lhs + " ; OP = " + op + " ; RHS = " + rhs + "]";
   }
   return tools::to_string(node.type);
 }

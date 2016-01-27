@@ -57,7 +57,7 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   driver::backend_type backend = device.backend();
   kernel_generation_stream stream(backend);
 
-  std::vector<std::size_t> assigned = symbolic::find(tree, [&](expression_tree::node const & node){return tree[node.binary_operator.lhs].type==DENSE_ARRAY_TYPE && is_assignment(node.binary_operator.op.type);});
+  std::vector<std::size_t> assigned = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
   std::vector<std::size_t> assigned_left;
   std::vector<std::size_t> assigned_right;
   for(std::size_t idx: assigned){
@@ -110,7 +110,7 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   stream.dec_tab();
   stream << "}" << std::endl;
 
-//  std::cout << stream.str() << std::endl;
+  std::cout << stream.str() << std::endl;
 
   return stream.str();
 }

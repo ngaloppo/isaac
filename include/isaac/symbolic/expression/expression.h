@@ -75,10 +75,20 @@ class expression_tree
 public:
   struct node
   {
+    //Constructors
     node();
+    node(invalid_node);
+    node(placeholder x);
+    node(value_scalar const & x);
+    node(array_base const & x);
+    node(int_t lhs, op_element op, int_t rhs, numeric_type dtype, tuple const & shape);
+
+    //Common
     node_type type;
     numeric_type dtype;
     tuple shape;
+
+    //Type-specific
     union
     {
       struct{
@@ -94,22 +104,10 @@ public:
 
   typedef std::vector<node>     data_type;
 
-private:
-  static void fill(node & x, placeholder index);
-  static void fill(node & x, invalid_node);
-  static void fill(node & x, int_t lhs, op_element op, int_t rhs, numeric_type dtype, tuple const & shape);
-  static void fill(node & x, value_scalar const & v);
-
 public:
-  static void fill(node & x, array_base const & a);
-
-public:
-  template<class LT, class RT>
-  expression_tree(LT const & lhs, RT const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
-  template<class RT>
-  expression_tree(expression_tree const & lhs, RT const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
-  template<class LT>
-  expression_tree(LT const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
+  expression_tree(node const & lhs, node const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
+  expression_tree(expression_tree const & lhs, node const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
+  expression_tree(node const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
   expression_tree(expression_tree const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
 
   tuple shape() const;

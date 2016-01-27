@@ -60,7 +60,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   driver::backend_type backend = device.backend();
   kernel_generation_stream stream(backend);
 
-  std::vector<std::size_t> assigned = symbolic::find(tree, [&](expression_tree::node const & node){return tree[node.binary_operator.lhs].type==DENSE_ARRAY_TYPE && is_assignment(node.binary_operator.op.type);});
+  std::vector<std::size_t> assigned = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
   std::vector<std::size_t> assigned_left;
   std::vector<std::size_t> assigned_right;
   for(std::size_t idx: assigned){
@@ -110,7 +110,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
     }
 
     //Compute
-    for(std::size_t idx: assigned)
+    for(size_t idx: assigned)
       for(unsigned int s = 0 ; s < simd_width ; ++s)
          stream << symbols.at(idx)->evaluate(access_vector_type("#name", s, simd_width)) << ";" << std::endl;
 

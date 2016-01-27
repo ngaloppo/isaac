@@ -30,7 +30,7 @@ namespace symbolic
 std::vector<size_t> find(expression_tree const & tree, size_t root, std::function<bool (expression_tree::node const &)> const & pred)
 {
   std::vector<size_t> result;
-  auto fun = [&](size_t index) {  if(pred(tree.data()[index])) result.push_back(index); };
+  auto fun = [&](size_t index) { if(pred(tree[index])) result.push_back(index); };
   traverse(tree, root, fun);
   return result;
 }
@@ -79,6 +79,9 @@ void set_arguments(expression_tree const & tree, driver::Kernel & kernel, unsign
   else
       binder.reset(new bind_independent());
 
+  //assigned
+  std::vector<size_t> assignee = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
+  for(size_t& x: assignee) x = tree[x].binary_operator.lhs;
 
   //set_arguments_impl
   auto set_arguments_impl = [&](size_t index)
@@ -89,7 +92,8 @@ void set_arguments(expression_tree const & tree, driver::Kernel & kernel, unsign
     else if(node.type==DENSE_ARRAY_TYPE)
     {
       array_base const * array = node.array;
-      bool is_bound = binder->bind(array, false);
+      bool is_assigned = std::find(assignee.begin(), assignee.end(), index)!=assignee.end();
+      bool is_bound = binder->bind(array, is_assigned);
       if (is_bound)
       {
           kernel.setArg(current_arg++, array->data());
@@ -143,6 +147,10 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
   else
       binder.reset(new bind_independent());
 
+  //assigned
+  std::vector<size_t> assignee = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
+  for(size_t& x: assignee) x = tree[x].binary_operator.lhs;
+
   //symbolize_impl
   auto symbolize_impl = [&](size_t root)
   {
@@ -150,8 +158,10 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
     std::string dtype = to_string(tree.dtype());
     if(node.type==VALUE_SCALAR_TYPE)
       table.insert({root, make_symbolic<host_scalar>(dtype, binder->get())});
-    else if(node.type==DENSE_ARRAY_TYPE)
-      table.insert({root, make_symbolic<buffer>(dtype, binder->get(node.array, false), node.array->shape())});
+    else if(node.type==DENSE_ARRAY_TYPE){
+      bool is_assigned = std::find(assignee.begin(), assignee.end(), root)!=assignee.end();
+      table.insert({root, make_symbolic<buffer>(dtype, binder->get(node.array, is_assigned), node.array->shape())});
+    }
     else if(node.type==PLACEHOLDER_TYPE)
       table.insert({root, make_symbolic<placeholder>(node.ph.level)});
     else if(node.type==COMPOSITE_OPERATOR_TYPE)

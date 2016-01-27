@@ -28,6 +28,7 @@
 #include "isaac/profiles/profiles.h"
 #include "isaac/symbolic/expression/expression.h"
 #include "isaac/symbolic/expression/preset.h"
+#include "isaac/symbolic/expression/io.h"
 
 namespace isaac
 {
@@ -195,14 +196,14 @@ namespace symbolic
 
           //Compute temporary
           root.binary_operator.op.type = ASSIGN_TYPE;
-          expression_tree::fill(lhs, (array&)*tmp);
+          lhs = expression_tree::node((array&)*tmp);
           rhs = node;
           profile->execute(execution_handler(tree, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
 
           //Update the expression tree
           root = root_save;
           lhs = lhs_save;
-          expression_tree::fill(rhs, (array&)*tmp);
+          rhs = expression_tree::node((array&)*tmp);
         }
     }
 

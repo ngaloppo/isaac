@@ -502,12 +502,40 @@ tuple broadcast(tuple const & a, tuple const & b)
     return tuple(result);
 }
 
+tuple max(tuple const & a, tuple const & b)
+{
+  std::vector<int_t> result;
+  for(size_t i = 0 ; i < std::max(a.size(), b.size()) ; ++i){
+      assert((a[i] == b[i] || a[i]==1 || b[i]==1) && "Cannot broadcast");
+      result.push_back(std::max(a[i], b[i]));
+  }
+  return tuple(result);
+}
+
+template<class LHS_TYPE, class RHS_TYPE>
+expression_tree broadcast_(LHS_TYPE const & x, RHS_TYPE const & y, op_element const & op, numeric_type dtype)
+{
+  tuple const & xs = x.shape();
+  tuple const & ys = y.shape();
+  int_t diff = xs.size() - ys.size();
+  if(diff==0)
+    return expression_tree(x, y, op, &x.context(), dtype, max(xs, ys));
+  else if(diff < 0){
+    tuple nxs = pad(xs, -diff);
+    return expression_tree(reshape(x, nxs), y, op, &x.context(), dtype, max(nxs, ys));
+  }
+  else{
+    tuple nys = pad(ys, diff);
+    return expression_tree(x, reshape(y, nys), op, &x.context(), dtype, max(xs, nys));
+  }
+}
+
 #define DEFINE_ELEMENT_BINARY_OPERATOR(OP, OPNAME, DTYPE) \
 expression_tree OPNAME (array_base const & x, expression_tree const & y) \
-{ return expression_tree(x, y, op_element(BINARY, OP), &x.context(), DTYPE, broadcast(x.shape(), y.shape())); } \
+{ return broadcast_(x, y, op_element(BINARY, OP), DTYPE); } \
 \
 expression_tree OPNAME (array_base const & x, array_base const & y) \
-{ return expression_tree(x, y, op_element(BINARY, OP), &x.context(), DTYPE, broadcast(x.shape(), y.shape())); }\
+{ return broadcast_(x, y, op_element(BINARY, OP), DTYPE); }\
 \
 expression_tree OPNAME (array_base const & x, value_scalar const & y) \
 { return expression_tree(x, y, op_element(BINARY, OP), &x.context(), DTYPE, x.shape()); }\
