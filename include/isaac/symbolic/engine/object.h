@@ -70,32 +70,40 @@ protected:
   std::set<lambda> lambdas_;
 };
 
-//Binary Node
-class binary_node
+//Node
+class node
 {
 public:
-  binary_node(size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  node(size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
   op_element op() const;
   object const * lhs() const;
   object const * rhs() const;
   size_t root() const;
 protected:
   op_element op_;
-  std::string op_str_;
   object* lhs_;
   object* rhs_;
   size_t root_;
 };
 
 //Sfor
-class sfor: public object, public binary_node
+class sfor: public object, public node
 {
 public:
   sfor(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
 };
 
+//Arithmetic node
+class arithmetic_node : public node
+{
+public:
+  arithmetic_node(size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+protected:
+  std::string op_str_;
+};
+
 //Binary arithmetic
-class binary_arithmetic_node: public object, public binary_node
+class binary_arithmetic_node: public object, public arithmetic_node
 {
 public:
   binary_arithmetic_node(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
@@ -103,7 +111,7 @@ public:
 };
 
 //Unary arithmetic
-class unary_arithmetic_node: public object, public binary_node
+class unary_arithmetic_node: public object, public arithmetic_node
 {
 public:
   unary_arithmetic_node(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
@@ -111,7 +119,7 @@ public:
 };
 
 //Reductions
-class reduction : public object, public binary_node
+class reduction : public object, public node
 {
 public:
   reduction(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
@@ -134,7 +142,6 @@ class host_scalar : public object
 {
 public:
   host_scalar(std::string const & scalartype, unsigned int id);
-  std::string evaluate(std::string const &) const;
 };
 
 //Placeholder
@@ -142,7 +149,6 @@ class placeholder : public object
 {
 public:
   placeholder(unsigned int level);
-  std::string evaluate(std::string const &) const;
 };
 
 //Arrays
@@ -168,7 +174,7 @@ private:
 };
 
 //Index modifier
-class index_modifier: public array, public binary_node
+class index_modifier: public array, public node
 {
 public:
   index_modifier(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
@@ -180,45 +186,12 @@ public:
   reshape(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
 };
 
-class diag_matrix : public index_modifier
-{
-public:
-  diag_matrix(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
-};
-
 class diag_vector : public index_modifier
 {
 public:
   diag_vector(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
 };
 
-class array_access: public index_modifier
-{
-public:
-  array_access(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
-};
-
-class matrix_row : public index_modifier
-{
-public:
-  matrix_row(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
-};
-
-class matrix_column : public index_modifier
-{
-public:
-  matrix_column(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
-};
-
-class repeat : public index_modifier
-{
-//private:
-//  static char get_type(node_info const & info);
-public:
-  repeat(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
-private:
-  char type_;
-};
 
 
 

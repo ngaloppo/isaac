@@ -95,11 +95,11 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
     std::string dtype = append_width("#scalartype",simd_width);
 
     //Declares register to store results
-    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_left))
+    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_left, false))
       stream << sym->process(dtype + " #name;") << std::endl;
 
     //Load to registers
-    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_right))
+    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_right, false))
     {
       if(simd_width==1)
         stream << sym->process(dtype + " #name = at(i);") << std::endl;
@@ -116,7 +116,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
 
 
     //Writes back
-    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_left))
+    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_left, false))
       for(unsigned int s = 0 ; s < simd_width ; ++s)
           stream << sym->process("at(i+" + tools::to_string(s)+") = " + access_vector_type("#name", s, simd_width) + ";") << std::endl;
   });

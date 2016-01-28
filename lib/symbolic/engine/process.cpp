@@ -168,20 +168,11 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
     {
       unsigned int id = binder->get();
       op_element op = node.binary_operator.op;
-
       //Index modifier
-      if (op.type==VDIAG_TYPE)
-        table.insert({root, make_symbolic<diag_matrix>(dtype, id, root, op, tree, table)});
-      else if (op.type==MATRIX_DIAG_TYPE)
-        table.insert({root, make_symbolic<diag_vector>(dtype, id, root, op, tree, table)});
-      else if (op.type==MATRIX_ROW_TYPE)
-        table.insert({root, make_symbolic<matrix_row>(dtype, id, root, op, tree, table)});
-      else if (op.type==MATRIX_COLUMN_TYPE)
-        table.insert({root, make_symbolic<matrix_column>(dtype, id, root, op, tree, table)});
-      else if(op.type==ACCESS_INDEX_TYPE)
-        table.insert({root, make_symbolic<array_access>(dtype, id, root, op, tree, table)});
-      else if(op.type==RESHAPE_TYPE)
+      if(op.type==RESHAPE_TYPE)
         table.insert({root, make_symbolic<reshape>(dtype, id, root, op, tree, table)});
+      else if(op.type==DIAG_VECTOR_TYPE)
+        table.insert({root, make_symbolic<diag_vector>(dtype, id, root, op, tree, table)});
       //Unary arithmetic
       else if(op.type_family==UNARY)
         table.insert({root, make_symbolic<unary_arithmetic_node>(dtype, id, root, op, tree, table)});

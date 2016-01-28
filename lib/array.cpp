@@ -487,21 +487,6 @@ std::ostream & operator<<(std::ostream & os, scalar const & s)
 
 /*--- Binary Operators ----*/
 //-----------------------------------
-tuple broadcast(tuple const & a, tuple const & b)
-{
-    std::vector<int_t> aa = a, bb = b, result;
-    size_t as = aa.size(), bs = bb.size();
-    if(as < bs)
-        aa.insert(aa.begin(), bs - as, 1);
-    else
-        bb.insert(bb.begin(), as - bs, 1);
-    for(size_t i = 0 ; i < std::max(as, bs) ; ++i){
-        assert((aa[i] == bb[i] || aa[i]==1 || bb[i]==1) && "Cannot broadcast");
-        result.push_back(std::max(aa[i], bb[i]));
-    }
-    return tuple(result);
-}
-
 tuple max(tuple const & a, tuple const & b)
 {
   std::vector<int_t> result;
@@ -513,7 +498,7 @@ tuple max(tuple const & a, tuple const & b)
 }
 
 template<class LHS_TYPE, class RHS_TYPE>
-expression_tree broadcast_(LHS_TYPE const & x, RHS_TYPE const & y, op_element const & op, numeric_type dtype)
+expression_tree broadcast(LHS_TYPE const & x, RHS_TYPE const & y, op_element const & op, numeric_type dtype)
 {
   tuple const & xs = x.shape();
   tuple const & ys = y.shape();
@@ -532,10 +517,10 @@ expression_tree broadcast_(LHS_TYPE const & x, RHS_TYPE const & y, op_element co
 
 #define DEFINE_ELEMENT_BINARY_OPERATOR(OP, OPNAME, DTYPE) \
 expression_tree OPNAME (array_base const & x, expression_tree const & y) \
-{ return broadcast_(x, y, op_element(BINARY, OP), DTYPE); } \
+{ return broadcast(x, y, op_element(BINARY, OP), DTYPE); } \
 \
 expression_tree OPNAME (array_base const & x, array_base const & y) \
-{ return broadcast_(x, y, op_element(BINARY, OP), DTYPE); }\
+{ return broadcast(x, y, op_element(BINARY, OP), DTYPE); }\
 \
 expression_tree OPNAME (array_base const & x, value_scalar const & y) \
 { return expression_tree(x, y, op_element(BINARY, OP), &x.context(), DTYPE, x.shape()); }\
@@ -545,10 +530,10 @@ expression_tree OPNAME (array_base const & x, placeholder const & y) \
 \
 \
 expression_tree OPNAME (expression_tree const & x, expression_tree const & y) \
-{ return expression_tree(x, y, op_element(BINARY, OP), &x.context(), DTYPE, broadcast(x.shape(), y.shape())); } \
+{ return broadcast(x, y, op_element(BINARY, OP), DTYPE); } \
  \
 expression_tree OPNAME (expression_tree const & x, array_base const & y) \
-{ return expression_tree(x, y, op_element(BINARY, OP), &x.context(), DTYPE, broadcast(x.shape(), y.shape())); } \
+{ return broadcast(x, y, op_element(BINARY, OP), DTYPE); } \
 \
 expression_tree OPNAME (expression_tree const & x, value_scalar const & y) \
 { return expression_tree(x, y, op_element(BINARY, OP), &x.context(), DTYPE, x.shape()); } \
@@ -602,10 +587,9 @@ DEFINE_ELEMENT_BINARY_OPERATOR(ELEMENT_NEQ_TYPE, operator !=, INT_TYPE)
 #define DEFINE_OUTER(LTYPE, RTYPE) \
 expression_tree outer(LTYPE const & x, RTYPE const & y)\
 {\
-    assert(x.dim()<=1 && y.dim()<=1);\
-    if(x.dim()<1 || y.dim()<1)\
-      return x*y;\
-    return expression_tree(x, y, op_element(BINARY, OUTER_PROD_TYPE), &x.context(), x.dtype(), {max(x.shape()), max(y.shape())} );\
+  int_t M = prod(x.shape());\
+  int_t N = prod(y.shape());\
+  return reshape(x, {M,1})*reshape(y, {1, N});\
 }\
 
 DEFINE_OUTER(array_base, array_base)
@@ -696,7 +680,7 @@ expression_tree cast(expression_tree const & x, numeric_type dtype)
 { return expression_tree(x, invalid_node(), op_element(UNARY, casted(dtype)), &x.context(), dtype, x.shape()); }
 
 isaac::expression_tree eye(int_t M, int_t N, isaac::numeric_type dtype, driver::Context const & ctx)
-{ return expression_tree(value_scalar(1), value_scalar(0), op_element(UNARY, VDIAG_TYPE), &ctx, dtype, {M, N}); }
+{ return expression_tree(value_scalar(1, dtype), value_scalar(0, dtype), op_element(UNARY, DIAG_VECTOR_TYPE), &ctx, dtype, {M, N}); }
 
 array diag(array_base & x, int offset)
 {

@@ -18,14 +18,14 @@ int main()
       data[i] = i;
     sc::array A = sc::array(M, N, data);
 
-    sc::array x = sc::array({1,3},std::vector<float>{1,2,3});
-    sc::array y = sc::array({1,3},std::vector<float>{4,5,6});
+    sc::array x = sc::array({3},std::vector<float>{1,2,3});
+    sc::array y = sc::array({3,3},std::vector<float>{1,2,3,4,5,6,7,8,9});
 
     sc::array B({4,3},std::vector<float>{0,1,2,3,4,5,6,7,8,9,10,11});
 
     std::cout << B << std::endl;
     std::cout << std::endl;
-    std::cout << x + sc::reshape(2*y + y, {3,1}) << std::endl;
+    std::cout << x +  2*y + y << std::endl;
 //    std::cout << sline << std::endl;
 //    std::cout << "A[3, 2:end]:" << A(3, {2,sc::end}) << std::endl;
 

@@ -39,7 +39,7 @@ lambda::lambda(std::string const & code): code_(code)
   size_t pos_pe = code_.find(')');
   name_ = code.substr(0, pos_po);
   args_ = tools::split(code.substr(pos_po + 1, pos_pe - pos_po - 1), ',');
-  tokens_ = tools::tokenize(code_.substr(code_.find(":") + 1), "()[],*+/- ");
+  tokens_ = tools::tokenize(code_.substr(code_.find(":") + 1), "()[],*+/-=>< ");
 }
 
 lambda::lambda(const char *code) : lambda(std::string(code))
@@ -61,7 +61,7 @@ int lambda::expand(std::string & str) const
       if(next < pos_pe)
         next = str.find('(', next + 1);
     }
-    //Parse
+
     std::vector<std::string> args = tools::split(str.substr(pos_po + 1, pos_pe - pos_po - 1), ',');
     if(args_.size() != args.size()){
       pos = pos_pe;
@@ -127,9 +127,9 @@ std::string object::evaluate(const std::string & str) const
 { return process(str); }
 
 //
-binary_node::binary_node(size_t root, op_element op, expression_tree const & expression, symbols_table const & table) : op_(op), op_str_(to_string(op.type)), lhs_(NULL), rhs_(NULL)
+node::node(size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : op_(op), lhs_(NULL), rhs_(NULL)
 {
-  expression_tree::node const & node = expression[root];
+  expression_tree::node const & node = tree[root];
   symbols_table::const_iterator it;
   if((it = table.find(node.binary_operator.lhs))!=table.end())
     lhs_ = it->second.get();
@@ -137,28 +137,32 @@ binary_node::binary_node(size_t root, op_element op, expression_tree const & exp
     rhs_ = it->second.get();
 }
 
-op_element binary_node::op() const
+op_element node::op() const
 { return op_; }
 
-object const * binary_node::lhs() const
+object const * node::lhs() const
 { return lhs_; }
 
-object const * binary_node::rhs() const
+object const * node::rhs() const
 { return rhs_; }
 
-size_t binary_node::root() const
+size_t node::root() const
 { return root_; }
 
 //sfor
 sfor::sfor(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & expression, symbols_table const & table) :
-  object(scalartype, id), binary_node(root, op, expression, table)
+  object(scalartype, id), node(root, op, expression, table)
 {
 
 }
 
 //
+arithmetic_node::arithmetic_node(size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : node(root, op, tree, table), op_str_(to_string(op.type))
+{ }
+
+//
 binary_arithmetic_node::binary_arithmetic_node(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & expression, symbols_table const & table) :
-  object(scalartype, id), binary_node(root, op, expression, table){}
+  object(scalartype, id), arithmetic_node(root, op, expression, table){}
 
 std::string binary_arithmetic_node::evaluate(std::string const & str) const
 {
@@ -172,14 +176,14 @@ std::string binary_arithmetic_node::evaluate(std::string const & str) const
 
 //
 unary_arithmetic_node::unary_arithmetic_node(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) :
-  object(scalartype, id), binary_node(root, op, tree, table){}
+  object(scalartype, id), arithmetic_node(root, op, tree, table){}
 
 std::string unary_arithmetic_node::evaluate(std::string const & str) const
 { return op_str_ + "(" + lhs_->evaluate(str) + ")"; }
 
 //
 reduction::reduction(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) :
-  object(scalartype, id), binary_node(root, op, tree, table)
+  object(scalartype, id), node(root, op, tree, table)
 { }
 
 //
@@ -189,16 +193,20 @@ reduce_1d::reduce_1d(std::string const & scalartype, unsigned int id, size_t roo
 reduce_2d::reduce_2d(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : reduction(scalartype, id, root, op, tree, table) { }
 
 //
-placeholder::placeholder(unsigned int level) : object("int", "sforidx" + tools::to_string(level)){}
-
-std::string placeholder::evaluate(std::string const &) const
-{ return process("#name"); }
+placeholder::placeholder(unsigned int level) : object("int", "sforidx" + tools::to_string(level))
+{
+  lambdas_.insert("at(): #name");
+  lambdas_.insert("at(i): #name");
+  lambdas_.insert("at(i,j): #name");
+}
 
 //
-host_scalar::host_scalar(std::string const & scalartype, unsigned int id) : object(scalartype, id){ }
-
-std::string host_scalar::evaluate(std::string const &) const
-{ return process("#name"); }
+host_scalar::host_scalar(std::string const & scalartype, unsigned int id) : object(scalartype, id)
+{
+  lambdas_.insert("at(): #name");
+  lambdas_.insert("at(i): #name");
+  lambdas_.insert("at(i,j): #name");
+}
 
 //
 array::array(std::string const & scalartype, unsigned int id) : object(scalartype, id)
@@ -248,7 +256,7 @@ buffer::buffer(std::string const & scalartype, unsigned int id, const tuple &sha
 }
 
 //
-index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : array(scalartype, id), binary_node(root, op, tree, table)
+index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : array(scalartype, id), node(root, op, tree, table)
 { }
 
 //Reshaping
@@ -273,14 +281,27 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t root, o
   //Index modification
   size_t new_gt1 = numgt1(new_shape);
   size_t old_gt1 = numgt1(old_shape);
+
+  if(new_gt1==0 && old_gt1==0)
+    lambdas_.insert("at(): " + lhs_->evaluate("at()"));
+  if(new_gt1==0 && old_gt1==1)
+    lambdas_.insert("at(): " + lhs_->evaluate("at(0)"));
+  if(new_gt1==0 && old_gt1==2)
+    lambdas_.insert("at(): " + lhs_->evaluate("at(0,0)"));
+
+  if(new_gt1==1 && old_gt1==0)
+    lambdas_.insert("at(i): " + lhs_->evaluate("at()"));
   if(new_gt1==1 && old_gt1==1)
-    lambdas_.insert("at(i): " + lhs_->process("at(i)"));
+    lambdas_.insert("at(i): " + lhs_->evaluate("at(i)"));
   if(new_gt1==1 && old_gt1==2)
-    lambdas_.insert("at(i): " + lhs_->process("at(i%#old_inc1, i/#old_inc1)"));
+    lambdas_.insert("at(i): " + lhs_->evaluate("at(i%#old_inc1, i/#old_inc1)"));
+
+  if(new_gt1==2 && old_gt1==0)
+    lambdas_.insert("at(i,j): " + lhs_-> evaluate("at()"));
   if(new_gt1==2 && old_gt1==1)
-    lambdas_.insert("at(i,j): " + lhs_-> process("at(i + j*#new_inc1)"));
+    lambdas_.insert("at(i,j): " + lhs_-> evaluate("at(i + j*#new_inc1)"));
   if(new_gt1==2 && old_gt1==2)
-    lambdas_.insert("at(i,j): " + lhs_->process("at((i + j*#new_inc1)%#old_inc1, (i+j*#new_inc1)/#old_inc1)"));
+    lambdas_.insert("at(i,j): " + lhs_->evaluate("at((i + j*#new_inc1)%#old_inc1, (i+j*#new_inc1)/#old_inc1)"));
 
   //Broadcast
   if(new_gt1!=new_shape.size())
@@ -288,26 +309,13 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t root, o
 }
 
 //
-diag_matrix::diag_matrix(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table){}
-
-//
-array_access::array_access(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
-{ }
-
-//
-matrix_row::matrix_row(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
-{ }
-
-//
-matrix_column::matrix_column(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
-{ }
-
-//
-diag_vector::diag_vector(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
-{ }
-
-repeat::repeat(std::string const & scalartype, unsigned int id,  size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
-{ }
+diag_vector::diag_vector(const std::string &scalartype, unsigned int id, size_t root, op_element op, const expression_tree &tree, const symbols_table &table) : index_modifier(scalartype, id, root, op, tree, table)
+{
+  lambdas_.insert("at(i,j): " + lhs_->evaluate("(i==j)?at(i):0"));
+  tuple const & shape = tree[root].shape;
+  if(numgt1(shape)!=shape.size())
+    lambdas_.insert(make_broadcast(shape));
+}
 
 ////
 

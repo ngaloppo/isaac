@@ -87,18 +87,18 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   stream.inc_tab();
 
   //Declares register to store results
-  for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_left))
+  for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_left, false))
     stream << sym->process("#scalartype #name;") << std::endl;
 
   //Load to registers
-  for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_right))
+  for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_right, false))
     stream << sym->process("#scalartype #name = at(i, j);") << std::endl;
 
   for(std::size_t idx: assigned)
     stream << symbols.at(idx)->evaluate("#name") << ";" << std::endl;
 
   //Writes back
-  for(symbolic::array* sym: symbolic::extract<symbolic::buffer>(tree, symbols, assigned_left))
+  for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_left, false))
     stream << sym->process("at(i, j) = #name;") << std::endl;
 
   stream.dec_tab();
@@ -110,8 +110,7 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   stream.dec_tab();
   stream << "}" << std::endl;
 
-  std::cout << stream.str() << std::endl;
-
+//  std::cout << stream.str() << std::endl;
   return stream.str();
 }
 

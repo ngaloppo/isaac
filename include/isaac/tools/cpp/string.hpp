@@ -103,11 +103,12 @@ inline std::vector<std::string> tokenize(std::string const & str,std::string con
   size_t to = 0;
   size_t from = str.find_first_not_of(delimiters, to);
   for(size_t i = to ; i < std::max(to+1,from); ++i) result.push_back(str.substr(i,1));
-  while((to = str.find_first_of(delimiters, from + 1)) != std::string::npos){
+  do{
+    to = str.find_first_of(delimiters, from + 1);
     result.push_back(str.substr(from, to - from));
     from = std::min(str.size(), str.find_first_not_of(delimiters, to + 1));
     for(size_t i = to ; i < std::max(to+1,from); ++i) result.push_back(str.substr(i,1));
-  }
+  }while(to != std::string::npos);
   return result;
 }
 
