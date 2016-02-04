@@ -40,6 +40,30 @@ std::vector<size_t> find(expression_tree const & tree, std::function<bool (expre
   return find(tree, tree.root(), pred);
 }
 
+std::vector<size_t> assignments(expression_tree const & tree)
+{
+  return find(tree, [&](expression_tree::node const & node)
+            {return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);}
+          );
+}
+
+std::vector<size_t> lhs_of(expression_tree const & tree, std::vector<size_t> const & in)
+{
+  std::vector<size_t> result;
+  for(size_t idx: in)
+    result.push_back(tree[idx].binary_operator.lhs);
+  return result;
+}
+
+std::vector<size_t> rhs_of(expression_tree const & tree, std::vector<size_t> const & in)
+{
+  std::vector<size_t> result;
+  for(size_t idx: in)
+    result.push_back(tree[idx].binary_operator.rhs);
+  return result;
+}
+
+
 // Hash
 std::string hash(expression_tree const & expression)
 {
@@ -155,7 +179,7 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
   auto symbolize_impl = [&](size_t root)
   {
     expression_tree::node const & node = tree.data()[root];
-    std::string dtype = to_string(tree.dtype());
+    std::string dtype = to_string(node.dtype);
     if(node.type==VALUE_SCALAR_TYPE)
       table.insert({root, make_symbolic<host_scalar>(dtype, binder->get())});
     else if(node.type==DENSE_ARRAY_TYPE){
@@ -175,16 +199,16 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
         table.insert({root, make_symbolic<diag_vector>(dtype, id, root, op, tree, table)});
       //Unary arithmetic
       else if(op.type_family==UNARY)
-        table.insert({root, make_symbolic<unary_arithmetic_node>(dtype, id, root, op, tree, table)});
+        table.insert({root, make_symbolic<unary_arithmetic_node>(id, root, op, tree, table)});
       //Binary arithmetic
       else if(op.type_family==BINARY)
-        table.insert({root, make_symbolic<binary_arithmetic_node>(dtype, id, root, op, tree, table)});
+        table.insert({root, make_symbolic<binary_arithmetic_node>(id, root, op, tree, table)});
       //1D Reduction
       else if (op.type_family==REDUCE)
-        table.insert({root, make_symbolic<reduce_1d>(dtype, id, root, op, tree, table)});
+        table.insert({root, make_symbolic<reduce_1d>(id, root, op, tree, table)});
       //2D reduction
       else if (op.type_family==REDUCE_ROWS || op.type_family==REDUCE_COLUMNS)
-        table.insert({root, make_symbolic<reduce_2d>(dtype, id, root, op, tree, table)});
+        table.insert({root, make_symbolic<reduce_2d>(id, root, op, tree, table)});
     }
   };
 

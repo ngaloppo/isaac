@@ -29,6 +29,7 @@
 #include "tools/vector_types.hpp"
 #include "tools/arguments.hpp"
 
+#include "isaac/symbolic/expression/io.h"
 #include <string>
 
 
@@ -90,11 +91,9 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
   kernel_generation_stream stream(device.backend());
 
   std::vector<symbolic::reduce_1d*> reductions = symbolic::extract<symbolic::reduce_1d>(tree, symbols);
-  driver::backend_type backend = device.backend();
+  std::vector<std::size_t> assignments = symbolic::assignments(tree);
 
-  std::string name[2] = {"prod", "reduce"};
-  name[0] += suffix;
-  name[1] += suffix;
+  driver::backend_type backend = device.backend();
 
   auto unroll_tmp = [&]()
   {
@@ -118,7 +117,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
   };
 
   /* ------------------------
-   * First Kernel
+   * Kernel 1
    * -----------------------*/
   switch(backend)
   {
@@ -127,13 +126,12 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
     case driver::OPENCL:
       stream << " __attribute__((reqd_work_group_size(" << p_.local_size_0 << ",1,1)))" << std::endl; break;
   }
-
-  stream << "$KERNEL void " << name[0] << "($SIZE_T N, $GLOBAL char* tmp," << tools::join(kernel_arguments(device, symbols, tree), ", ") << ")" << std::endl;
+  stream << "$KERNEL void prod" << suffix << "($SIZE_T N, $GLOBAL char* tmp," << tools::join(kernel_arguments(device, symbols, tree), ", ") << ")" << std::endl;
   stream << "{" << std::endl;
+  //Unroll
   stream.inc_tab();
-
   unroll_tmp();
-
+  //Declare
   stream << "unsigned int lid = $LOCAL_IDX_0;" << std::endl;
   stream << "unsigned int gid = $GLOBAL_IDX_0;" << std::endl;
   stream << "unsigned int gpid = $GROUP_IDX_0;" << std::endl;
@@ -141,7 +139,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
 
   for(symbolic::reduce_1d* rd: reductions)
   {
-    if (is_indexing(rd->op().type))
+    if(is_indexing(rd->op().type))
     {
       stream << rd->process("$LOCAL #scalartype #name_buf_value[" + tools::to_string(p_.local_size_0) + "];") << std::endl;
       stream << rd->process("#scalartype #name_acc_value = " + neutral_element(rd->op(), backend, "#scalartype") + ";") << std::endl;
@@ -154,32 +152,26 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
       stream << rd->process("#scalartype #name_acc = " + neutral_element(rd->op(), backend, "#scalartype") + ";") << std::endl;
     }
   }
-
-
   element_wise_loop_1D(stream, p_.fetching_policy, p_.simd_width, "i", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](unsigned int simd_width)
   {
-    std::string i = (simd_width==1)?"i*#stride":"i";
-
+    std::string dtype = append_width("#scalartype",simd_width);
     //Fetch vector entry
     std::set<std::string> fetched;
      for (symbolic::reduce_1d* rd : reductions)
-       for(symbolic::buffer* array: symbolic::extract<symbolic::buffer>(tree, symbols, rd->root()))
-          if(fetched.insert(array->process("#name")).second)
-           stream << array->process(append_width("#scalartype",simd_width) + " #name = " + vload(simd_width,"#scalartype",i,"#pointer","#stride",backend)+";") << std::endl;
-
-
+       for(symbolic::leaf* leaf: symbolic::extract<symbolic::leaf>(tree, symbols, rd->root(), false))
+          if(fetched.insert(leaf->process("#name")).second)
+            stream << leaf->process(dtype + " #name = " + append_width("vload", simd_width) + "(i);") << std::endl;
     //Update accumulators
     for (symbolic::reduce_1d* rd : reductions)
       for (unsigned int s = 0; s < simd_width; ++s)
       {
-        std::string value = rd->lhs()->evaluate(access_vector_type("#name", s, simd_width));
+        std::string value = rd->lhs()->evaluate({{"leaf", access_vector_type("#name", s, simd_width)}});
         if (is_indexing(rd->op().type))
           compute_index_reduce_1d(stream, rd->process("#name_acc"),  "i*" + tools::to_string(simd_width) + "+" + tools::to_string(s), rd->process("#name_acc_value"), value,rd->op());
         else
           compute_reduce_1d(stream, rd->process("#name_acc"), value,rd->op());
       }
   });
-
   //Fills local memory
   for(symbolic::reduce_1d* rd: reductions)
   {
@@ -187,10 +179,8 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
       stream << rd->process("#name_buf_value[lid] = #name_acc_value;") << std::endl;
     stream << rd->process("#name_buf[lid] = #name_acc;") << std::endl;
   }
-
   //Reduce local memory
   reduce_1d_local_memory(stream, p_.local_size_0, reductions, "#name_buf", "#name_buf_value", backend);
-
   //Write to temporary buffers
   stream << "if (lid==0)" << std::endl;
   stream << "{" << std::endl;
@@ -203,25 +193,20 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
   }
   stream.dec_tab();
   stream << "}" << std::endl;
-
   stream.dec_tab();
   stream << "}" << std::endl;
 
+
   /* ------------------------
-   * Second kernel
+   * Kernel 2
    * -----------------------*/
-
-
-
-  stream << "$KERNEL void " << name[1] << "($SIZE_T N, $GLOBAL char* tmp, " << tools::join(kernel_arguments(device, symbols, tree), ", ") << ")" << std::endl;
+  stream << "$KERNEL void reduce" << suffix << "($SIZE_T N, $GLOBAL char* tmp, " << tools::join(kernel_arguments(device, symbols, tree), ", ") << ")" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
-
   unroll_tmp();
-
+  //Declarations
   stream << "unsigned int lid = $LOCAL_IDX_0;" << std::endl;
   stream << "unsigned int lsize = $LOCAL_SIZE_0;" << std::endl;
-
   for (symbolic::reduce_1d* rd: reductions)
   {
     if (is_indexing(rd->op().type))
@@ -237,7 +222,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
       stream << rd->process("#scalartype #name_acc = " + neutral_element(rd->op(), backend, "#scalartype") + ";");
     }
   }
-
+  //Private reduction
   stream << "for(unsigned int i = lid; i < " << p_.num_groups << "; i += lsize)" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
@@ -246,28 +231,24 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
       compute_index_reduce_1d(stream, rd->process("#name_acc"), rd->process("#name_temp[i]"), rd->process("#name_acc_value"),rd->process("#name_temp_value[i]"),rd->op());
     else
       compute_reduce_1d(stream, rd->process("#name_acc"), rd->process("#name_temp[i]"), rd->op());
-
   stream.dec_tab();
   stream << "}" << std::endl;
-
   for(symbolic::reduce_1d* rd: reductions)
   {
     if (is_indexing(rd->op().type))
       stream << rd->process("#name_buf_value[lid] = #name_acc_value;") << std::endl;
     stream << rd->process("#name_buf[lid] = #name_acc;") << std::endl;
   }
-
-
-  //Reduce and write final result
+  //Local reduction
   reduce_1d_local_memory(stream, p_.local_size_0, reductions, "#name_buf", "#name_buf_value", backend);
-
+  //Write
   stream << "if (lid==0)" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
-  stream << symbols.at(tree.root())->evaluate("#name_buf[0]") << ";" << std::endl;
+  for(size_t idx: assignments)
+    stream << symbols.at(idx)->evaluate({{"reduce_1d", "#name_buf[0]"}, {"leaf", "at(0)"}}) << ";" << std::endl;
   stream.dec_tab();
   stream << "}" << std::endl;
-
   stream.dec_tab();
   stream << "}" << std::endl;
 
@@ -285,7 +266,7 @@ reduce_1d::reduce_1d(unsigned int simd, unsigned int ls, unsigned int ng,
 
 std::vector<int_t> reduce_1d::input_sizes(expression_tree const  & x) const
 {
-  std::vector<size_t> idx = symbolic::find(x, [](expression_tree::node const & x){return x.binary_operator.op.type_family==REDUCE;});
+  std::vector<size_t> idx = symbolic::find(x, [](expression_tree::node const & x){return x.type==COMPOSITE_OPERATOR_TYPE && x.binary_operator.op.type_family==REDUCE;});
   size_t lhs = x[idx[0]].binary_operator.lhs;
   return {max(x[lhs].shape)};
 }

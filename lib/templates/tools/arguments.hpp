@@ -40,7 +40,7 @@ inline std::vector<std::string> kernel_arguments(driver::Device const &, symboli
     for(symbolic::object* obj: symbolic::extract<symbolic::object>(expressions, symbols))
     {
       if(symbolic::host_scalar* sym = dynamic_cast<symbolic::host_scalar*>(obj))
-        result.push_back(sym->process("#scalartype #name"));
+        result.push_back(sym->process("#scalartype #name_value"));
       if(symbolic::buffer* sym = dynamic_cast<symbolic::buffer*>(obj))
       {
         result.push_back("$GLOBAL " + sym->process("#scalartype* #pointer"));

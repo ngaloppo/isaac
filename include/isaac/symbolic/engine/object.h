@@ -25,9 +25,10 @@
 #include <set>
 #include <map>
 #include <string>
-#include "isaac/types.h"
-#include "isaac/templates/engine/stream.h"
+#include "isaac/symbolic/engine/macro.h"
 #include "isaac/symbolic/expression/expression.h"
+#include "isaac/templates/engine/stream.h"
+#include "isaac/types.h"
 
 namespace isaac
 {
@@ -38,37 +39,6 @@ namespace symbolic
 class object;
 
 typedef std::map<size_t, std::shared_ptr<object> > symbols_table;
-
-//Lambda
-class lambda
-{
-public:
-  lambda(std::string const & code);
-  lambda(const char * code);
-  int expand(std::string & str) const;
-  bool operator<(lambda const & o) const;
-
-private:
-  std::string code_;
-  std::string name_;
-  std::vector<std::string> args_;
-  std::vector<std::string> tokens_;
-};
-
-//Objects
-class object
-{
-public:
-  object(std::string const & scalartype, std::string const & name);
-  object(std::string const & scalartype, unsigned int id);
-  virtual ~object();
-  std::string process(std::string const & in) const;
-  virtual std::string evaluate(std::string const &) const;
-  bool hasattr(std::string const & name) const;
-protected:
-  std::map<std::string, std::string> attributes_;
-  std::set<lambda> lambdas_;
-};
 
 //Node
 class node
@@ -86,73 +56,100 @@ protected:
   size_t root_;
 };
 
-//Sfor
-class sfor: public object, public node
+//Object
+class object
 {
+protected:
+  void add_base(std::string const & name);
 public:
-  sfor(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  object(std::string const & scalartype, unsigned int id);
+  object(std::string const & scalartype, std::string const & name);
+  virtual ~object();
+  bool hasattr(std::string const & name) const;
+  std::string process(std::string const & in) const;
+  virtual std::string evaluate(std::map<std::string, std::string> const & table) const;
+protected:
+  std::map<std::string, std::string> attributes_;
+  std::set<macro> macros_;
+  std::list<std::string> hierarchy_;
 };
 
-//Arithmetic node
-class arithmetic_node : public node
+//Leaf
+class leaf: public object
 {
 public:
-  arithmetic_node(size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  leaf(std::string const & scalartype, unsigned int id);
+  leaf(std::string const & scalartype, std::string const & name);
+};
+
+
+//Arithmetic node
+class arithmetic_node : public object, public node
+{
+public:
+  arithmetic_node(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
 protected:
   std::string op_str_;
 };
 
 //Binary arithmetic
-class binary_arithmetic_node: public object, public arithmetic_node
+class binary_arithmetic_node: public arithmetic_node
 {
 public:
-  binary_arithmetic_node(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
-  std::string evaluate(std::string const &) const;
+  binary_arithmetic_node(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  std::string evaluate(std::map<std::string, std::string> const & table) const;
 };
 
 //Unary arithmetic
-class unary_arithmetic_node: public object, public arithmetic_node
+class unary_arithmetic_node: public arithmetic_node
 {
 public:
-  unary_arithmetic_node(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
-  std::string evaluate(std::string const &) const;
+  unary_arithmetic_node(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  std::string evaluate(std::map<std::string, std::string> const & table) const;
+};
+
+//Sfor
+class sfor: public object, public node
+{
+public:
+  sfor(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
 };
 
 //Reductions
 class reduction : public object, public node
 {
 public:
-  reduction(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  reduction(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
 };
 
 class reduce_1d : public reduction
 {
 public:
-  reduce_1d(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  reduce_1d(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
 };
 
 class reduce_2d : public reduction
 {
 public:
-  reduce_2d(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  reduce_2d(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
 };
 
 //Host scalar
-class host_scalar : public object
+class host_scalar : public leaf
 {
 public:
   host_scalar(std::string const & scalartype, unsigned int id);
 };
 
 //Placeholder
-class placeholder : public object
+class placeholder : public leaf
 {
 public:
   placeholder(unsigned int level);
 };
 
 //Arrays
-class array : public object
+class array : public leaf
 {
 protected:
   std::string make_broadcast(tuple const & shape);

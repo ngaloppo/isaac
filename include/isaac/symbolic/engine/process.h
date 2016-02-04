@@ -82,6 +82,10 @@ inline std::vector<T*> extract(expression_tree const & tree, symbols_table const
 std::vector<size_t> find(expression_tree const & tree, size_t root, std::function<bool (expression_tree::node const &)> const & pred);
 std::vector<size_t> find(expression_tree const & tree, std::function<bool (expression_tree::node const &)> const & pred);
 
+std::vector<size_t> assignments(expression_tree const & tree);
+std::vector<size_t> lhs_of(expression_tree const & tree, std::vector<size_t> const & in);
+std::vector<size_t> rhs_of(expression_tree const & tree, std::vector<size_t> const & in);
+
 // Hash
 std::string hash(expression_tree const & tree);
 

@@ -122,9 +122,6 @@ enum operation_type
   MATRIX_PRODUCT_TT_TYPE,
 
   //Access modifiers
-  MATRIX_ROW_TYPE,
-  MATRIX_COLUMN_TYPE,
-  REPEAT_TYPE,
   RESHAPE_TYPE,
   SHIFT_TYPE,
   DIAG_MATRIX_TYPE,

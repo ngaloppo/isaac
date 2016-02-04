@@ -25,7 +25,7 @@ int main()
 
     std::cout << B << std::endl;
     std::cout << std::endl;
-    std::cout << x +  2*y + y << std::endl;
+    std::cout << sc::sum(x + y, 1) << std::endl;
 //    std::cout << sline << std::endl;
 //    std::cout << "A[3, 2:end]:" << A(3, {2,sc::end}) << std::endl;
 

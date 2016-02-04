@@ -485,7 +485,7 @@ std::ostream & operator<<(std::ostream & os, scalar const & s)
   }
 }
 
-/*--- Binary Operators ----*/
+/*--- Binary Arithmetic Operators ----*/
 //-----------------------------------
 tuple max(tuple const & a, tuple const & b)
 {
@@ -583,47 +583,11 @@ DEFINE_ELEMENT_BINARY_OPERATOR(ELEMENT_LESS_TYPE, operator <, INT_TYPE)
 DEFINE_ELEMENT_BINARY_OPERATOR(ELEMENT_LEQ_TYPE, operator <=, INT_TYPE)
 DEFINE_ELEMENT_BINARY_OPERATOR(ELEMENT_EQ_TYPE, operator ==, INT_TYPE)
 DEFINE_ELEMENT_BINARY_OPERATOR(ELEMENT_NEQ_TYPE, operator !=, INT_TYPE)
-
-#define DEFINE_OUTER(LTYPE, RTYPE) \
-expression_tree outer(LTYPE const & x, RTYPE const & y)\
-{\
-  int_t M = prod(x.shape());\
-  int_t N = prod(y.shape());\
-  return reshape(x, {M,1})*reshape(y, {1, N});\
-}\
-
-DEFINE_OUTER(array_base, array_base)
-DEFINE_OUTER(expression_tree, array_base)
-DEFINE_OUTER(array_base, expression_tree)
-DEFINE_OUTER(expression_tree, expression_tree)
-
 #undef DEFINE_ELEMENT_BINARY_OPERATOR
 
-#define DEFINE_ROT(LTYPE, RTYPE, CTYPE, STYPE)\
-expression_tree rot(LTYPE const & x, RTYPE const & y, CTYPE const & c, STYPE const & s)\
-{ return fuse(assign(x, c*x + s*y), assign(y, c*y - s*x)); }
+/*--- Unary Arithmetic Operators ----*/
+//-----------------------------------
 
-DEFINE_ROT(array_base, array_base, scalar, scalar)
-DEFINE_ROT(expression_tree, array_base, scalar, scalar)
-DEFINE_ROT(array_base, expression_tree, scalar, scalar)
-DEFINE_ROT(expression_tree, expression_tree, scalar, scalar)
-
-DEFINE_ROT(array_base, array_base, value_scalar, value_scalar)
-DEFINE_ROT(expression_tree, array_base, value_scalar, value_scalar)
-DEFINE_ROT(array_base, expression_tree, value_scalar, value_scalar)
-DEFINE_ROT(expression_tree, expression_tree, value_scalar, value_scalar)
-
-DEFINE_ROT(array_base, array_base, expression_tree, expression_tree)
-DEFINE_ROT(expression_tree, array_base, expression_tree, expression_tree)
-DEFINE_ROT(array_base, expression_tree, expression_tree, expression_tree)
-DEFINE_ROT(expression_tree, expression_tree, expression_tree, expression_tree)
-
-
-
-//---------------------------------------
-
-/*--- Math Operators----*/
-//---------------------------------------
 #define DEFINE_ELEMENT_UNARY_OPERATOR(OP, OPNAME) \
 expression_tree OPNAME (array_base  const & x) \
 { return expression_tree(x, invalid_node(), op_element(UNARY, OP), &x.context(), x.dtype(), x.shape()); }\
@@ -648,11 +612,49 @@ DEFINE_ELEMENT_UNARY_OPERATOR(SQRT_TYPE, sqrt)
 DEFINE_ELEMENT_UNARY_OPERATOR(TAN_TYPE,  tan)
 DEFINE_ELEMENT_UNARY_OPERATOR(TANH_TYPE, tanh)
 #undef DEFINE_ELEMENT_UNARY_OPERATOR
-//---------------------------------------
+
+/*--- Outer ----*/
+//-----------------------------------
+
+#define DEFINE_OUTER(LTYPE, RTYPE) \
+expression_tree outer(LTYPE const & x, RTYPE const & y)\
+{\
+  int_t M = prod(x.shape());\
+  int_t N = prod(y.shape());\
+  return reshape(x, {M,1})*reshape(y, {1, N});\
+}\
+
+DEFINE_OUTER(array_base, array_base)
+DEFINE_OUTER(expression_tree, array_base)
+DEFINE_OUTER(array_base, expression_tree)
+DEFINE_OUTER(expression_tree, expression_tree)
 
 
-///*--- Misc----*/
-////---------------------------------------
+/*--- Rot ----*/
+//-----------------------------------
+
+#define DEFINE_ROT(LTYPE, RTYPE, CTYPE, STYPE)\
+expression_tree rot(LTYPE const & x, RTYPE const & y, CTYPE const & c, STYPE const & s)\
+{ return fuse(assign(x, c*x + s*y), assign(y, c*y - s*x)); }
+
+DEFINE_ROT(array_base, array_base, scalar, scalar)
+DEFINE_ROT(expression_tree, array_base, scalar, scalar)
+DEFINE_ROT(array_base, expression_tree, scalar, scalar)
+DEFINE_ROT(expression_tree, expression_tree, scalar, scalar)
+
+DEFINE_ROT(array_base, array_base, value_scalar, value_scalar)
+DEFINE_ROT(expression_tree, array_base, value_scalar, value_scalar)
+DEFINE_ROT(array_base, expression_tree, value_scalar, value_scalar)
+DEFINE_ROT(expression_tree, expression_tree, value_scalar, value_scalar)
+
+DEFINE_ROT(array_base, array_base, expression_tree, expression_tree)
+DEFINE_ROT(expression_tree, array_base, expression_tree, expression_tree)
+DEFINE_ROT(array_base, expression_tree, expression_tree, expression_tree)
+DEFINE_ROT(expression_tree, expression_tree, expression_tree, expression_tree)
+
+
+/*--- Casting Operators ----*/
+//-----------------------------------
 inline operation_type casted(numeric_type dtype)
 {
   switch(dtype)
@@ -679,6 +681,9 @@ expression_tree cast(array_base const & x, numeric_type dtype)
 expression_tree cast(expression_tree const & x, numeric_type dtype)
 { return expression_tree(x, invalid_node(), op_element(UNARY, casted(dtype)), &x.context(), dtype, x.shape()); }
 
+/*--- Diag ----*/
+//-----------------------------------
+
 isaac::expression_tree eye(int_t M, int_t N, isaac::numeric_type dtype, driver::Context const & ctx)
 { return expression_tree(value_scalar(1, dtype), value_scalar(0, dtype), op_element(UNARY, DIAG_VECTOR_TYPE), &ctx, dtype, {M, N}); }
 
@@ -703,52 +708,14 @@ inline tuple flip(tuple const & shape)
   return res;
 }
 
-//inline size4 prod(size4 const & shape1, size4 const & shape2)
-//{ return size4(shape1[0]*shape2[0], shape1[1]*shape2[1]);}
+/*--- Trans ----*/
+//-----------------------------------
 
 expression_tree trans(array_base  const & x) \
 { return expression_tree(x, invalid_node(), op_element(UNARY, TRANS_TYPE), &x.context(), x.dtype(), flip(x.shape())); }\
 \
 expression_tree trans(expression_tree const & x) \
 { return expression_tree(x, invalid_node(), op_element(UNARY, TRANS_TYPE), &x.context(), x.dtype(), flip(x.shape())); }
-
-expression_tree repmat(array_base const & A, int_t const & rep1, int_t const & rep2)
-{
-  int_t sub1 = A.shape()[0];
-  int_t sub2 = A.dim()==2?A.shape()[1]:1;
-  return expression_tree(A, make_tuple(A.context(), rep1, rep2, sub1, sub2), op_element(BINARY, REPEAT_TYPE), &A.context(), A.dtype(), {rep1*sub1, rep2*sub2});
-}
-
-expression_tree repmat(expression_tree const & A, int_t const & rep1, int_t const & rep2)
-{
-  int_t sub1 = A.shape()[0];
-  int_t sub2 = A.dim()==2?A.shape()[1]:1;
-  return expression_tree(A, make_tuple(A.context(), rep1, rep2, sub1, sub2), op_element(BINARY, REPEAT_TYPE), &A.context(), A.dtype(), {rep1*sub1, rep2*sub2});
-}
-
-#define DEFINE_ACCESS_ROW(TYPEA, TYPEB) \
-  expression_tree row(TYPEA const & x, TYPEB const & i)\
-  { return expression_tree(x, i, op_element(UNARY, MATRIX_ROW_TYPE), &x.context(), x.dtype(), {x.shape()[1]}); }
-
-DEFINE_ACCESS_ROW(array_base, value_scalar)
-DEFINE_ACCESS_ROW(array_base, placeholder)
-DEFINE_ACCESS_ROW(array_base, expression_tree)
-
-DEFINE_ACCESS_ROW(expression_tree, value_scalar)
-DEFINE_ACCESS_ROW(expression_tree, placeholder)
-DEFINE_ACCESS_ROW(expression_tree, expression_tree)
-
-#define DEFINE_ACCESS_COL(TYPEA, TYPEB) \
-  expression_tree col(TYPEA const & x, TYPEB const & i)\
-  { return expression_tree(x, i, op_element(UNARY, MATRIX_COLUMN_TYPE), &x.context(), x.dtype(), {x.shape()[0]}); }
-
-DEFINE_ACCESS_COL(array_base, value_scalar)
-DEFINE_ACCESS_COL(array_base, placeholder)
-DEFINE_ACCESS_COL(array_base, expression_tree)
-
-DEFINE_ACCESS_COL(expression_tree, value_scalar)
-DEFINE_ACCESS_COL(expression_tree, placeholder)
-DEFINE_ACCESS_COL(expression_tree, expression_tree)
 
 ////---------------------------------------
 
@@ -855,9 +822,8 @@ namespace detail
   template<class T>
   expression_tree matvecprod(array_base const & A, T const & x)
   {
-    int_t M = A.shape()[0];
     int_t N = A.shape()[1];
-    return sum(A*repmat(reshape(x, {1, N}), M, 1), 1);
+    return sum(A*reshape(x, {1, N}), 1);
   }
 
   template<class T>
@@ -873,13 +839,12 @@ namespace detail
     }
     if(A_trans)
     {
-      expression_tree tmp(A, repmat(x, 1, M), op_element(BINARY, ELEMENT_PROD_TYPE), &A.context(), A.dtype(), {N, M});
-      //Remove trans
-      tmp[tmp.root()].binary_operator.lhs = A[A.root()].binary_operator.lhs;
+      expression_tree tmp(A, reshape(x,{N,1}), op_element(BINARY, ELEMENT_PROD_TYPE), &A.context(), A.dtype(), {N, M});
+      tmp[tmp[tmp.root()].binary_operator.lhs] = A_root;
       return sum(tmp, 0);
     }
     else
-      return sum(A*repmat(reshape(x, {1, N}), M, 1), 1);
+      return sum(A*reshape(x, {1, N}), 1);
 
   }
 

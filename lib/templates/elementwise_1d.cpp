@@ -60,13 +60,10 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   driver::backend_type backend = device.backend();
   kernel_generation_stream stream(backend);
 
-  std::vector<std::size_t> assigned = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
-  std::vector<std::size_t> assigned_left;
-  std::vector<std::size_t> assigned_right;
-  for(std::size_t idx: assigned){
-    assigned_left.push_back(tree[idx].binary_operator.lhs);
-    assigned_right.push_back(tree[idx].binary_operator.rhs);
-  }
+  std::vector<std::size_t> assignments = symbolic::assignments(tree);
+  std::vector<std::size_t> assignments_lhs = symbolic::lhs_of(tree, assignments);
+  std::vector<std::size_t> assignments_rhs = symbolic::rhs_of(tree, assignments);
+
   switch(backend)
   {
     case driver::CUDA:
@@ -95,28 +92,20 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
     std::string dtype = append_width("#scalartype",simd_width);
 
     //Declares register to store results
-    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_left, false))
+    for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assignments_lhs, false))
       stream << sym->process(dtype + " #name;") << std::endl;
 
     //Load to registers
-    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_right, false))
-    {
-      if(simd_width==1)
-        stream << sym->process(dtype + " #name = at(i);") << std::endl;
-      if(simd_width==2)
-        stream << sym->process(dtype + " #name = (#scalartype2)(at(i), at(i+1));") << std::endl;
-      if(simd_width==4)
-        stream << sym->process(dtype + " #name = (#scalartype4)(at(i), at(i+1), at(i+2), at(i+3));") << std::endl;
-    }
+    for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assignments_rhs, false))
+      stream << sym->process(dtype + " #name = " + append_width("vload", simd_width) + "(i);") << std::endl;
 
     //Compute
-    for(size_t idx: assigned)
+    for(size_t idx: assignments)
       for(unsigned int s = 0 ; s < simd_width ; ++s)
-         stream << symbols.at(idx)->evaluate(access_vector_type("#name", s, simd_width)) << ";" << std::endl;
-
+         stream << symbols.at(idx)->evaluate({{"leaf", access_vector_type("#name", s, simd_width)}}) << ";" << std::endl;
 
     //Writes back
-    for(symbolic::array* sym: symbolic::extract<symbolic::array>(tree, symbols, assigned_left, false))
+    for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assignments_lhs, false))
       for(unsigned int s = 0 ; s < simd_width ; ++s)
           stream << sym->process("at(i+" + tools::to_string(s)+") = " + access_vector_type("#name", s, simd_width) + ";") << std::endl;
   });

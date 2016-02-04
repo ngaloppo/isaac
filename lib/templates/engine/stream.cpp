@@ -82,6 +82,8 @@ ADD_KEYWORD("GLOBAL", "__global", "")
 ADD_KEYWORD("SIZE_T", "int", "int")
 ADD_KEYWORD("KERNEL", "__kernel", "extern \"C\" __global__")
 
+ADD_KEYWORD("MAD", "mad", "fma")
+
 #undef ADD_KEYWORD
 }
 

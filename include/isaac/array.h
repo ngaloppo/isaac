@@ -284,6 +284,7 @@ ISAAC_DECLARE_UNARY_OPERATOR(sqrt)
 ISAAC_DECLARE_UNARY_OPERATOR(tan)
 ISAAC_DECLARE_UNARY_OPERATOR(tanh)
 ISAAC_DECLARE_UNARY_OPERATOR(trans)
+#undef ISAAC_DECLARE_UNARY_OPERATOR
 
 ISAACAPI expression_tree cast(array_base const &, numeric_type dtype);
 ISAACAPI expression_tree cast(expression_tree const &, numeric_type dtype);
@@ -291,9 +292,6 @@ ISAACAPI expression_tree cast(expression_tree const &, numeric_type dtype);
 ISAACAPI expression_tree norm(array_base const &, unsigned int order = 2);
 ISAACAPI expression_tree norm(expression_tree const &, unsigned int order = 2);
 
-#undef ISAAC_DECLARE_UNARY_OPERATOR
-
-ISAACAPI expression_tree repmat(array_base const &, int_t const & rep1, int_t const & rep2);
 
 //Matrix reduction
 
@@ -336,27 +334,8 @@ ISAACAPI expression_tree reshape(expression_tree const &, tuple const &);
 
 ISAACAPI expression_tree ravel(array_base const &);
 
-//diag
+//Diag
 array diag(array_base & x, int offset = 0);
-
-//Row
-ISAACAPI expression_tree row(array_base const &, value_scalar const &);
-ISAACAPI expression_tree row(array_base const &, placeholder const &);
-ISAACAPI expression_tree row(array_base const &, expression_tree const &);
-
-ISAACAPI expression_tree row(expression_tree const &, value_scalar const &);
-ISAACAPI expression_tree row(expression_tree const &, placeholder const &);
-ISAACAPI expression_tree row(expression_tree const &, expression_tree const &);
-
-//col
-ISAACAPI expression_tree col(array_base const &, value_scalar const &);
-ISAACAPI expression_tree col(array_base const &, placeholder const &);
-ISAACAPI expression_tree col(array_base const &, expression_tree const &);
-
-ISAACAPI expression_tree col(expression_tree const &, value_scalar const &);
-ISAACAPI expression_tree col(expression_tree const &, placeholder const &);
-ISAACAPI expression_tree col(expression_tree const &, expression_tree const &);
-
 
 //
 ISAACAPI std::ostream& operator<<(std::ostream &, array_base const &);

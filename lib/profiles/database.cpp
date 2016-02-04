@@ -45,7 +45,7 @@ namespace isaac
 const profiles::presets_type profiles::presets_ =
 {
     //INTEL
-    DATABASE_ENTRY(GPU, INTEL, BROADWELL, database::intel::broadwell),
+//    DATABASE_ENTRY(GPU, INTEL, BROADWELL, database::intel::broadwell),
     //NVIDIA
     DATABASE_ENTRY(GPU, NVIDIA, SM_2_0, database::nvidia::sm_2_0),
     DATABASE_ENTRY(GPU, NVIDIA, SM_2_1, database::nvidia::sm_2_0),

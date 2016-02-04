@@ -78,15 +78,15 @@ void test_impl(T epsilon, simple_vector_base<T> & cy, simple_matrix_base<T> cons
 
   if(interf==CPP)
   {
-//      RUN_TEST("x = dot(A.T, y)", N, M, 0, xi+=cA(j,i)*cy[j], cx[i] = xi, x = dot(trans(A),y), x, bufx, cx);
-//      RUN_TEST("x = sum(A, 0)", N, M, 0, xi+=cA(j,i), cx[i] = xi, x = sum(A,0), x, bufx, cx);
-//      RUN_TEST("x = max(A, 0)", N, M, std::numeric_limits<T>::min(), xi=std::max(xi,cA(j,i)), cx[i] = xi, x = max(A,0), x, bufx, cx);
-//      RUN_TEST("x = min(A, 0)", N, M, std::numeric_limits<T>::max(), xi=std::min(xi,cA(j,i)), cx[i] = xi, x = min(A,0), x, bufx, cx);
+      RUN_TEST("x = dot(A.T, y)", N, M, 0, xi+=cA(j,i)*cy[j], cx[i] = xi, x = dot(trans(A),y), x, bufx, cx);
+      RUN_TEST("x = sum(A, 0)", N, M, 0, xi+=cA(j,i), cx[i] = xi, x = sum(A,0), x, bufx, cx);
+      RUN_TEST("x = max(A, 0)", N, M, std::numeric_limits<T>::min(), xi=std::max(xi,cA(j,i)), cx[i] = xi, x = max(A,0), x, bufx, cx);
+      RUN_TEST("x = min(A, 0)", N, M, std::numeric_limits<T>::max(), xi=std::min(xi,cA(j,i)), cx[i] = xi, x = min(A,0), x, bufx, cx);
 
-//      RUN_TEST("y = dot(A, x)", M, N, 0, yi+=cA(i,j)*cx[j], cy[i] = yi, y = dot(A,x), y, bufy, cy);
-//      RUN_TEST("y = sum(A, 1)", M, N, 0, yi+=cA(i,j), cy[i] = yi, y = sum(A,1), y, bufy, cy);
-//      RUN_TEST("y = max(A, 1)", M, N, std::numeric_limits<T>::min(), yi=std::max(yi,cA(i,j)), cy[i] = yi, y = max(A,1), y, bufy, cy);
-//      RUN_TEST("y = min(A, 1)", M, N, std::numeric_limits<T>::max(), yi=std::min(yi,cA(i,j)), cy[i] = yi, y = min(A,1), y, bufy, cy);
+      RUN_TEST("y = dot(A, x)", M, N, 0, yi+=cA(i,j)*cx[j], cy[i] = yi, y = dot(A,x), y, bufy, cy);
+      RUN_TEST("y = sum(A, 1)", M, N, 0, yi+=cA(i,j), cy[i] = yi, y = sum(A,1), y, bufy, cy);
+      RUN_TEST("y = max(A, 1)", M, N, std::numeric_limits<T>::min(), yi=std::max(yi,cA(i,j)), cy[i] = yi, y = max(A,1), y, bufy, cy);
+      RUN_TEST("y = min(A, 1)", M, N, std::numeric_limits<T>::max(), yi=std::min(yi,cA(i,j)), cy[i] = yi, y = min(A,1), y, bufy, cy);
   }
 
   if(failure_count>0)
