@@ -25,7 +25,6 @@
 #include "isaac/templates/matrix_product.h"
 #include "isaac/templates/engine/keywords.h"
 #include "isaac/exception/operation_not_supported.h"
-
 #include "tools/arguments.hpp"
 #include "tools/vector_types.hpp"
 
@@ -537,7 +536,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
             if(has_depth)
                 stream << "C[" << Ci << CSTRIDE1 << "] = rC[" << m << "][" << n << "];" << std::endl;
             else
-                stream << "C[" << Ci << CSTRIDE1 << "] = rC[" << m << "][" << n << "] + (beta?(beta*" << "C[" << Ci << CSTRIDE1 << "]):0);" << std::endl;
+                stream << "C[" << Ci << CSTRIDE1 << "] = rC[" << m << "][" << n << "] + ((beta != (" << sdtype << ")0)?(beta*" << "C[" << Ci << CSTRIDE1 << "]):0);" << std::endl;
         }
         if((n+1)%p_.simd_width==0){
             stream << "C += ldc*" << p_.local_size_1*p_.simd_width - p_.simd_width + 1 << ";" << std::endl;
@@ -666,10 +665,10 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
   }
 
-  std::vector<int_t> matrix_product::infos(expression_tree const & expression, symbolic::preset::matrix_product::args& arguments) const
+  std::vector<int_t> matrix_product::infos(expression_tree const & tree, symbolic::preset::matrix_product::args& arguments) const
   {
-    expression_tree::data_type const & array = expression.data();
-    std::size_t root = expression.root();
+    expression_tree::data_type const & array = tree.data();
+    std::size_t root = tree.root();
     arguments = symbolic::preset::matrix_product::check(array, root);
     int_t M = arguments.C->array->shape()[0];
     int_t N = arguments.C->array->shape()[1];
@@ -702,14 +701,13 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
     symbolic::preset::matrix_product::args args;
     std::vector<int_t> MNK = infos(expressions, args);
-
     int_t M = MNK[0];
     int_t N = MNK[1];
     int_t K = MNK[2];
-
     //Skip if empty
     if(M==0 || N == 0 || K ==0)
       return;
+
     //Extract
     array_base * pA = args.A->array;
     array_base * pB = args.B->array;
@@ -722,15 +720,10 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
     //Enqueue
     execution_options_type const & options = control.execution_options();
-
     if (ldstrideA> 1 || ldstrideB > 1 || ldstrideC > 1)
-    {
       fallback.enqueue_block(queue, M, N, K, *pA, *pB, *pC, args.alpha, args.beta, program, "fallback", options);
-    }
     else
-    {
-        enqueue_block(queue,  M, N, K, *pA, *pB, *pC, args.alpha, args.beta, program, suffix, options);
-    }
+      enqueue_block(queue,  M, N, K, *pA, *pB, *pC, args.alpha, args.beta, program, suffix, options);
   }
 
   //

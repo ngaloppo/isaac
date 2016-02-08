@@ -123,7 +123,6 @@ void Kernel::setSizeArg(unsigned int index, size_t N)
       setArg(index, 4, &NN);
       break;
     }
-
     default: throw;
   }
 }
