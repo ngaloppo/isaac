@@ -57,11 +57,11 @@ namespace symbolic
         bool result = false;
         switch(op.type_family)
         {
-            case UNARY:
-            case BINARY:
+            case UNARY_ARITHMETIC:
+            case BINARY_ARITHMETIC:
                 result |= is_mmprod(expression)
-                          || (result |= expression==REDUCE_2D_ROWS && other==REDUCE_2D_COLS)
-                          || (result |= expression==REDUCE_2D_COLS && other==REDUCE_2D_ROWS);
+                          || (expression==REDUCE_2D_ROWS && other==REDUCE_2D_COLS)
+                          || (expression==REDUCE_2D_COLS && other==REDUCE_2D_ROWS);
                 break;
             case REDUCE:
                 result |= is_mvprod(expression)
@@ -92,11 +92,11 @@ namespace symbolic
     {
         switch(op.type_family)
         {
-            case UNARY:
+            case UNARY_ARITHMETIC:
                 if(is_mmprod(left))
                     return ELEMENTWISE_2D;
                 return left;
-            case BINARY:
+            case BINARY_ARITHMETIC:
                 if(left == REDUCE_2D_ROWS || right == REDUCE_2D_ROWS) return REDUCE_2D_ROWS;
                 else if(left == REDUCE_2D_COLS || right == REDUCE_2D_COLS) return REDUCE_2D_COLS;
                 else if(left == REDUCE_1D || right == REDUCE_1D) return REDUCE_1D;

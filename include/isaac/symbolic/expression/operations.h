@@ -34,8 +34,8 @@ enum operation_type_family
   INVALID_ = 0,
 
   // BLAS1-type
-  UNARY,
-  BINARY,
+  UNARY_ARITHMETIC,
+  BINARY_ARITHMETIC,
   REDUCE,
 
   // BLAS2-type

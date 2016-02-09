@@ -20,7 +20,7 @@
  */
 
 #include "isaac/symbolic/engine/process.h"
-
+#include "isaac/symbolic/expression/io.h"
 namespace isaac
 {
 namespace symbolic
@@ -175,9 +175,11 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
   std::vector<size_t> assignee = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
   for(size_t& x: assignee) x = tree[x].binary_operator.lhs;
 
+  std::cout << to_string(tree) << std::endl;
   //symbolize_impl
   auto symbolize_impl = [&](size_t root)
   {
+    std::cout << root << std::endl;
     expression_tree::node const & node = tree.data()[root];
     std::string dtype = to_string(node.dtype);
     if(node.type==VALUE_SCALAR_TYPE)
@@ -198,10 +200,10 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
       else if(op.type==DIAG_VECTOR_TYPE)
         table.insert({root, make_symbolic<diag_vector>(dtype, id, root, op, tree, table)});
       //Unary arithmetic
-      else if(op.type_family==UNARY)
+      else if(op.type_family==UNARY_ARITHMETIC)
         table.insert({root, make_symbolic<unary_arithmetic_node>(id, root, op, tree, table)});
       //Binary arithmetic
-      else if(op.type_family==BINARY)
+      else if(op.type_family==BINARY_ARITHMETIC)
         table.insert({root, make_symbolic<binary_arithmetic_node>(id, root, op, tree, table)});
       //1D Reduction
       else if (op.type_family==REDUCE)
