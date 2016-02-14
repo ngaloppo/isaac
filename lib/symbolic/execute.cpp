@@ -38,112 +38,79 @@ namespace symbolic
 
   namespace detail
   {
-    typedef std::vector<std::pair<expression_type, expression_tree::node*> > breakpoints_t;
+      typedef std::vector<std::pair<size_t, expression_type> > breakpoints_t;
 
 
-    inline bool is_mmprod(expression_type x)
-    {
-        return x==MATRIX_PRODUCT_NN || x==MATRIX_PRODUCT_NT ||
-               x==MATRIX_PRODUCT_TN || x==MATRIX_PRODUCT_TT;
-    }
+  //    inline expression_type specialized_kernel(op_element const & op)
+  //    {
+  //      if(op.type==MATRIX_PRODUCT_NN_TYPE) return MATRIX_PRODUCT_NN;
+  //      else if(op.type==MATRIX_PRODUCT_NT_TYPE) return MATRIX_PRODUCT_NT;
+  //      else if(op.type==MATRIX_PRODUCT_TN_TYPE) return MATRIX_PRODUCT_TN;
+  //      else if(op.type==MATRIX_PRODUCT_TT_TYPE) return MATRIX_PRODUCT_TT;
+  //      else if(op.type_family==REDUCE_ROWS) return REDUCE_2D_ROWS;
+  //      else if(op.type_family==REDUCE_COLUMNS) return REDUCE_2D_COLS;
+  //      else if(op.type_family==REDUCE) return REDUCE_1D;
+  //      throw;
+  //    }
 
-    inline bool is_mvprod(expression_type x)
-    {
-        return x==REDUCE_2D_ROWS || x==REDUCE_2D_COLS;
-    }
-
-    inline bool has_temporary(op_element op, expression_type expression, expression_type other, bool is_first)
-    {
-        bool result = false;
-        switch(op.type_family)
-        {
-            case UNARY_ARITHMETIC:
-            case BINARY_ARITHMETIC:
-                result |= is_mmprod(expression)
-                          || (expression==REDUCE_2D_ROWS && other==REDUCE_2D_COLS)
-                          || (expression==REDUCE_2D_COLS && other==REDUCE_2D_ROWS);
-                break;
-            case REDUCE:
-                result |= is_mvprod(expression)
-                          || expression==REDUCE_1D;
-                break;
-            case REDUCE_ROWS:
-                result |= is_mmprod(expression)
-                          || is_mvprod(expression)
-                          || expression==REDUCE_1D;
-                break;
-            case REDUCE_COLUMNS:
-                result |= is_mmprod(expression)
-                          || is_mvprod(expression)
-                          || expression==REDUCE_1D;
-                break;
-            case MATRIX_PRODUCT:
-                result |= (is_mmprod(expression) && !is_first)
-                          || is_mvprod(expression)
-                          || expression==REDUCE_1D;
-                break;
-            default:
-                break;
-        }
-        return result;
-    }
-
-    inline expression_type merge(op_element op, expression_type left, expression_type right)
-    {
-        switch(op.type_family)
-        {
-            case UNARY_ARITHMETIC:
-                if(is_mmprod(left))
-                    return ELEMENTWISE_2D;
-                return left;
-            case BINARY_ARITHMETIC:
-                if(left == REDUCE_2D_ROWS || right == REDUCE_2D_ROWS) return REDUCE_2D_ROWS;
-                else if(left == REDUCE_2D_COLS || right == REDUCE_2D_COLS) return REDUCE_2D_COLS;
-                else if(left == REDUCE_1D || right == REDUCE_1D) return REDUCE_1D;
-                else if(left == ELEMENTWISE_2D || right == ELEMENTWISE_2D) return ELEMENTWISE_2D;
-                else if(left == ELEMENTWISE_1D || right == ELEMENTWISE_1D) return op.type==OUTER_PROD_TYPE?ELEMENTWISE_2D:ELEMENTWISE_1D;
-                else if(is_mmprod(left) || is_mmprod(right)) return ELEMENTWISE_2D;
-                else if(right == INVALID_EXPRESSION_TYPE) return left;
-                else if(left == INVALID_EXPRESSION_TYPE) return right;
-                throw;
-            case REDUCE:
-                return REDUCE_1D;
-            case REDUCE_ROWS:
-                return REDUCE_2D_ROWS;
-            case REDUCE_COLUMNS:
-                return REDUCE_2D_COLS;
-            case MATRIX_PRODUCT:
-                if(op.type==MATRIX_PRODUCT_NN_TYPE) return MATRIX_PRODUCT_NN;
-                else if(op.type==MATRIX_PRODUCT_TN_TYPE) return MATRIX_PRODUCT_TN;
-                else if(op.type==MATRIX_PRODUCT_NT_TYPE) return MATRIX_PRODUCT_NT;
-                else return MATRIX_PRODUCT_TT;
-            default:
-                throw;
-        }
-    }
-
-    /** @brief Parses the breakpoints for a given expression tree */
-    expression_type parse(expression_tree&tree, size_t idx, breakpoints_t & breakpoints, bool is_first = true)
-    {
-      expression_tree::node & node = tree[idx];
-      if (node.type == COMPOSITE_OPERATOR_TYPE)
+      inline bool is_elementwise(expression_type type)
       {
-          expression_type type_left = parse(tree, node.binary_operator.lhs, breakpoints, false);
-          expression_type type_right = parse(tree, node.binary_operator.rhs, breakpoints, false);
-          expression_type result = merge(node.binary_operator.op, type_left, type_right);
-          if(has_temporary(node.binary_operator.op, type_left, type_right, is_first))
-            breakpoints.push_back({result, &node});
-          return result;
+        return type == ELEMENTWISE_1D || type == ELEMENTWISE_2D;
       }
-      else if(node.type == DENSE_ARRAY_TYPE)
+
+      /** @brief Parses the breakpoints for a given expression tree */
+      expression_type parse(expression_tree const & tree, size_t idx, breakpoints_t & bp)
       {
-          if(numgt1(node.shape)<=1)
-            return ELEMENTWISE_1D;
-          else
-            return ELEMENTWISE_2D;
+        expression_tree::node const & node = tree[idx];
+        if(node.type==COMPOSITE_OPERATOR_TYPE)
+        {
+          size_t lidx = node.binary_operator.lhs;
+          size_t ridx = node.binary_operator.rhs;
+          expression_type ltype = parse(tree, lidx, bp);
+          expression_type rtype = parse(tree, ridx, bp);
+          op_element const & op = node.binary_operator.op;
+          //Reduction
+          if(op.type_family==REDUCE || op.type_family==REDUCE_ROWS || op.type_family==REDUCE_COLUMNS)
+          {
+            if(!is_elementwise(ltype)) bp.push_back({lidx, ltype});
+            if(!is_elementwise(rtype)) bp.push_back({ridx, rtype});
+            if(op.type_family==REDUCE) return REDUCE_1D;
+            if(op.type_family==REDUCE_ROWS) return REDUCE_2D_ROWS;
+            if(op.type_family==REDUCE_COLUMNS) return REDUCE_2D_COLS;
+          }
+          //Matrix Product
+          if(op.type_family==MATRIX_PRODUCT)
+          {
+            if(tree[lidx].type!=DENSE_ARRAY_TYPE) bp.push_back({lidx, ltype});
+            if(tree[ridx].type!=DENSE_ARRAY_TYPE) bp.push_back({ridx, rtype});
+            if(op.type==MATRIX_PRODUCT_NN_TYPE) return MATRIX_PRODUCT_NN;
+            if(op.type==MATRIX_PRODUCT_TN_TYPE) return MATRIX_PRODUCT_TN;
+            if(op.type==MATRIX_PRODUCT_NT_TYPE) return MATRIX_PRODUCT_NT;
+            if(op.type==MATRIX_PRODUCT_TT_TYPE) return MATRIX_PRODUCT_TT;
+          }
+          //Arithmetic
+          if(op.type_family==UNARY_ARITHMETIC || op.type_family==BINARY_ARITHMETIC)
+          {
+            if(op.type==RESHAPE_TYPE && !is_elementwise(ltype))
+              bp.push_back({lidx, ltype});
+            for(expression_type type: std::vector<expression_type>{MATRIX_PRODUCT_NN,MATRIX_PRODUCT_TN,MATRIX_PRODUCT_NT,MATRIX_PRODUCT_TT})
+            {
+              if(ltype==type) bp.push_back({lidx, ltype});
+              if(rtype==type) bp.push_back({ridx, rtype});
+              if(op.type==ASSIGN_TYPE && rtype==type) return type;
+            }
+            for(expression_type type: std::vector<expression_type>{REDUCE_1D, REDUCE_2D_ROWS, REDUCE_2D_COLS})
+            {
+              if(ltype==type && rtype!=type && !is_elementwise(rtype)) bp.push_back({ridx, rtype});
+              if(ltype==type) return type;
+              if(op.type==ASSIGN_TYPE && rtype==type) return type;
+            }
+        }
       }
+      if(node.shape.size()<=1)
+        return ELEMENTWISE_1D;
       else
-        return INVALID_EXPRESSION_TYPE;
+        return ELEMENTWISE_2D;
     }
   }
 
@@ -172,22 +139,16 @@ namespace symbolic
         detail::breakpoints_t breakpoints;
         breakpoints.reserve(8);
 
-        //Init
-        expression_type current_type;
-        if(numgt1(tree.shape())<=1)
-          current_type=ELEMENTWISE_1D;
-        else
-          current_type=ELEMENTWISE_2D;
-        final_type = current_type;
-
         /*----Parse required temporaries-----*/
         final_type = detail::parse(tree, rootidx, breakpoints);
+        std::set<size_t> found;
+        breakpoints.erase(std::remove_if(breakpoints.begin(), breakpoints.end(), [&](detail::breakpoints_t::value_type const & x){return !found.insert(x.first).second;}), breakpoints.end());
 
         /*----Compute required temporaries----*/
-        for(detail::breakpoints_t::iterator it = breakpoints.begin() ; it != breakpoints.end() ; ++it)
+        for(auto current: breakpoints)
         {
-          expression_tree::node const & node = *it->second;
-          expression_type type = it->first;
+          expression_tree::node const & node = tree[current.first];
+          expression_type type = current.second;
           std::shared_ptr<profiles::value_type> const & profile = profiles[std::make_pair(type, node.dtype)];
 
           //Create temporary
@@ -203,7 +164,8 @@ namespace symbolic
           //Update the expression tree
           root = root_save;
           lhs = lhs_save;
-          rhs = expression_tree::node((array&)*tmp);
+          rhs = rhs_save;
+          tree[current.first] = expression_tree::node((array&)*tmp);
         }
     }
 

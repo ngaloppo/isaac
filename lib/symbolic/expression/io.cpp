@@ -31,17 +31,6 @@ namespace isaac
 
 #define ISAAC_MAP_TO_STRING(NAME) case NAME: return #NAME
 
-inline std::string to_string(node_type const & f)
-{
-  switch(f)
-  {
-    ISAAC_MAP_TO_STRING(INVALID_SUBTYPE);
-    ISAAC_MAP_TO_STRING(VALUE_SCALAR_TYPE);
-    ISAAC_MAP_TO_STRING(DENSE_ARRAY_TYPE);
-    default: return "UNKNOWN";
-  }
-}
-
 inline std::string to_string(const expression_tree::node &node)
 {
   if(node.type==COMPOSITE_OPERATOR_TYPE)
@@ -49,9 +38,15 @@ inline std::string to_string(const expression_tree::node &node)
     std::string lhs = tools::to_string(node.binary_operator.lhs);
     std::string op = tools::to_string(node.binary_operator.op.type_family) + "," + tools::to_string(node.binary_operator.op.type);
     std::string rhs = tools::to_string(node.binary_operator.rhs);
-    return"BINARY [LHS = " + lhs + " ; OP = " + op + " ; RHS = " + rhs + "]";
+    return"node [lhs = " + lhs + " ; op = " + op + " ; rhs = " + rhs + "]";
   }
-  return tools::to_string(node.type);
+  switch(node.type)
+  {
+    case INVALID_SUBTYPE: return "empty";
+    case VALUE_SCALAR_TYPE: return "scalar";
+    case DENSE_ARRAY_TYPE: return "array";
+    default: return "unknown";
+  }
 }
 
 namespace detail

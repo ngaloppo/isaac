@@ -175,11 +175,9 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
   std::vector<size_t> assignee = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
   for(size_t& x: assignee) x = tree[x].binary_operator.lhs;
 
-  std::cout << to_string(tree) << std::endl;
   //symbolize_impl
   auto symbolize_impl = [&](size_t root)
   {
-    std::cout << root << std::endl;
     expression_tree::node const & node = tree.data()[root];
     std::string dtype = to_string(node.dtype);
     if(node.type==VALUE_SCALAR_TYPE)
