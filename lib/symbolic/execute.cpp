@@ -106,7 +106,7 @@ namespace symbolic
             for(expression_type type: std::vector<expression_type>{REDUCE_1D, REDUCE_2D_ROWS, REDUCE_2D_COLS})
             {
               if(ltype==type && rtype!=type && !is_elementwise(rtype)) bp.push_back({ridx, rtype});
-              if(ltype==type) return type;
+              if(ltype==type || rtype==type) return type;
               if(op.type==ASSIGN_TYPE && rtype==type) return type;
             }
         }
@@ -176,7 +176,6 @@ namespace symbolic
 
     /*-----Compute final expression-----*/
     profiles[std::make_pair(final_type, tree[rootidx].dtype)]->execute(execution_handler(tree, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
-    driver::backend::synchronize(c.x().context());
   }
 
   void execute(execution_handler const & c)
