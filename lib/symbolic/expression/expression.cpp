@@ -77,7 +77,7 @@ expression_tree::node::node(int_t lhs, op_element op, int_t rhs, numeric_type dt
 
 //
 expression_tree::expression_tree(node const & lhs, node const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
-  tree_(3), root_(2), context_(context), dtype_(dtype), shape_(shape)
+  tree_(3), root_(2), context_(context)
 {
   tree_[0] = lhs;
   tree_[1] = rhs;
@@ -85,7 +85,7 @@ expression_tree::expression_tree(node const & lhs, node const & rhs, op_element 
 }
 
 expression_tree::expression_tree(expression_tree const & lhs, node const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
- tree_(lhs.tree_.size() + 2), root_(tree_.size() - 1), context_(context), dtype_(dtype), shape_(shape)
+ tree_(lhs.tree_.size() + 2), root_(tree_.size() - 1), context_(context)
 {
   std::copy(lhs.tree_.begin(), lhs.tree_.end(), tree_.begin());
   tree_[root_ - 1] = rhs;
@@ -93,7 +93,7 @@ expression_tree::expression_tree(expression_tree const & lhs, node const & rhs, 
 }
 
 expression_tree::expression_tree(node const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
-  tree_(rhs.tree_.size() + 2), root_(tree_.size() - 1), context_(context), dtype_(dtype), shape_(shape)
+  tree_(rhs.tree_.size() + 2), root_(tree_.size() - 1), context_(context)
 {
   std::copy(rhs.tree_.begin(), rhs.tree_.end(), tree_.begin());
   tree_[root_ - 1] = lhs;
@@ -101,7 +101,7 @@ expression_tree::expression_tree(node const & lhs, expression_tree const & rhs, 
 }
 
 expression_tree::expression_tree(expression_tree const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape):
-  tree_(lhs.tree_.size() + rhs.tree_.size() + 1), root_(tree_.size()-1), context_(context), dtype_(dtype), shape_(shape)
+  tree_(lhs.tree_.size() + rhs.tree_.size() + 1), root_(tree_.size()-1), context_(context)
 {  
   std::size_t lsize = lhs.tree_.size();
   std::copy(lhs.tree_.begin(), lhs.tree_.end(), tree_.begin());
@@ -125,19 +125,19 @@ driver::Context const & expression_tree::context() const
 { return *context_; }
 
 numeric_type const & expression_tree::dtype() const
-{ return dtype_; }
+{ return tree_[root_].dtype; }
 
 tuple expression_tree::shape() const
-{ return shape_; }
+{ return tree_[root_].shape; }
 
 int_t expression_tree::dim() const
-{ return (int_t)shape_.size(); }
+{ return (int_t)shape().size(); }
 
 expression_tree expression_tree::operator-()
-{ return expression_tree(*this,  invalid_node(), op_element(UNARY_ARITHMETIC, SUB_TYPE), context_, dtype_, shape_); }
+{ return expression_tree(*this,  invalid_node(), op_element(UNARY_ARITHMETIC, SUB_TYPE), context_, dtype(), shape()); }
 
 expression_tree expression_tree::operator!()
-{ return expression_tree(*this, invalid_node(), op_element(UNARY_ARITHMETIC, NEGATE_TYPE), context_, INT_TYPE, shape_); }
+{ return expression_tree(*this, invalid_node(), op_element(UNARY_ARITHMETIC, NEGATE_TYPE), context_, INT_TYPE, shape()); }
 
 expression_tree::node const & expression_tree::operator[](size_t idx) const
 { return tree_[idx]; }

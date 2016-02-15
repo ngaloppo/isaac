@@ -50,7 +50,7 @@ public:
 
         operator bool() const
         {
-            return type!=INVALID_EXPRESSION_TYPE && C!=NULL;
+            return type!=INVALID_EXPRESSION_TYPE && A!=NULL && B!=NULL && C!=NULL;
         }
     };
 private:

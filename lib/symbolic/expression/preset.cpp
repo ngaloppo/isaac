@@ -61,14 +61,14 @@ void matrix_product::handle_node(expression_tree::data_type const & tree, size_t
         if(left.type==VALUE_SCALAR_TYPE  && right.type==COMPOSITE_OPERATOR_TYPE
            && right.binary_operator.op.type_family==MATRIX_PRODUCT)
         {
-            a.alpha = value_scalar(left.scalar, left.dtype);
+            a.alpha = cast(value_scalar(left.scalar, left.dtype), node.dtype);
             handle_node(tree, node.binary_operator.rhs, a);
         }
 
         //beta*C
         if(left.type==VALUE_SCALAR_TYPE  && right.type==DENSE_ARRAY_TYPE)
         {
-            a.beta = value_scalar(left.scalar, left.dtype);
+            a.beta = cast(value_scalar(left.scalar, left.dtype), node.dtype);
             a.C = &right;
         }
     }
@@ -79,7 +79,6 @@ matrix_product::args matrix_product::check(expression_tree::data_type const & tr
     expression_tree::node const & node = tree[root];
     expression_tree::node const & left = tree[node.binary_operator.lhs];
     expression_tree::node const & right = tree[node.binary_operator.rhs];
-
     numeric_type dtype = node.dtype;
     matrix_product::args result ;
     if(dtype==INVALID_NUMERIC_TYPE)

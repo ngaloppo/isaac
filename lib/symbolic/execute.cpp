@@ -96,8 +96,12 @@ namespace symbolic
             for(expression_type type: std::vector<expression_type>{MATRIX_PRODUCT_NN,MATRIX_PRODUCT_TN,MATRIX_PRODUCT_NT,MATRIX_PRODUCT_TT})
             {
               if(ltype==type) bp.push_back({lidx, ltype});
-              if(rtype==type) bp.push_back({ridx, rtype});
-              if(op.type==ASSIGN_TYPE && rtype==type) return type;
+              if(rtype==type){
+                if(op.type==ASSIGN_TYPE)
+                  return type;
+                else
+                  bp.push_back({ridx, rtype});
+              }
             }
             for(expression_type type: std::vector<expression_type>{REDUCE_1D, REDUCE_2D_ROWS, REDUCE_2D_COLS})
             {
@@ -157,20 +161,22 @@ namespace symbolic
 
           //Compute temporary
           root.binary_operator.op.type = ASSIGN_TYPE;
-          lhs = expression_tree::node((array&)*tmp);
+          root.shape = node.shape;
+          root.dtype = node.dtype;
+          lhs = expression_tree::node(*tmp);
           rhs = node;
           profile->execute(execution_handler(tree, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
-
           //Update the expression tree
           root = root_save;
           lhs = lhs_save;
           rhs = rhs_save;
-          tree[current.first] = expression_tree::node((array&)*tmp);
+          tree[current.first] = expression_tree::node(*tmp);
         }
     }
 
     /*-----Compute final expression-----*/
     profiles[std::make_pair(final_type, tree[rootidx].dtype)]->execute(execution_handler(tree, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
+    driver::backend::synchronize(c.x().context());
   }
 
   void execute(execution_handler const & c)

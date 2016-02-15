@@ -23,8 +23,7 @@ int main()
 
     sc::array B({4,3},std::vector<float>{0,1,2,3,4,5,6,7,8,9,10,11});
 
-    std::cout << std::endl;
-    std::cout << sc::reshape(x, {3,1}) + sc::sum(sc::dot(B,B), 1)*sc::sum(x) << std::endl;
+    std::cout << sc::reshape(x, {1,3}) + sc::sum(sc::dot(B.T,B) + x + y, 1)*sc::sum(x) << std::endl;
 //    std::cout << sline << std::endl;
 //    std::cout << "A[3, 2:end]:" << A(3, {2,sc::end}) << std::endl;
 

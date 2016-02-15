@@ -276,14 +276,14 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t root, o
   if(new_gt1==1 && old_gt1==1)
     macros_.insert("at(i): " + lhs_->evaluate({{"leaf","at(i)"}}));
   if(new_gt1==1 && old_gt1==2)
-    macros_.insert("at(i): " + lhs_->evaluate({{"leaf","at(i%#old_inc1, i/#old_inc1)"}}));
+    macros_.insert("at(i): " + lhs_->evaluate({{"leaf","at((i)%#old_inc1, (i)/#old_inc1)"}}));
 
   if(new_gt1==2 && old_gt1==0)
     macros_.insert("at(i,j): " + lhs_-> evaluate({{"leaf","at()"}}));
   if(new_gt1==2 && old_gt1==1)
-    macros_.insert("at(i,j): " + lhs_-> evaluate({{"leaf","at(i + j*#new_inc1)"}}));
+    macros_.insert("at(i,j): " + lhs_-> evaluate({{"leaf","at((i) + (j)*#new_inc1)"}}));
   if(new_gt1==2 && old_gt1==2)
-    macros_.insert("at(i,j): " + lhs_->evaluate({{"leaf","at((i + j*#new_inc1)%#old_inc1, (i+j*#new_inc1)/#old_inc1)"}}));
+    macros_.insert("at(i,j): " + lhs_->evaluate({{"leaf","at(((i) + (j)*#new_inc1)%#old_inc1, ((i)+(j)*#new_inc1)/#old_inc1)"}}));
 
   //Broadcast
   if(new_gt1!=new_shape.size())

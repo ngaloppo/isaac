@@ -126,8 +126,6 @@ private:
   data_type tree_;
   std::size_t root_;
   driver::Context const * context_;
-  numeric_type dtype_;
-  tuple shape_;
 };
 
 

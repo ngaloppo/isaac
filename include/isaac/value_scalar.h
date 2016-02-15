@@ -180,7 +180,7 @@ ISAAC_DECLARE_UNARY_OPERATOR(trans)
 #undef ISAAC_DECLARE_UNARY_OPERATOR
 
 ISAACAPI std::ostream & operator<<(std::ostream & os, value_scalar const & s);
-
+ISAACAPI value_scalar cast(value_scalar const & in, numeric_type dtype);
 
 }
 
