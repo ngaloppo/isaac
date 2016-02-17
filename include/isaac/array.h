@@ -333,6 +333,7 @@ ISAACAPI expression_tree reshape(array_base const &, tuple const &);
 ISAACAPI expression_tree reshape(expression_tree const &, tuple const &);
 
 ISAACAPI expression_tree ravel(array_base const &);
+ISAACAPI expression_tree ravel(expression_tree const & x);
 
 //Diag
 array diag(array_base & x, int offset = 0);

@@ -40,19 +40,6 @@ namespace symbolic
   {
       typedef std::vector<std::pair<size_t, expression_type> > breakpoints_t;
 
-
-  //    inline expression_type specialized_kernel(op_element const & op)
-  //    {
-  //      if(op.type==MATRIX_PRODUCT_NN_TYPE) return MATRIX_PRODUCT_NN;
-  //      else if(op.type==MATRIX_PRODUCT_NT_TYPE) return MATRIX_PRODUCT_NT;
-  //      else if(op.type==MATRIX_PRODUCT_TN_TYPE) return MATRIX_PRODUCT_TN;
-  //      else if(op.type==MATRIX_PRODUCT_TT_TYPE) return MATRIX_PRODUCT_TT;
-  //      else if(op.type_family==REDUCE_ROWS) return REDUCE_2D_ROWS;
-  //      else if(op.type_family==REDUCE_COLUMNS) return REDUCE_2D_COLS;
-  //      else if(op.type_family==REDUCE) return REDUCE_1D;
-  //      throw;
-  //    }
-
       inline bool is_elementwise(expression_type type)
       {
         return type == ELEMENTWISE_1D || type == ELEMENTWISE_2D;
@@ -91,11 +78,15 @@ namespace symbolic
           //Arithmetic
           if(op.type_family==UNARY_ARITHMETIC || op.type_family==BINARY_ARITHMETIC)
           {
+            //Non-elementwise kernels are temporaries when reshaped
             if(op.type==RESHAPE_TYPE && !is_elementwise(ltype))
               bp.push_back({lidx, ltype});
+            //Matrix-Products are temporaries when not assigned
             for(expression_type type: std::vector<expression_type>{MATRIX_PRODUCT_NN,MATRIX_PRODUCT_TN,MATRIX_PRODUCT_NT,MATRIX_PRODUCT_TT})
             {
-              if(ltype==type) bp.push_back({lidx, ltype});
+              if(ltype==type){
+                bp.push_back({lidx, ltype});
+              }
               if(rtype==type){
                 if(op.type==ASSIGN_TYPE)
                   return type;
@@ -103,11 +94,15 @@ namespace symbolic
                   bp.push_back({ridx, rtype});
               }
             }
-            for(expression_type type: std::vector<expression_type>{REDUCE_1D, REDUCE_2D_ROWS, REDUCE_2D_COLS})
+            //Reductions
+            for(expression_type type: std::vector<expression_type>{REDUCE_2D_ROWS, REDUCE_2D_COLS, REDUCE_1D})
             {
-              if(ltype==type && rtype!=type && !is_elementwise(rtype)) bp.push_back({ridx, rtype});
-              if(ltype==type || rtype==type) return type;
-              if(op.type==ASSIGN_TYPE && rtype==type) return type;
+              if(ltype==type && !is_elementwise(rtype))
+                bp.push_back({ridx, rtype});
+              if(!is_elementwise(ltype) && rtype==type)
+                bp.push_back({lidx, ltype});
+              if((ltype==type && rtype==ELEMENTWISE_1D) || (ltype==ELEMENTWISE_1D && rtype==type))
+                return type;
             }
         }
       }
@@ -127,7 +122,6 @@ namespace symbolic
     driver::Context const & context = tree.context();
     size_t rootidx = tree.root();
     std::vector<std::shared_ptr<array> > temporaries;
-
     expression_type final_type;
     //MATRIX_PRODUCT
     if(symbolic::preset::matrix_product::args args = symbolic::preset::matrix_product::check(tree.data(), rootidx)){

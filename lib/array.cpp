@@ -727,7 +727,7 @@ expression_tree OPNAME(array_base const & x, int_t axis)\
   if(axis < -1 || axis > x.dim())\
     throw std::out_of_range("The axis entry is out of bounds");\
   else if(axis==-1)\
-    return expression_tree(x, invalid_node(), op_element(REDUCE, OP), &x.context(), x.dtype(), {1});\
+    return expression_tree(ravel(x), invalid_node(), op_element(REDUCE, OP), &x.context(), x.dtype(), {1});\
   else if(axis==0)\
     return expression_tree(x, invalid_node(), op_element(REDUCE_COLUMNS, OP), &x.context(), x.dtype(), {x.shape()[1]});\
   else\
@@ -739,7 +739,7 @@ expression_tree OPNAME(expression_tree const & x, int_t axis)\
   if(axis < -1 || axis > x.dim())\
     throw std::out_of_range("The axis entry is out of bounds");\
   if(axis==-1)\
-    return expression_tree(x, invalid_node(), op_element(REDUCE, OP), &x.context(), x.dtype(), {1});\
+    return expression_tree(ravel(x), invalid_node(), op_element(REDUCE, OP), &x.context(), x.dtype(), {1});\
   else if(axis==0)\
     return expression_tree(x, invalid_node(), op_element(REDUCE_COLUMNS, OP), &x.context(), x.dtype(), {x.shape()[1]});\
   else\
@@ -866,6 +866,9 @@ expression_tree reshape(expression_tree const & x, tuple const & shape)
 {  return expression_tree(x, invalid_node(), op_element(UNARY_ARITHMETIC, RESHAPE_TYPE), &x.context(), x.dtype(), shape); }
 
 expression_tree ravel(array_base const & x)
+{ return reshape(x, {prod(x.shape())}); }
+
+expression_tree ravel(expression_tree const & x)
 { return reshape(x, {prod(x.shape())}); }
 
 #define DEFINE_DOT(LTYPE, RTYPE) \
