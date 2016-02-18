@@ -41,9 +41,7 @@ namespace symbolic
       typedef std::vector<std::pair<size_t, expression_type> > breakpoints_t;
 
       inline bool is_elementwise(expression_type type)
-      {
-        return type == ELEMENTWISE_1D || type == ELEMENTWISE_2D;
-      }
+      { return type == ELEMENTWISE_1D || type == ELEMENTWISE_2D; }
 
       /** @brief Parses the breakpoints for a given expression tree */
       expression_type parse(expression_tree const & tree, size_t idx, breakpoints_t & bp)
@@ -97,6 +95,9 @@ namespace symbolic
             //Reductions
             for(expression_type type: std::vector<expression_type>{REDUCE_2D_ROWS, REDUCE_2D_COLS, REDUCE_1D})
             {
+              if(ltype==type && ltype==rtype && tree[tree[lidx].binary_operator.lhs].shape == tree[tree[ridx].binary_operator.lhs].shape){
+                return type;
+              }
               if(ltype==type && !is_elementwise(rtype))
                 bp.push_back({ridx, rtype});
               if(!is_elementwise(ltype) && rtype==type)
@@ -142,6 +143,7 @@ namespace symbolic
         std::set<size_t> found;
         breakpoints.erase(std::remove_if(breakpoints.begin(), breakpoints.end(), [&](detail::breakpoints_t::value_type const & x){return !found.insert(x.first).second;}), breakpoints.end());
 
+        std::cout << breakpoints.size() << std::endl;
         /*----Compute required temporaries----*/
         for(auto current: breakpoints)
         {

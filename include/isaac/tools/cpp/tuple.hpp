@@ -52,6 +52,7 @@ public:
     int_t& operator[](size_t i) { return data_[i]; }
     int_t operator[](size_t i) const { return data_[i]; }
 
+    bool operator==(tuple const & other) const { return data_==other.data_; }
     operator std::vector<int_t>() const { return data_; }
 private:
     std::vector<int_t> data_;
