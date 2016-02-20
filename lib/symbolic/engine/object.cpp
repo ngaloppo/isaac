@@ -290,6 +290,24 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t root, o
     macros_.insert(make_broadcast(new_shape));
 }
 
+//Transposition
+trans::trans(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
+{
+  add_base("trans");
+  tuple shape = tree[root].shape;
+  std::vector<std::string> args;
+  for(unsigned int i = 0 ; i < numgt1(shape) ; ++i)
+    args.push_back("x" + tools::to_string(i));
+
+  std::vector<std::string> rotated = args;
+  std::rotate(rotated.begin(), rotated.end()-1, rotated.end());
+  macros_.insert("at(" + tools::join(args, ",") + "): " + lhs_->evaluate({{"leaf", "at(" + tools::join(rotated, ",") + ")"}}));
+
+  //Broadcast
+  if(numgt1(shape)!=shape.size())
+    macros_.insert(make_broadcast(shape));
+}
+
 //
 diag_vector::diag_vector(const std::string &scalartype, unsigned int id, size_t root, op_element op, const expression_tree &tree, const symbols_table &table) : index_modifier(scalartype, id, root, op, tree, table)
 {

@@ -876,39 +876,30 @@ expression_tree dot(LTYPE const & x, RTYPE const & y)\
 {\
   numeric_type dtype = x.dtype();\
   driver::Context const & context = x.context();\
-  if(max(x.shape())==1 || max(y.shape())==1)\
-    return x*y;\
-  if(x.dim()==2 && x.shape()[1]==0)\
-    return zeros({x.shape()[0], y.shape()[1]}, dtype, context);\
-  if(x.shape()[0]==0 || (y.dim()==2 && y.shape()[1]==0))\
+  tuple const & xs = x.shape();\
+  tuple const & ys = y.shape();\
+  assert(xs.back()==ys.front());\
+  /*Empty reduction*/\
+  if(xs.back()==0 || ys.front()==0)\
+    return zeros({xs[0], ys[1]}, dtype, context);\
+  /*Empty result*/\
+  if(xs.front()==0 || ys.back()==0)\
     return expression_tree(invalid_node(), invalid_node(), op_element(UNARY_ARITHMETIC, INVALID_TYPE), &context, dtype, {0});\
-  if(x.dim()==1 && y.dim()==1)\
-    return sum(x*y);\
-  if(x.dim()==2 && x.shape()[0]==1 && y.dim()==1){\
-    if(y.shape()[0]==1)\
-        return reshape(x*y, {max(x.shape())});\
-    else\
-        return sum(x*y);\
-  }\
-  if(x.dim()==2 && y.dim()==1){\
-    if(y.shape()[0]==1)\
-        return reshape(x*y, {max(x.shape())});\
-    else\
-        return detail::matvecprod(x, y);\
-  }\
-  if(x.dim()==1 && y.dim()==2){\
-    if(x.shape()[0]==1)\
-        return reshape(x*y, {max(y.shape())});\
-    else\
-        return trans(detail::matvecprod(trans(y), trans(x)));\
-  }\
-  if(x.shape()[0]==1 && y.shape()[1]==1)\
-    return sum(x*trans(y));\
-  if(x.shape()[0]==1 && y.shape()[1]==2)\
-    return trans(detail::matvecprod(trans(y), trans(x)));\
-  if(x.shape()[1]==1 && y.shape()[0]==1)\
+  /*AXPY*/\
+  if(numgt1(xs)==0 || numgt1(ys)==0)\
+    return ravel(x)*ravel(y);\
+  /*Outer product*/\
+  if(xs.back()==1 && ys.front()==1)\
     return x*y;\
-  else /*if(x.dim()==2 && y.dim()==2)*/\
+  /*Inner product*/\
+  if(numgt1(xs)==1 && numgt1(ys)==1)\
+    return sum(ravel(x)*ravel(y));\
+  /*Matrix-Vector*/\
+  if(numgt1(xs)==2 && numgt1(ys)==1)\
+    return detail::matvecprod(x, ravel(y));\
+  if(numgt1(xs)==1 && numgt1(ys)==2)\
+    return trans(detail::matvecprod(trans(y), trans(ravel(x))));\
+  else /*if(numgt1(x)==2 && numgt1(y)==2)*/\
     return detail::matmatprod(x, y);\
 }
 

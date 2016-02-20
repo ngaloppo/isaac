@@ -43,6 +43,17 @@ namespace symbolic
       inline bool is_elementwise(expression_type type)
       { return type == ELEMENTWISE_1D || type == ELEMENTWISE_2D; }
 
+      /** @brief Optimizes the given expression tree */
+//      expression_type optimize(expression_type & tree, size_t idx)
+//      {
+//        expression_tree::node & node = tree[idx];
+//        if(node.type==COMPOSITE_OPERATOR_TYPE)
+//        {
+//          //Remove useless reshape
+//          if(node.binary_operator.op.type==RESHAPE)
+//        }
+//      }
+
       /** @brief Parses the breakpoints for a given expression tree */
       expression_type parse(expression_tree const & tree, size_t idx, breakpoints_t & bp)
       {
@@ -107,7 +118,7 @@ namespace symbolic
             }
         }
       }
-      if(node.shape.size()<=1)
+      if(numgt1(node.shape)<=1)
         return ELEMENTWISE_1D;
       else
         return ELEMENTWISE_2D;
@@ -118,17 +129,19 @@ namespace symbolic
   void execute(execution_handler const & c, profiles::map_type & profiles)
   {
     typedef isaac::array array;
-
     expression_tree tree = c.x();
+    /*----Optimize----*/
+//    detail::optimize(tree);
+    /*----Process-----*/
     driver::Context const & context = tree.context();
     size_t rootidx = tree.root();
     std::vector<std::shared_ptr<array> > temporaries;
     expression_type final_type;
-    //MATRIX_PRODUCT
+    /*----Matrix Product-----*/
     if(symbolic::preset::matrix_product::args args = symbolic::preset::matrix_product::check(tree.data(), rootidx)){
         final_type = args.type;
     }
-    //Default
+    /*----Default-----*/
     else
     {
         expression_tree::node & root = tree[rootidx];
@@ -137,13 +150,11 @@ namespace symbolic
 
         detail::breakpoints_t breakpoints;
         breakpoints.reserve(8);
-
         /*----Parse required temporaries-----*/
         final_type = detail::parse(tree, rootidx, breakpoints);
         std::set<size_t> found;
         breakpoints.erase(std::remove_if(breakpoints.begin(), breakpoints.end(), [&](detail::breakpoints_t::value_type const & x){return !found.insert(x.first).second;}), breakpoints.end());
-
-        std::cout << breakpoints.size() << std::endl;
+//        std::cout << breakpoints.size() << std::endl;
         /*----Compute required temporaries----*/
         for(auto current: breakpoints)
         {

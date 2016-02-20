@@ -183,6 +183,12 @@ public:
   reshape(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
 };
 
+class trans : public index_modifier
+{
+public:
+  trans(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+};
+
 class diag_vector : public index_modifier
 {
 public:

@@ -195,6 +195,8 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
       //Index modifier
       if(op.type==RESHAPE_TYPE)
         table.insert({root, make_symbolic<reshape>(dtype, id, root, op, tree, table)});
+      else if(op.type==TRANS_TYPE)
+        table.insert({root, make_symbolic<trans>(dtype, id, root, op, tree, table)});
       else if(op.type==DIAG_VECTOR_TYPE)
         table.insert({root, make_symbolic<diag_vector>(dtype, id, root, op, tree, table)});
       //Unary arithmetic
