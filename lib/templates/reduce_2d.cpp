@@ -24,6 +24,8 @@
 
 
 #include "isaac/symbolic/engine/process.h"
+#include "isaac/symbolic/expression/io.h"
+
 #include "isaac/templates/engine/keywords.h"
 #include "isaac/templates/engine/stream.h"
 #include "isaac/templates/reduce_2d.h"

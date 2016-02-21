@@ -879,29 +879,36 @@ expression_tree dot(LTYPE const & x, RTYPE const & y)\
   tuple const & xs = x.shape();\
   tuple const & ys = y.shape();\
   assert(xs.back()==ys.front());\
+  std::vector<int_t> shapedata(std::max<size_t>(1,xs.size()-1 + ys.size()-1));\
+  for(size_t i = 0 ; i < shapedata.size() ; ++i){\
+    if(i < xs.size() - 1) shapedata[i] = xs[i];\
+    else shapedata[i] = ys[i - xs.size() + 2];\
+  }\
+  tuple rshape(shapedata);\
   /*Empty reduction*/\
   if(xs.back()==0 || ys.front()==0)\
-    return zeros({xs[0], ys[1]}, dtype, context);\
+    return zeros(rshape, dtype, context);\
   /*Empty result*/\
   if(xs.front()==0 || ys.back()==0)\
     return expression_tree(invalid_node(), invalid_node(), op_element(UNARY_ARITHMETIC, INVALID_TYPE), &context, dtype, {0});\
   /*AXPY*/\
   if(numgt1(xs)==0 || numgt1(ys)==0)\
-    return ravel(x)*ravel(y);\
+    return x*y;\
   /*Outer product*/\
   if(xs.back()==1 && ys.front()==1)\
     return x*y;\
   /*Inner product*/\
   if(numgt1(xs)==1 && numgt1(ys)==1)\
-    return sum(ravel(x)*ravel(y));\
+    return sum(trans(x)*y);\
   /*Matrix-Vector*/\
   if(numgt1(xs)==2 && numgt1(ys)==1)\
-    return detail::matvecprod(x, ravel(y));\
+    return reshape(detail::matvecprod(x, y), rshape);\
   if(numgt1(xs)==1 && numgt1(ys)==2)\
-    return trans(detail::matvecprod(trans(y), trans(ravel(x))));\
+    return reshape(detail::matvecprod(trans(y), ravel(x)), rshape);\
   else /*if(numgt1(x)==2 && numgt1(y)==2)*/\
     return detail::matmatprod(x, y);\
 }
+
 
 DEFINE_DOT(array_base, array_base)
 DEFINE_DOT(expression_tree, array_base)

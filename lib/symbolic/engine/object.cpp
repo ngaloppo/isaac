@@ -229,6 +229,9 @@ buffer::buffer(std::string const & scalartype, unsigned int id, const tuple &sha
   macros_.insert("at(" + tools::join(args, ",") + "): #pointer[" + off + "]");
 
   //Broadcast
+  if(numgt1(shape)==0)
+    macros_.insert("at(i): at()");
+
   if(dim_!=shape.size())
     macros_.insert(make_broadcast(shape));
 
@@ -286,6 +289,9 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t root, o
     macros_.insert("at(i,j): " + lhs_->evaluate({{"leaf","at(((i) + (j)*#new_inc1)%#old_inc1, ((i)+(j)*#new_inc1)/#old_inc1)"}}));
 
   //Broadcast
+  if(numgt1(new_shape)==0)
+    macros_.insert("at(i): at()");
+
   if(new_gt1!=new_shape.size())
     macros_.insert(make_broadcast(new_shape));
 }
@@ -300,10 +306,14 @@ trans::trans(std::string const & scalartype, unsigned int id, size_t root, op_el
     args.push_back("x" + tools::to_string(i));
 
   std::vector<std::string> rotated = args;
-  std::rotate(rotated.begin(), rotated.end()-1, rotated.end());
-  macros_.insert("at(" + tools::join(args, ",") + "): " + lhs_->evaluate({{"leaf", "at(" + tools::join(rotated, ",") + ")"}}));
+  if(rotated.size()>1)
+    std::rotate(rotated.begin(), rotated.end()-1, rotated.end());
 
+  macros_.insert("at(" + tools::join(args, ",") + "): " + lhs_->evaluate({{"leaf", "at(" + tools::join(rotated, ",") + ")"}}));
   //Broadcast
+  if(numgt1(shape)==0)
+    macros_.insert("at(i): at()");
+
   if(numgt1(shape)!=shape.size())
     macros_.insert(make_broadcast(shape));
 }

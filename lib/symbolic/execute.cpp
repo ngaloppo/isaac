@@ -90,31 +90,30 @@ namespace symbolic
             //Non-elementwise kernels are temporaries when reshaped
             if(op.type==RESHAPE_TYPE && !is_elementwise(ltype))
               bp.push_back({lidx, ltype});
-            //Matrix-Products are temporaries when not assigned
-            for(expression_type type: std::vector<expression_type>{MATRIX_PRODUCT_NN,MATRIX_PRODUCT_TN,MATRIX_PRODUCT_NT,MATRIX_PRODUCT_TT})
+            else
             {
-              if(ltype==type){
-                bp.push_back({lidx, ltype});
-              }
-              if(rtype==type){
-                if(op.type==ASSIGN_TYPE)
-                  return type;
-                else
+              //Matrix-Products are temporaries when not assigned
+              for(expression_type type: std::vector<expression_type>{MATRIX_PRODUCT_NN,MATRIX_PRODUCT_TN,MATRIX_PRODUCT_NT,MATRIX_PRODUCT_TT})
+              {
+                if(ltype==type)
+                  bp.push_back({lidx, ltype});
+                if(rtype==type && op.type!=ASSIGN_TYPE)
                   bp.push_back({ridx, rtype});
+                if(rtype==type && op.type==ASSIGN_TYPE)
+                  return type;
               }
-            }
-            //Reductions
-            for(expression_type type: std::vector<expression_type>{REDUCE_2D_ROWS, REDUCE_2D_COLS, REDUCE_1D})
-            {
-              if(ltype==type && ltype==rtype && tree[tree[lidx].binary_operator.lhs].shape == tree[tree[ridx].binary_operator.lhs].shape){
-                return type;
+              //Reductions
+              for(expression_type type: std::vector<expression_type>{REDUCE_2D_ROWS, REDUCE_2D_COLS, REDUCE_1D})
+              {
+                if(ltype==type && ltype==rtype && tree[tree[lidx].binary_operator.lhs].shape == tree[tree[ridx].binary_operator.lhs].shape)
+                  return type;
+                if(ltype==type && !is_elementwise(rtype))
+                  bp.push_back({ridx, rtype});
+                if(!is_elementwise(ltype) && rtype==type)
+                  bp.push_back({lidx, ltype});
+                if((ltype==type && rtype==ELEMENTWISE_1D) || (ltype==ELEMENTWISE_1D && rtype==type))
+                  return type;
               }
-              if(ltype==type && !is_elementwise(rtype))
-                bp.push_back({ridx, rtype});
-              if(!is_elementwise(ltype) && rtype==type)
-                bp.push_back({lidx, ltype});
-              if((ltype==type && rtype==ELEMENTWISE_1D) || (ltype==ELEMENTWISE_1D && rtype==type))
-                return type;
             }
         }
       }
@@ -154,7 +153,6 @@ namespace symbolic
         final_type = detail::parse(tree, rootidx, breakpoints);
         std::set<size_t> found;
         breakpoints.erase(std::remove_if(breakpoints.begin(), breakpoints.end(), [&](detail::breakpoints_t::value_type const & x){return !found.insert(x.first).second;}), breakpoints.end());
-//        std::cout << breakpoints.size() << std::endl;
         /*----Compute required temporaries----*/
         for(auto current: breakpoints)
         {
