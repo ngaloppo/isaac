@@ -250,7 +250,7 @@ buffer::buffer(std::string const & scalartype, unsigned int id, const tuple &sha
     macros_.insert(make_broadcast(shape));
 
   add_base("buffer");
-  add_load(strides[0]==1 && max(shape)>1);
+  add_load(strides[0]==1 && shape[0]>1);
 }
 
 //
