@@ -47,7 +47,7 @@ void object::add_load(bool contiguous)
   if(contiguous)
   {
     macros_.insert("loadv2(i): vload2(0, &at(i))");
-    macros_.insert("loadv2(i, j): vload2(0, &at(i,j))");
+    macros_.insert("loadv2(i,j): vload2(0, &at(i,j))");
     macros_.insert("loadv4(i): vload4(0, &at(i))");
     macros_.insert("loadv4(i,j): vload4(0, &at(i,j))");
   }
