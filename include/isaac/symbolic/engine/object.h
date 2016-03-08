@@ -61,6 +61,7 @@ class object
 {
 protected:
   void add_base(std::string const & name);
+  void add_load(bool contiguous);
 public:
   object(std::string const & scalartype, unsigned int id);
   object(std::string const & scalartype, std::string const & name);
@@ -161,7 +162,7 @@ public:
 class buffer : public array
 {
 public:
-  buffer(std::string const & scalartype, unsigned int id, tuple const & shape);
+  buffer(std::string const & scalartype, unsigned int id, tuple const & shape, tuple const &strides);
   unsigned int dim() const { return dim_; }
 private:
   std::string ld_;

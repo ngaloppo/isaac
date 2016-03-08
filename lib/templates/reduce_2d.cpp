@@ -151,9 +151,9 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
       for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, rd->root(), false))
         if(fetched.insert(sym->process("#name")).second){
           if(reduction_type_==REDUCE_COLUMNS)
-            stream << sym->process(rdtype + " #name = " + append_width("vload",row_simd_width) + "(c,r);") << std::endl;
+            stream << sym->process(rdtype + " #name = " + append_width("loadv",row_simd_width) + "(c,r);") << std::endl;
           else
-            stream << sym->process(cdtype + " #name = " + append_width("vload",col_simd_width) + "(r,c);") << std::endl;
+            stream << sym->process(cdtype + " #name = " + append_width("loadv",col_simd_width) + "(r,c);") << std::endl;
         }
     //Compute
     for (symbolic::reduce_2d* rd : reductions)
@@ -314,17 +314,10 @@ std::vector<int_t> reduce_2d::input_sizes(expression_tree const & tree) const
   return {shape[0], shape[1]};
 }
 
-void reduce_2d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base & fallback, execution_handler const & control)
+void reduce_2d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base &, execution_handler const & control)
 {
   expression_tree const & tree = control.x();
   std::vector<int_t> MN = input_sizes(tree);
-
-  //Fallback
-  if(p_.simd_width>1 && requires_fallback(tree))
-  {
-      fallback.enqueue(queue, program, "fallback", fallback, control);
-      return;
-  }
 
   //Kernel
   std::string name[2] = {"prod", "reduce"};

@@ -78,6 +78,7 @@ std::string hash(expression_tree const & expression)
     {
       for(int i = 0 ; i < node.array->dim() ; ++i)
         *ptr++= node.array->shape()[i]>1?'n':'1';
+      if(node.array->stride()[0]>1) *ptr++= 's';
       numeric_type dtype = node.array->dtype();
       *ptr++=(char)dtype;
       tools::fast_append(ptr, binder.get(node.array, false));
@@ -184,7 +185,7 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
       table.insert({root, make_symbolic<host_scalar>(dtype, binder->get())});
     else if(node.type==DENSE_ARRAY_TYPE){
       bool is_assigned = std::find(assignee.begin(), assignee.end(), root)!=assignee.end();
-      table.insert({root, make_symbolic<buffer>(dtype, binder->get(node.array, is_assigned), node.array->shape())});
+      table.insert({root, make_symbolic<buffer>(dtype, binder->get(node.array, is_assigned), node.array->shape(), node.array->stride())});
     }
     else if(node.type==PLACEHOLDER_TYPE)
       table.insert({root, make_symbolic<placeholder>(node.ph.level)});

@@ -160,7 +160,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
      for (symbolic::reduce_1d* rd : reductions)
        for(symbolic::leaf* leaf: symbolic::extract<symbolic::leaf>(tree, symbols, rd->root(), false))
           if(fetched.insert(leaf->process("#name")).second)
-            stream << leaf->process(dtype + " #name = " + append_width("vload", simd_width) + "(i);") << std::endl;
+            stream << leaf->process(dtype + " #name = " + append_width("loadv", simd_width) + "(i);") << std::endl;
     //Update accumulators
     for (symbolic::reduce_1d* rd : reductions)
       for (unsigned int s = 0; s < simd_width; ++s)
@@ -271,43 +271,35 @@ std::vector<int_t> reduce_1d::input_sizes(expression_tree const  & x) const
   return {max(x[lhs].shape)};
 }
 
-void reduce_1d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base & fallback, execution_handler const & control)
+void reduce_1d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, base &, execution_handler const & control)
 {
   expression_tree const  & x = control.x();
 
   //Preprocessing
   int_t size = input_sizes(x)[0];
 
-  //fallback
-  if(p_.simd_width > 1 && (requires_fallback(x) || (size%p_.simd_width>0)))
+  //Kernel
+  std::string name[2] = {"prod", "reduce"};
+  name[0] += suffix;
+  name[1] += suffix;
+
+  driver::Kernel kernels[2] = { driver::Kernel(program,name[0].c_str()), driver::Kernel(program,name[1].c_str()) };
+
+  //NDRange
+  driver::NDRange global[2] = { driver::NDRange(p_.local_size_0*p_.num_groups), driver::NDRange(p_.local_size_0) };
+  driver::NDRange local[2] = { driver::NDRange(p_.local_size_0), driver::NDRange(p_.local_size_0) };
+  //Arguments
+  for (auto & kernel : kernels)
   {
-    fallback.enqueue(queue, program, "fallback", fallback, control);
+    unsigned int n_arg = 0;
+    kernel.setSizeArg(n_arg++, size);
+    kernel.setArg(n_arg++, driver::backend::workspaces::get(queue));
+    symbolic::set_arguments(x, kernel, n_arg, fusion_policy_);
   }
-  else
-  {
-    //Kernel
-    std::string name[2] = {"prod", "reduce"};
-    name[0] += suffix;
-    name[1] += suffix;
 
-    driver::Kernel kernels[2] = { driver::Kernel(program,name[0].c_str()), driver::Kernel(program,name[1].c_str()) };
-
-    //NDRange
-    driver::NDRange global[2] = { driver::NDRange(p_.local_size_0*p_.num_groups), driver::NDRange(p_.local_size_0) };
-    driver::NDRange local[2] = { driver::NDRange(p_.local_size_0), driver::NDRange(p_.local_size_0) };
-    //Arguments
-    for (auto & kernel : kernels)
-    {
-      unsigned int n_arg = 0;
-      kernel.setSizeArg(n_arg++, size);
-      kernel.setArg(n_arg++, driver::backend::workspaces::get(queue));
-      symbolic::set_arguments(x, kernel, n_arg, fusion_policy_);
-    }
-
-    for (unsigned int k = 0; k < 2; k++)
-      control.execution_options().enqueue(program.context(), kernels[k], global[k], local[k]);
-    queue.synchronize();
-  }
+  for (unsigned int k = 0; k < 2; k++)
+    control.execution_options().enqueue(program.context(), kernels[k], global[k], local[k]);
+  queue.synchronize();
 }
 
 }

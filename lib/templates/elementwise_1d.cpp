@@ -97,7 +97,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
 
     //Load to registers
     for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assignments_rhs, false))
-      stream << sym->process(dtype + " #name = " + append_width("vload", simd_width) + "(i);") << std::endl;
+      stream << sym->process(dtype + " #name = " + append_width("loadv", simd_width) + "(i);") << std::endl;
 
     //Compute
     for(size_t idx: assignments)

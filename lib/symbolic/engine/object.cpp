@@ -39,6 +39,27 @@ void object::add_base(const std::string &name)
 object::object(std::string const & scalartype, unsigned int id): object(scalartype, "obj" + tools::to_string(id))
 {}
 
+void object::add_load(bool contiguous)
+{
+  macros_.insert("loadv(i): at(i)");
+  macros_.insert("loadv(i,j): at(i,j)");
+
+  if(contiguous)
+  {
+    macros_.insert("loadv2(i): vload2(0, &at(i))");
+    macros_.insert("loadv2(i, j): vload2(0, &at(i,j))");
+    macros_.insert("loadv4(i): vload4(0, &at(i))");
+    macros_.insert("loadv4(i,j): vload4(0, &at(i,j))");
+  }
+  else
+  {
+    macros_.insert("loadv2(i): (#scalartype2)(at(i), at(i+1))");
+    macros_.insert("loadv2(i,j): (#scalartype2)(at(i,j), at(i+1,j))");
+    macros_.insert("loadv4(i): (#scalartype4)(at(i), at(i+1), at(i+2), at(i+3))");
+    macros_.insert("loadv4(i,j): (#scalartype4)(at(i,j), at(i+1,j), at(i+2,j), at(i+3,j))");
+  }
+}
+
 object::object(std::string const & scalartype, std::string const & name)
 {
   add_base("object");
@@ -46,15 +67,6 @@ object::object(std::string const & scalartype, std::string const & name)
   //attributes
   attributes_["scalartype"] = scalartype;
   attributes_["name"]       = name;
-
-  //macros
-  macros_.insert("vload(i): at(i)");
-  macros_.insert("vload2(i): (#scalartype2)(at(i), at(i+1))");
-  macros_.insert("vload4(i): (#scalartype4)(at(i), at(i+1), at(i+2), at(i+3))");
-
-  macros_.insert("vload(i,j): at(i,j)");
-  macros_.insert("vload2(i,j): (#scalartype2)(at(i,j), at(i+1,j))");
-  macros_.insert("vload4(i,j): (#scalartype4)(at(i,j), at(i+1,j), at(i+2,j), at(i+3,j))");
 }
 
 object::~object()
@@ -172,6 +184,7 @@ placeholder::placeholder(unsigned int level) : leaf("int", "sforidx" + tools::to
   macros_.insert("at(i,j): #name");
 
   add_base("placebolder");
+  add_load(false);
 }
 
 //
@@ -182,6 +195,7 @@ host_scalar::host_scalar(std::string const & scalartype, unsigned int id) : leaf
   macros_.insert("at(i,j): #name_value");
 
   add_base("host_scalar");
+  add_load(false);
 }
 
 //
@@ -206,7 +220,7 @@ std::string array::make_broadcast(const tuple &shape)
 }
 
 //
-buffer::buffer(std::string const & scalartype, unsigned int id, const tuple &shape) : array(scalartype, id), dim_(numgt1(shape))
+buffer::buffer(std::string const & scalartype, unsigned int id, const tuple &shape, tuple const & strides) : array(scalartype, id), dim_(numgt1(shape))
 {
   //Attributes
   attributes_["off"] = process("#name_off");
@@ -236,11 +250,15 @@ buffer::buffer(std::string const & scalartype, unsigned int id, const tuple &sha
     macros_.insert(make_broadcast(shape));
 
   add_base("buffer");
+  add_load(strides[0]==1 && max(shape)>1);
 }
 
 //
 index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : array(scalartype, id), node(root, op, tree, table)
-{ add_base("index_modifier"); }
+{
+  add_base("index_modifier");
+  add_load(false);
+}
 
 //Reshaping
 reshape::reshape(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
