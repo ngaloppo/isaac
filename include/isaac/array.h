@@ -295,15 +295,15 @@ ISAACAPI expression_tree norm(expression_tree const &, unsigned int order = 2);
 
 //Matrix reduction
 
-#define ISAAC_DECLARE_DOT(OPNAME) \
+#define ISAAC_DECLARE_REDUCTION(OPNAME) \
 ISAACAPI expression_tree OPNAME(array_base const & M, int_t axis = -1);\
 ISAACAPI expression_tree OPNAME(expression_tree const & M, int_t axis = -1);
 
-ISAAC_DECLARE_DOT(sum)
-ISAAC_DECLARE_DOT(argmax)
-ISAAC_DECLARE_DOT((max))
-ISAAC_DECLARE_DOT((min))
-ISAAC_DECLARE_DOT(argmin)
+ISAAC_DECLARE_REDUCTION(sum)
+ISAAC_DECLARE_REDUCTION(argmax)
+ISAAC_DECLARE_REDUCTION((max))
+ISAAC_DECLARE_REDUCTION((min))
+ISAAC_DECLARE_REDUCTION(argmin)
 
 //Fusion
 ISAACAPI expression_tree fuse(expression_tree const & x, expression_tree const & y);
