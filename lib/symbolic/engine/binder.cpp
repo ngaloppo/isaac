@@ -24,47 +24,34 @@
 namespace isaac
 {
 
+//Base
 symbolic_binder::~symbolic_binder()
-{
-}
+{}
 
-symbolic_binder::symbolic_binder() : current_arg_(0)
-{
-}
+symbolic_binder::symbolic_binder(driver::backend_type backend) : current_arg_(0), memory(backend)
+{}
 
 unsigned int symbolic_binder::get()
-{
-    return current_arg_++;
-}
+{ return current_arg_++; }
 
 //Sequential
-bind_sequential::bind_sequential()
-{
-}
+bind_sequential::bind_sequential(driver::backend_type backend) : symbolic_binder(backend)
+{ }
 
-bool bind_sequential::bind(array_base const * a, bool)
-{
-    return memory.insert(std::make_pair(a, current_arg_)).second;
-}
+bool bind_sequential::bind(handle_t const & h, bool)
+{ return memory.insert(std::make_pair(h, current_arg_)).second; }
 
-unsigned int bind_sequential::get(array_base const * a, bool is_assigned)
-{
-    return bind(a, is_assigned)?current_arg_++:memory.at(a);
-}
+unsigned int bind_sequential::get(handle_t const & h, bool is_assigned)
+{ return bind(h, is_assigned)?current_arg_++:memory.at(h); }
 
 //Independent
-bind_independent::bind_independent()
-{
-}
+bind_independent::bind_independent(driver::backend_type backend) : symbolic_binder(backend)
+{ }
 
-bool bind_independent::bind(array_base const * a, bool is_assigned)
-{
-    return is_assigned?true:memory.insert(std::make_pair(a, current_arg_)).second;
-}
+bool bind_independent::bind(handle_t const & h, bool is_assigned)
+{ return is_assigned?true:memory.insert(std::make_pair(h, current_arg_)).second; }
 
-unsigned int bind_independent::get(array_base const * a, bool is_assigned)
-{
-    return bind(a, is_assigned)?current_arg_++:memory.at(a);
-}
+unsigned int bind_independent::get(handle_t const & h, bool is_assigned)
+{ return bind(h, is_assigned)?current_arg_++:memory.at(h); }
 
 }

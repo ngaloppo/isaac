@@ -65,29 +65,30 @@ std::vector<size_t> rhs_of(expression_tree const & tree, std::vector<size_t> con
 
 
 // Hash
-std::string hash(expression_tree const & expression)
+std::string hash(expression_tree const & tree)
 {
+  driver::backend_type backend = tree.context().backend();
+
   char program_name[256];
   char* ptr = program_name;
-  bind_independent binder;
+  bind_independent binder(backend);
 
   auto hash_impl = [&](size_t idx)
   {
-    expression_tree::node const & node = expression.data()[idx];
+    expression_tree::node const & node = tree.data()[idx];
     if(node.type==DENSE_ARRAY_TYPE)
     {
-      for(int i = 0 ; i < node.array->dim() ; ++i)
-        *ptr++= node.array->shape()[i]>1?'n':'1';
-      if(node.array->stride()[0]>1) *ptr++= 's';
-      numeric_type dtype = node.array->dtype();
-      *ptr++=(char)dtype;
-      tools::fast_append(ptr, binder.get(node.array, false));
+      for(size_t i = 0 ; i < node.shape.size() ; ++i)
+        *ptr++= node.shape[i]>1?'n':'1';
+      if(node.array.ld[0]>1) *ptr++= 's';
+      *ptr++=(char)node.dtype;
+      tools::fast_append(ptr, binder.get(node.array.handle, false));
     }
     else if(node.type==COMPOSITE_OPERATOR_TYPE)
       tools::fast_append(ptr,node.binary_operator.op.type);
   };
 
-  traverse(expression, hash_impl);
+  traverse(tree, hash_impl);
 
   *ptr='\0';
 
@@ -97,12 +98,14 @@ std::string hash(expression_tree const & expression)
 //Set arguments
 void set_arguments(expression_tree const & tree, driver::Kernel & kernel, unsigned int & current_arg, fusion_policy_t fusion_policy)
 {
+  driver::backend_type backend = tree.context().backend();
+
   //Create binder
   std::unique_ptr<symbolic_binder> binder;
   if (fusion_policy==FUSE_SEQUENTIAL)
-      binder.reset(new bind_sequential());
+      binder.reset(new bind_sequential(backend));
   else
-      binder.reset(new bind_independent());
+      binder.reset(new bind_independent(backend));
 
   //assigned
   std::vector<size_t> assignee = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
@@ -116,17 +119,20 @@ void set_arguments(expression_tree const & tree, driver::Kernel & kernel, unsign
       kernel.setArg(current_arg++,value_scalar(node.scalar,node.dtype));
     else if(node.type==DENSE_ARRAY_TYPE)
     {
-      array_base const * array = node.array;
+      array_holder const & array = node.array;
       bool is_assigned = std::find(assignee.begin(), assignee.end(), index)!=assignee.end();
-      bool is_bound = binder->bind(array, is_assigned);
+      bool is_bound = binder->bind(array.handle, is_assigned);
       if (is_bound)
       {
-          kernel.setArg(current_arg++, array->data());
-          kernel.setSizeArg(current_arg++, array->start());
-          for(int_t i = 0 ; i < array->dim() ; i++)
+          if(backend==driver::OPENCL)
+            kernel.setArg(current_arg++, array.handle.cl);
+          else
+            kernel.setArg(current_arg++, array.handle.cu);
+          kernel.setSizeArg(current_arg++, array.start);
+          for(size_t i = 0 ; i < node.shape.size() ; i++)
           {
-            if(array->shape()[i] > 1)
-              kernel.setSizeArg(current_arg++, array->stride()[i]);
+            if(node.shape[i] > 1)
+              kernel.setSizeArg(current_arg++, array.ld[i]);
           }
       }
     }
@@ -134,7 +140,7 @@ void set_arguments(expression_tree const & tree, driver::Kernel & kernel, unsign
     {
       tuple const & new_shape = node.shape;
       int_t current = 1;
-      for(unsigned int i = 1 ; i < new_shape.size() ; ++i){
+      for(size_t i = 1 ; i < new_shape.size() ; ++i){
         current *= new_shape[i-1];
         if(new_shape[i] > 1)
           kernel.setSizeArg(current_arg++, current);
@@ -164,13 +170,15 @@ std::shared_ptr<object> make_symbolic(Args&&... args)
 
 symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree const & tree)
 {
+  driver::backend_type backend = tree.context().backend();
+
   //binder
   symbols_table table;
   std::unique_ptr<symbolic_binder> binder;
   if (fusion_policy==FUSE_SEQUENTIAL)
-      binder.reset(new bind_sequential());
+      binder.reset(new bind_sequential(backend));
   else
-      binder.reset(new bind_independent());
+      binder.reset(new bind_independent(backend));
 
   //assigned
   std::vector<size_t> assignee = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
@@ -185,7 +193,7 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
       table.insert({root, make_symbolic<host_scalar>(dtype, binder->get())});
     else if(node.type==DENSE_ARRAY_TYPE){
       bool is_assigned = std::find(assignee.begin(), assignee.end(), root)!=assignee.end();
-      table.insert({root, make_symbolic<buffer>(dtype, binder->get(node.array, is_assigned), node.array->shape(), node.array->stride())});
+      table.insert({root, make_symbolic<buffer>(dtype, binder->get(node.array.handle, is_assigned), node.shape, node.array.ld)});
     }
     else if(node.type==PLACEHOLDER_TYPE)
       table.insert({root, make_symbolic<placeholder>(node.ph.level)});

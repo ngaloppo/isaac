@@ -24,6 +24,7 @@
 
 #include <vector>
 #include <iostream>
+#include <iterator>
 #include "isaac/defines.h"
 #include "isaac/types.h"
 
@@ -60,8 +61,10 @@ private:
 
 inline ISAACAPI std::ostream& operator<<(std::ostream & oss, tuple const &tp)
 {
-  for(int_t x: tp.data_)
-    oss << x << ',';
+  std::copy(tp.data_.begin(), tp.data_.end() - 1, std::ostream_iterator<int_t>(oss, ","));
+  oss << tp.data_.back();
+  if(tp.size()==1)
+    oss << ",";
   return oss;
 }
 

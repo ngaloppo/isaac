@@ -49,7 +49,7 @@ struct slice
   int_t end;
   int_t stride;
 };
-static const slice all = slice(start, end, 1);
+static const slice all = slice{start, end, 1};
 
 }
 #endif

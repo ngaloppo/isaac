@@ -135,8 +135,8 @@ numeric_type array_base::dtype() const
 tuple const & array_base::shape() const
 { return shape_; }
 
-int_t array_base::dim() const
-{ return (int_t)shape_.size(); }
+size_t array_base::dim() const
+{ return shape_.size(); }
 
 int_t array_base::start() const
 { return start_; }
@@ -313,6 +313,11 @@ view array_base::operator()(slice const & si, slice const & sj)
   return view(*this, si, sj);
 }
 
+const view array_base::operator()(int_t i, int_t j) const { return ((array_base&)(*this))(i,j); }
+const view array_base::operator()(slice const & i, int_t j) const { return ((array_base&)(*this))(i,j); }
+const view array_base::operator()(int_t i, slice const & j) const { return ((array_base&)(*this))(i,j); }
+const view array_base::operator()(slice const & i, slice const & j) const { return ((array_base&)(*this))(i,j); }
+
 //---------------------------------------
 /*--- array ---*/
 
@@ -327,7 +332,7 @@ array::array(array const &other): array((array_base const &)other)
 
 //---------------------------------------
 /*--- View ---*/
-view::view(array & data) : array_base(data){}
+view::view(array_base & data) : array_base(data){}
 view::view(array_base& data, slice const & s1) : array_base(data, s1) {}
 view::view(array_base& data, slice const & s1, slice const & s2) : array_base(data, s1, s2) {}
 view::view(int_t size1, numeric_type dtype, driver::Buffer data, int_t start, int_t inc) : array_base(size1, dtype, data, start, inc) {}
@@ -724,7 +729,7 @@ expression_tree trans(expression_tree const & x) \
 #define DEFINE_REDUCTION(OP, OPNAME)\
 expression_tree OPNAME(array_base const & x, int_t axis)\
 {\
-  if(axis < -1 || axis > x.dim())\
+  if(axis < -1 || axis > (int_t)x.dim())\
     throw std::out_of_range("The axis entry is out of bounds");\
   else if(axis==-1)\
     return expression_tree(ravel(x), invalid_node(), op_element(REDUCE, OP), &x.context(), x.dtype(), {1});\

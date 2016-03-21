@@ -69,7 +69,7 @@ public:
   //Getters
   numeric_type dtype() const;
   tuple const & shape() const;
-  int_t dim() const;
+  size_t dim() const;
   int_t start() const;
   tuple const & stride() const;
   driver::Context const & context() const;
@@ -114,6 +114,10 @@ public:
   view operator()(slice const &, int_t);
   view operator()(int_t, slice const &);
   view operator()(slice const &, slice const &);
+  const view operator()(int_t, int_t) const;
+  const view operator()(slice const &, int_t) const;
+  const view operator()(int_t, slice const &) const;
+  const view operator()(slice const &, slice const &) const;
 
 
 protected:
@@ -144,7 +148,7 @@ public:
 class ISAACAPI view : public array_base
 {
 public:
-  view(array & data);
+  view(array_base & data);
   view(array_base& data, slice const & s1);
   view(array_base& data, slice const & s1, slice const & s2);
   view(int_t size1, numeric_type dtype, driver::Buffer data, int_t start, int_t inc);

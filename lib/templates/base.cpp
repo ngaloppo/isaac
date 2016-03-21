@@ -49,7 +49,7 @@ base::parameters_type::parameters_type(unsigned int _simd_width, int_t _local_si
 bool base::requires_fallback(expression_tree const  & expression)
 {
   for(expression_tree::node const & node: expression.data())
-    if(node.type==DENSE_ARRAY_TYPE && (node.array->stride()[0]>1 || node.array->start()>0))
+    if(node.type==DENSE_ARRAY_TYPE && (node.array.ld[0]>1 || node.array.start>0))
       return true;
   return false;
 }

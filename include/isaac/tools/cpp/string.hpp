@@ -32,9 +32,8 @@ namespace tools
 {
 
 template<class T>
-inline std::string to_string ( T const t )
+inline typename std::enable_if<std::is_fundamental<T>::value, std::string>::type to_string ( T const t )
 {
-
 #if defined(ANDROID) || defined(__CYGWIN__)
   std::stringstream ss;
   ss << t;
@@ -42,6 +41,14 @@ inline std::string to_string ( T const t )
 #else
   return  std::to_string(t);
 #endif
+}
+
+template<class T>
+inline typename std::enable_if<!std::is_fundamental<T>::value, std::string>::type to_string ( T const t )
+{
+  std::stringstream ss;
+  ss << t;
+  return ss.str();
 }
 
 inline std::vector<std::string> &split(const std::string &str, char delim, std::vector<std::string> &res)

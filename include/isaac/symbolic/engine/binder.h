@@ -24,6 +24,7 @@
 
 #include <map>
 #include "isaac/driver/buffer.h"
+#include "isaac/symbolic/expression/expression.h"
 
 namespace isaac
 {
@@ -37,35 +38,51 @@ enum fusion_policy_t
   FUSE_SEQUENTIAL
 };
 
-
 class symbolic_binder
 {
+  class cmp
+  {
+  public:
+    cmp(driver::backend_type backend) : backend_(backend) {}
+
+    bool operator()(handle_t const & x, handle_t const & y) const
+    {
+      if(backend_==driver::OPENCL)
+        return x.cl < y.cl;
+      else
+        return x.cu < y.cu;
+    }
+
+  private:
+    driver::backend_type backend_;
+  };
+
 public:
-  symbolic_binder();
+  symbolic_binder(driver::backend_type backend);
   virtual ~symbolic_binder();
-  virtual bool bind(array_base const * a, bool) = 0;
-  virtual unsigned int get(array_base const * a, bool) = 0;
+  virtual bool bind(handle_t const &, bool) = 0;
+  virtual unsigned int get(handle_t const &, bool) = 0;
   unsigned int get();
 protected:
   unsigned int current_arg_;
-  std::map<array_base const *,unsigned int> memory;
+  std::map<handle_t,unsigned int, cmp> memory;
 };
 
 
 class bind_sequential : public symbolic_binder
 {
 public:
-  bind_sequential();
-  bool bind(array_base const * a, bool);
-  unsigned int get(array_base const * a, bool);
+  bind_sequential(driver::backend_type backend);
+  bool bind(handle_t const & a, bool);
+  unsigned int get(handle_t const & a, bool);
 };
 
 class bind_independent : public symbolic_binder
 {
 public:
-  bind_independent();
-  bool bind(array_base const * a, bool);
-  unsigned int get(array_base const * a, bool);
+  bind_independent(driver::backend_type backend);
+  bool bind(handle_t const & a, bool);
+  unsigned int get(const handle_t &a, bool);
 };
 
 }

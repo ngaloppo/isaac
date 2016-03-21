@@ -19,8 +19,8 @@
  * MA 02110-1301  USA
  */
 
-#ifndef _ISAAC_SCHEDULER_EXECUTE_H
-#define _ISAAC_SCHEDULER_EXECUTE_H
+#ifndef _ISAAC_SYMBOLIC_EXECUTE_H
+#define _ISAAC_SYMBOLIC_EXECUTE_H
 
 #include "isaac/profiles/profiles.h"
 #include "isaac/symbolic/expression/expression.h"

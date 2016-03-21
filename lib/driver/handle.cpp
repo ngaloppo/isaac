@@ -100,6 +100,10 @@ bool Handle<CLType, CUType>::operator==(Handle const & other) const
 }
 
 template<class CLType, class CUType>
+bool Handle<CLType, CUType>::operator!=(Handle const & other) const
+{ return !((*this)==other); }
+
+template<class CLType, class CUType>
 bool Handle<CLType, CUType>::operator<(Handle const & other) const
 {
   if(backend_==CUDA && other.backend_==CUDA)

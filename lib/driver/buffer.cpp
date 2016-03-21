@@ -66,6 +66,9 @@ bool Buffer::operator==(Buffer const & other) const
 bool Buffer::operator<(Buffer const & other) const
 { return h_<other.h_; }
 
+bool Buffer::operator!=(Buffer const & other) const
+{ return h_!=other.h_; }
+
 HANDLE_TYPE(cl_mem, CUdeviceptr) & Buffer::handle()
 { return h_; }
 

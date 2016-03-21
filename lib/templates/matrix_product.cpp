@@ -588,8 +588,8 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 #undef VST0RE
   }
 
-  void matrix_product::enqueue_block(driver::CommandQueue & /*queue*/, int_t M, int_t N, int_t K,
-                     array_base const & A, array_base const & B, array_base const & C,
+  void matrix_product::enqueue_block(driver::CommandQueue & queue, int_t M, int_t N, int_t K,
+                     array_holder const & A, array_holder const & B, array_holder const & C,
                      value_scalar const & alpha, value_scalar const & beta,
                      driver::Program const & program, std::string const & suffix, execution_options_type const & options)
   {
@@ -597,6 +597,8 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
     if(M==0 || N==0 || K==0)
       return;
+
+    driver::backend_type backend = queue.context().backend();
 
     std::string matrix_product_name = "matrix_product";
     std::string reduce_name = "reduce";
@@ -610,16 +612,19 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
     unsigned int current_arg = 0;
 
-    driver::Buffer& workspace = driver::backend::workspaces::get(options.queue(C.context()));
+    driver::Buffer& workspace = driver::backend::workspaces::get(options.queue(queue.context()));
     matrix_product.setSizeArg(current_arg++, M);
     matrix_product.setSizeArg(current_arg++, N);
     matrix_product.setSizeArg(current_arg++, K);
     if(p_.depth==1)
     {
-        matrix_product.setArg(current_arg++,C.data());
-        matrix_product.setSizeArg(current_arg++, C.stride()[1]);
-        matrix_product.setSizeArg(current_arg++, C.start());
-        matrix_product.setSizeArg(current_arg++, C.stride()[0]);
+        if(backend==driver::OPENCL)
+          matrix_product.setArg(current_arg++, C.handle.cl);
+        else
+          matrix_product.setArg(current_arg++, C.handle.cu);
+        matrix_product.setSizeArg(current_arg++, C.ld[1]);
+        matrix_product.setSizeArg(current_arg++, C.start);
+        matrix_product.setSizeArg(current_arg++, C.ld[0]);
     }
     else
     {
@@ -631,15 +636,21 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
 
     matrix_product.setArg(current_arg++, alpha);
-    matrix_product.setArg(current_arg++, A.data());
-    matrix_product.setSizeArg(current_arg++, A.stride()[1]);
-    matrix_product.setSizeArg(current_arg++, A.start());
-    matrix_product.setSizeArg(current_arg++, A.stride()[0]);
+    if(backend==driver::OPENCL)
+      matrix_product.setArg(current_arg++, A.handle.cl);
+    else
+      matrix_product.setArg(current_arg++, A.handle.cu);
+    matrix_product.setSizeArg(current_arg++, A.ld[1]);
+    matrix_product.setSizeArg(current_arg++, A.start);
+    matrix_product.setSizeArg(current_arg++, A.ld[0]);
 
-    matrix_product.setArg(current_arg++, B.data());
-    matrix_product.setSizeArg(current_arg++, B.stride()[1]);
-    matrix_product.setSizeArg(current_arg++, B.start());
-    matrix_product.setSizeArg(current_arg++, B.stride()[0]);
+    if(backend==driver::OPENCL)
+      matrix_product.setArg(current_arg++, B.handle.cl);
+    else
+      matrix_product.setArg(current_arg++, B.handle.cu);
+    matrix_product.setSizeArg(current_arg++, B.ld[1]);
+    matrix_product.setSizeArg(current_arg++, B.start);
+    matrix_product.setSizeArg(current_arg++, B.ld[0]);
 
     matrix_product.setArg(current_arg++, beta);
     options.enqueue(program.context(), matrix_product, global, local);
@@ -655,10 +666,13 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
       reduce.setSizeArg(current_arg++, p_.depth);
       reduce.setArg(current_arg++, workspace);
       reduce.setSizeArg(current_arg++, M);
-      reduce.setArg(current_arg++, C.data());
-      reduce.setSizeArg(current_arg++, C.stride()[1]);
-      reduce.setSizeArg(current_arg++, C.start());
-      reduce.setSizeArg(current_arg++, C.stride()[0]);
+      if(backend==driver::OPENCL)
+        matrix_product.setArg(current_arg++, C.handle.cl);
+      else
+        matrix_product.setArg(current_arg++, C.handle.cu);
+      reduce.setSizeArg(current_arg++, C.ld[1]);
+      reduce.setSizeArg(current_arg++, C.start);
+      reduce.setSizeArg(current_arg++, C.ld[0]);
       reduce.setArg(current_arg++, beta);
       options.enqueue(program.context(), reduce, global, local);
     }
@@ -670,9 +684,9 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     expression_tree::data_type const & array = tree.data();
     std::size_t root = tree.root();
     arguments = symbolic::preset::matrix_product::check(array, root);
-    int_t M = arguments.C->array->shape()[0];
-    int_t N = arguments.C->array->shape()[1];
-    int_t K = (A_trans_=='T')?arguments.A->array->shape()[0]:arguments.A->array->shape()[1];
+    int_t M = arguments.C->shape[0];
+    int_t N = arguments.C->shape[1];
+    int_t K = (A_trans_=='T')?arguments.A->shape[0]:arguments.A->shape[1];
     return {M, N, K};
   }
 
@@ -709,21 +723,15 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
       return;
 
     //Extract
-    array_base * pA = args.A->array;
-    array_base * pB = args.B->array;
-    array_base * pC = args.C->array;
-
-    //Check if requires fallback
-    int_t ldstrideA = pA->stride()[0];
-    int_t ldstrideB = pB->stride()[0];
-    int_t ldstrideC = pC->stride()[0];
-
+    array_holder const & A = args.A->array;
+    array_holder const & B = args.B->array;
+    array_holder const & C = args.C->array;
     //Enqueue
     execution_options_type const & options = control.execution_options();
-    if (ldstrideA> 1 || ldstrideB > 1 || ldstrideC > 1)
-      fallback.enqueue_block(queue, M, N, K, *pA, *pB, *pC, args.alpha, args.beta, program, "fallback", options);
+    if (A.ld[0] > 1 || B.ld[0] > 1 || C.ld[0] > 1)
+      fallback.enqueue_block(queue, M, N, K, A, B, C, args.alpha, args.beta, program, "fallback", options);
     else
-      enqueue_block(queue,  M, N, K, *pA, *pB, *pC, args.alpha, args.beta, program, suffix, options);
+      enqueue_block(queue,  M, N, K, A, B, C, args.alpha, args.beta, program, suffix, options);
   }
 
   //

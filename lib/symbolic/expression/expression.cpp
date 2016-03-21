@@ -61,7 +61,10 @@ expression_tree::node::node(array_base const & x)
   type = DENSE_ARRAY_TYPE;
   dtype = x.dtype();
   shape = x.shape();
-  array = (array_base*)&x;
+  array.ld = x.stride();
+  array.start = x.start();
+  array.handle.cl = x.data().handle().cl();
+  array.handle.cu = x.data().handle().cu();
 }
 
 expression_tree::node::node(int_t lhs, op_element op, int_t rhs, numeric_type dt, tuple const & sh)

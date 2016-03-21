@@ -22,6 +22,7 @@
 #ifndef _ISAAC_SYMBOLIC_EXPRESSION_H
 #define _ISAAC_SYMBOLIC_EXPRESSION_H
 
+#include <utility>
 #include <vector>
 #include <list>
 #include "isaac/driver/backend.h"
@@ -69,6 +70,18 @@ enum node_type
   PLACEHOLDER_TYPE
 };
 
+struct handle_t
+{
+  cl_mem cl;
+  CUdeviceptr cu;
+};
+
+struct array_holder
+{
+  int_t start;
+  tuple ld;
+  handle_t handle;
+};
 
 class expression_tree
 {
@@ -83,6 +96,14 @@ public:
     node(array_base const & x);
     node(int_t lhs, op_element op, int_t rhs, numeric_type dtype, tuple const & shape);
 
+    node(node const &);
+    ~node();
+    node& operator=(node const &);
+
+    //Comparison
+//    bool operator==(node const & other);
+//    bool operator!=(node const & other);
+
     //Common
     node_type type;
     numeric_type dtype;
@@ -91,13 +112,17 @@ public:
     //Type-specific
     union
     {
+      //Binary Operator
       struct{
         int_t lhs;
         op_element op;
         int_t rhs;
       }binary_operator;
+      //Scalar
       values_holder scalar;
-      array_base* array;
+      //Array
+      array_holder array;
+      //Placeholder
       placeholder ph;
     };
   };
@@ -122,6 +147,7 @@ public:
 
   expression_tree operator-();
   expression_tree operator!();
+
 private:
   data_type tree_;
   std::size_t root_;

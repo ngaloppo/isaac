@@ -25,6 +25,7 @@
 
 #include "isaac/symbolic/expression/io.h"
 #include "isaac/tools/cpp/string.hpp"
+#include "isaac/array.h"
 
 namespace isaac
 {
@@ -42,9 +43,12 @@ inline std::string to_string(const expression_tree::node &node)
   }
   switch(node.type)
   {
-    case INVALID_SUBTYPE: return "empty";
-    case VALUE_SCALAR_TYPE: return "scalar";
-    case DENSE_ARRAY_TYPE: return "array";
+    case INVALID_SUBTYPE:
+      return "empty";
+    case VALUE_SCALAR_TYPE:
+      return "scalar";
+    case DENSE_ARRAY_TYPE:
+      return "array["+tools::to_string(node.shape)+"]";
     default: return "unknown";
   }
 }
