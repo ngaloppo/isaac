@@ -36,15 +36,15 @@ namespace symbolic
 void object::add_base(const std::string &name)
 { hierarchy_.push_front(name); }
 
-object::object(std::string const & scalartype, unsigned int id): object(scalartype, "obj" + tools::to_string(id))
+object::object(driver::Context const & context, std::string const & scalartype, unsigned int id): object(context, scalartype, "obj" + tools::to_string(id))
 {}
 
 void object::add_load(bool contiguous)
 {
   macros_.insert("loadv(i): at(i)");
   macros_.insert("loadv(i,j): at(i,j)");
-
-  if(contiguous)
+  driver::backend_type backend = context_.backend();
+  if(contiguous && backend==driver::OPENCL)
   {
     macros_.insert("loadv2(i): vload2(0, &at(i))");
     macros_.insert("loadv2(i,j): vload2(0, &at(i,j))");
@@ -53,14 +53,16 @@ void object::add_load(bool contiguous)
   }
   else
   {
-    macros_.insert("loadv2(i): (#scalartype2)(at(i), at(i+1))");
-    macros_.insert("loadv2(i,j): (#scalartype2)(at(i,j), at(i+1,j))");
-    macros_.insert("loadv4(i): (#scalartype4)(at(i), at(i+1), at(i+2), at(i+3))");
-    macros_.insert("loadv4(i,j): (#scalartype4)(at(i,j), at(i+1,j), at(i+2,j), at(i+3,j))");
+    auto prefix = [&](std::string const & w){ return (backend==driver::OPENCL)?"(#scalartype"+w+")":"make_#scalartype"+w; };
+    std::string prefix2 = prefix("2"), prefix4 = prefix("4");
+    macros_.insert("loadv2(i): " + prefix2 + "(at(i), at(i+1))");
+    macros_.insert("loadv2(i,j): " + prefix2 + "(at(i,j), at(i+1,j))");
+    macros_.insert("loadv4(i): " + prefix4 + "(at(i), at(i+1), at(i+2), at(i+3))");
+    macros_.insert("loadv4(i,j): " + prefix4 + "(at(i,j), at(i+1,j), at(i+2,j), at(i+3,j))");
   }
 }
 
-object::object(std::string const & scalartype, std::string const & name)
+object::object(driver::Context const & context, std::string const & scalartype, std::string const & name): context_(context)
 {
   add_base("object");
 
@@ -103,10 +105,10 @@ std::string object::evaluate(std::map<std::string, std::string> const & table) c
 }
 
 //
-leaf::leaf(std::string const & scalartype, unsigned int id): object(scalartype, id)
+leaf::leaf(driver::Context const & context, std::string const & scalartype, unsigned int id): object(context, scalartype, id)
 { add_base("leaf"); }
 
-leaf::leaf(std::string const & scalartype, std::string const & name): object(scalartype, name)
+leaf::leaf(driver::Context const & context, std::string const & scalartype, std::string const & name): object(context, scalartype, name)
 { add_base("leaf"); }
 
 //
@@ -133,11 +135,11 @@ size_t node::root() const
 { return root_; }
 
 //
-sfor::sfor(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : object(to_string(tree[root].dtype), id), node(root, op, tree, table)
+sfor::sfor(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : object(tree.context(), to_string(tree[root].dtype), id), node(root, op, tree, table)
 { add_base("sfor"); }
 
 //
-arithmetic_node::arithmetic_node(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : object(to_string(tree[root].dtype), id), node(root, op, tree, table), op_str_(to_string(op.type))
+arithmetic_node::arithmetic_node(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : object(tree.context(), to_string(tree[root].dtype), id), node(root, op, tree, table), op_str_(to_string(op.type))
 { }
 
 //
@@ -164,7 +166,7 @@ std::string unary_arithmetic_node::evaluate(std::map<std::string, std::string> c
 
 //
 reduction::reduction(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) :
-  object(to_string(tree[root].dtype), id), node(root, op, tree, table)
+  object(tree.context(), to_string(tree[root].dtype), id), node(root, op, tree, table)
 { add_base("reduction"); }
 
 //
@@ -177,7 +179,7 @@ reduce_2d::reduce_2d(unsigned int id, size_t root, op_element op, expression_tre
 { add_base("reduce_2d"); }
 
 //
-placeholder::placeholder(unsigned int level) : leaf("int", "sforidx" + tools::to_string(level))
+placeholder::placeholder(driver::Context const & context, unsigned int level) : leaf(context, "int", "sforidx" + tools::to_string(level))
 {
   macros_.insert("at(): #name");
   macros_.insert("at(i): #name");
@@ -188,7 +190,7 @@ placeholder::placeholder(unsigned int level) : leaf("int", "sforidx" + tools::to
 }
 
 //
-host_scalar::host_scalar(std::string const & scalartype, unsigned int id) : leaf(scalartype, id)
+host_scalar::host_scalar(driver::Context const & context, std::string const & scalartype, unsigned int id) : leaf(context, scalartype, id)
 {
   macros_.insert("at(): #name_value");
   macros_.insert("at(i): #name_value");
@@ -199,7 +201,7 @@ host_scalar::host_scalar(std::string const & scalartype, unsigned int id) : leaf
 }
 
 //
-array::array(std::string const & scalartype, unsigned int id) : leaf(scalartype, id)
+array::array(driver::Context const & context, std::string const & scalartype, unsigned int id) : leaf(context, scalartype, id)
 {
   attributes_["pointer"] = process("#name_pointer");
 
@@ -220,7 +222,7 @@ std::string array::make_broadcast(const tuple &shape)
 }
 
 //
-buffer::buffer(std::string const & scalartype, unsigned int id, const tuple &shape, tuple const & strides) : array(scalartype, id), dim_(numgt1(shape))
+buffer::buffer(driver::Context const & context, std::string const & scalartype, unsigned int id, const tuple &shape, tuple const & strides) : array(context, scalartype, id), dim_(numgt1(shape))
 {
   //Attributes
   attributes_["off"] = process("#name_off");
@@ -254,7 +256,7 @@ buffer::buffer(std::string const & scalartype, unsigned int id, const tuple &sha
 }
 
 //
-index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : array(scalartype, id), node(root, op, tree, table)
+index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : array(tree.context(), scalartype, id), node(root, op, tree, table)
 {
   add_base("index_modifier");
   add_load(false);

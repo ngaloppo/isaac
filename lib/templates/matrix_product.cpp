@@ -667,9 +667,9 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
       reduce.setArg(current_arg++, workspace);
       reduce.setSizeArg(current_arg++, M);
       if(backend==driver::OPENCL)
-        matrix_product.setArg(current_arg++, C.array.handle.cl);
+        reduce.setArg(current_arg++, C.array.handle.cl);
       else
-        matrix_product.setArg(current_arg++, C.array.handle.cu);
+        reduce.setArg(current_arg++, C.array.handle.cu);
       reduce.setSizeArg(current_arg++, C.ld[1]);
       reduce.setSizeArg(current_arg++, C.array.start);
       reduce.setSizeArg(current_arg++, C.ld[0]);

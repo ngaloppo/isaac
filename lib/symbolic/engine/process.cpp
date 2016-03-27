@@ -170,15 +170,15 @@ std::shared_ptr<object> make_symbolic(Args&&... args)
 
 symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree const & tree)
 {
-  driver::backend_type backend = tree.context().backend();
+  driver::Context const & context = tree.context();
 
   //binder
   symbols_table table;
   std::unique_ptr<symbolic_binder> binder;
   if (fusion_policy==FUSE_SEQUENTIAL)
-      binder.reset(new bind_sequential(backend));
+      binder.reset(new bind_sequential(context.backend()));
   else
-      binder.reset(new bind_independent(backend));
+      binder.reset(new bind_independent(context.backend()));
 
   //assigned
   std::vector<size_t> assignee = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
@@ -190,13 +190,13 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
     expression_tree::node const & node = tree.data()[root];
     std::string dtype = to_string(node.dtype);
     if(node.type==VALUE_SCALAR_TYPE)
-      table.insert({root, make_symbolic<host_scalar>(dtype, binder->get())});
+      table.insert({root, make_symbolic<host_scalar>(context, dtype, binder->get())});
     else if(node.type==DENSE_ARRAY_TYPE){
       bool is_assigned = std::find(assignee.begin(), assignee.end(), root)!=assignee.end();
-      table.insert({root, make_symbolic<buffer>(dtype, binder->get(node.array.handle, is_assigned), node.shape, node.ld)});
+      table.insert({root, make_symbolic<buffer>(context, dtype, binder->get(node.array.handle, is_assigned), node.shape, node.ld)});
     }
     else if(node.type==PLACEHOLDER_TYPE)
-      table.insert({root, make_symbolic<placeholder>(node.ph.level)});
+      table.insert({root, make_symbolic<placeholder>(context, node.ph.level)});
     else if(node.type==COMPOSITE_OPERATOR_TYPE)
     {
       unsigned int id = binder->get();

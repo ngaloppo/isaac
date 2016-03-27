@@ -63,13 +63,14 @@ protected:
   void add_base(std::string const & name);
   void add_load(bool contiguous);
 public:
-  object(std::string const & scalartype, unsigned int id);
-  object(std::string const & scalartype, std::string const & name);
+  object(driver::Context const & context, std::string const & scalartype, unsigned int id);
+  object(driver::Context const & context, std::string const & scalartype, std::string const & name);
   virtual ~object();
   bool hasattr(std::string const & name) const;
   std::string process(std::string const & in) const;
   virtual std::string evaluate(std::map<std::string, std::string> const & table) const;
 protected:
+  driver::Context const & context_;
   std::map<std::string, std::string> attributes_;
   std::set<macro> macros_;
   std::list<std::string> hierarchy_;
@@ -79,8 +80,8 @@ protected:
 class leaf: public object
 {
 public:
-  leaf(std::string const & scalartype, unsigned int id);
-  leaf(std::string const & scalartype, std::string const & name);
+  leaf(driver::Context const & context, std::string const & scalartype, unsigned int id);
+  leaf(driver::Context const & context, std::string const & scalartype, std::string const & name);
 };
 
 
@@ -139,14 +140,14 @@ public:
 class host_scalar : public leaf
 {
 public:
-  host_scalar(std::string const & scalartype, unsigned int id);
+  host_scalar(driver::Context const & context, std::string const & scalartype, unsigned int id);
 };
 
 //Placeholder
 class placeholder : public leaf
 {
 public:
-  placeholder(unsigned int level);
+  placeholder(driver::Context const & context, unsigned int level);
 };
 
 //Arrays
@@ -155,14 +156,14 @@ class array : public leaf
 protected:
   std::string make_broadcast(tuple const & shape);
 public:
-  array(std::string const & scalartype, unsigned int id);
+  array(driver::Context const & context, std::string const & scalartype, unsigned int id);
 };
 
 //Buffer
 class buffer : public array
 {
 public:
-  buffer(std::string const & scalartype, unsigned int id, tuple const & shape, tuple const &strides);
+  buffer(driver::Context const & context, std::string const & scalartype, unsigned int id, tuple const & shape, tuple const &strides);
   unsigned int dim() const { return dim_; }
 private:
   std::string ld_;
