@@ -34,37 +34,24 @@ namespace isaac
 expression_tree::node::node(){}
 
 //Constructors
-expression_tree::node::node(invalid_node)
-{
-  type = INVALID_SUBTYPE;
-  dtype = INVALID_NUMERIC_TYPE;
-}
+expression_tree::node::node(invalid_node) : type(INVALID_SUBTYPE), dtype(INVALID_NUMERIC_TYPE)
+{}
 
-expression_tree::node::node(placeholder x)
-{
-  type = PLACEHOLDER_TYPE;
-  dtype = INVALID_NUMERIC_TYPE;
-  shape = {1};
-  ph = x;
-}
+expression_tree::node::node(placeholder x) : type(PLACEHOLDER_TYPE), dtype(INVALID_NUMERIC_TYPE), shape{1}, ph(x)
+{}
 
-expression_tree::node::node(value_scalar const & x)
-{
-  dtype = x.dtype();
-  type = VALUE_SCALAR_TYPE;
-  shape = {1};
-  scalar = x.values();
-}
+expression_tree::node::node(value_scalar const & x) : type(VALUE_SCALAR_TYPE), dtype(x.dtype()), shape{1}, scalar(x.values())
+{}
 
-expression_tree::node::node(array_base const & x)
+expression_tree::node::node(array_base const & x) : type(DENSE_ARRAY_TYPE), dtype(x.dtype()), shape(x.shape())
 {
-  type = DENSE_ARRAY_TYPE;
-  dtype = x.dtype();
-  shape = x.shape();
-  array.ld = x.stride();
   array.start = x.start();
-  array.handle.cl = x.data().handle().cl();
-  array.handle.cu = x.data().handle().cu();
+  driver::Buffer::handle_type const & h = x.data().handle();
+  switch(h.backend()){
+    case driver::OPENCL: array.handle.cl = h.cl(); break;
+    case driver::CUDA: array.handle.cu = h.cu(); break;
+  }
+  ld = x.stride();
 }
 
 expression_tree::node::node(int_t lhs, op_element op, int_t rhs, numeric_type dt, tuple const & sh)
@@ -77,20 +64,20 @@ expression_tree::node::node(int_t lhs, op_element op, int_t rhs, numeric_type dt
   binary_operator.rhs = rhs;
 }
 
-
 //
 expression_tree::expression_tree(node const & lhs, node const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
-  tree_(3), root_(2), context_(context)
+  root_(2), context_(context)
 {
-  tree_[0] = lhs;
-  tree_[1] = rhs;
-  tree_[2] = node(0, op, 1, dtype, shape);
+  tree_.reserve(3);
+  tree_.push_back(std::move(lhs));
+  tree_.push_back(std::move(rhs));
+  tree_.emplace_back(node(0, op, 1, dtype, shape));
 }
 
 expression_tree::expression_tree(expression_tree const & lhs, node const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
  tree_(lhs.tree_.size() + 2), root_(tree_.size() - 1), context_(context)
 {
-  std::copy(lhs.tree_.begin(), lhs.tree_.end(), tree_.begin());
+  std::move(lhs.tree_.begin(), lhs.tree_.end(), tree_.begin());
   tree_[root_ - 1] = rhs;
   tree_[root_] = node(lhs.root_, op, root_ - 1, dtype, shape);
 }
@@ -98,7 +85,7 @@ expression_tree::expression_tree(expression_tree const & lhs, node const & rhs, 
 expression_tree::expression_tree(node const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
   tree_(rhs.tree_.size() + 2), root_(tree_.size() - 1), context_(context)
 {
-  std::copy(rhs.tree_.begin(), rhs.tree_.end(), tree_.begin());
+  std::move(rhs.tree_.begin(), rhs.tree_.end(), tree_.begin());
   tree_[root_ - 1] = lhs;
   tree_[root_] = node(root_ - 1, op, rhs.root_, dtype, shape);
 }
@@ -107,8 +94,8 @@ expression_tree::expression_tree(expression_tree const & lhs, expression_tree co
   tree_(lhs.tree_.size() + rhs.tree_.size() + 1), root_(tree_.size()-1), context_(context)
 {  
   std::size_t lsize = lhs.tree_.size();
-  std::copy(lhs.tree_.begin(), lhs.tree_.end(), tree_.begin());
-  std::copy(rhs.tree_.begin(), rhs.tree_.end(), tree_.begin() + lsize);
+  std::move(lhs.tree_.begin(), lhs.tree_.end(), tree_.begin());
+  std::move(rhs.tree_.begin(), rhs.tree_.end(), tree_.begin() + lsize);
   tree_[root_] = node(lhs.root_, op, lsize + rhs.root_, dtype, shape);
   for(data_type::iterator it = tree_.begin() + lsize ; it != tree_.end() - 1 ; ++it){
     if(it->type==COMPOSITE_OPERATOR_TYPE){

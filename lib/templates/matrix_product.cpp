@@ -589,7 +589,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
   }
 
   void matrix_product::enqueue_block(driver::CommandQueue & queue, int_t M, int_t N, int_t K,
-                     array_holder const & A, array_holder const & B, array_holder const & C,
+                     expression_tree::node const & A, expression_tree::node const & B, expression_tree::node const & C,
                      value_scalar const & alpha, value_scalar const & beta,
                      driver::Program const & program, std::string const & suffix, execution_options_type const & options)
   {
@@ -619,11 +619,11 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     if(p_.depth==1)
     {
         if(backend==driver::OPENCL)
-          matrix_product.setArg(current_arg++, C.handle.cl);
+          matrix_product.setArg(current_arg++, C.array.handle.cl);
         else
-          matrix_product.setArg(current_arg++, C.handle.cu);
+          matrix_product.setArg(current_arg++, C.array.handle.cu);
         matrix_product.setSizeArg(current_arg++, C.ld[1]);
-        matrix_product.setSizeArg(current_arg++, C.start);
+        matrix_product.setSizeArg(current_arg++, C.array.start);
         matrix_product.setSizeArg(current_arg++, C.ld[0]);
     }
     else
@@ -637,19 +637,19 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
     matrix_product.setArg(current_arg++, alpha);
     if(backend==driver::OPENCL)
-      matrix_product.setArg(current_arg++, A.handle.cl);
+      matrix_product.setArg(current_arg++, A.array.handle.cl);
     else
-      matrix_product.setArg(current_arg++, A.handle.cu);
+      matrix_product.setArg(current_arg++, A.array.handle.cu);
     matrix_product.setSizeArg(current_arg++, A.ld[1]);
-    matrix_product.setSizeArg(current_arg++, A.start);
+    matrix_product.setSizeArg(current_arg++, A.array.start);
     matrix_product.setSizeArg(current_arg++, A.ld[0]);
 
     if(backend==driver::OPENCL)
-      matrix_product.setArg(current_arg++, B.handle.cl);
+      matrix_product.setArg(current_arg++, B.array.handle.cl);
     else
-      matrix_product.setArg(current_arg++, B.handle.cu);
+      matrix_product.setArg(current_arg++, B.array.handle.cu);
     matrix_product.setSizeArg(current_arg++, B.ld[1]);
-    matrix_product.setSizeArg(current_arg++, B.start);
+    matrix_product.setSizeArg(current_arg++, B.array.start);
     matrix_product.setSizeArg(current_arg++, B.ld[0]);
 
     matrix_product.setArg(current_arg++, beta);
@@ -667,11 +667,11 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
       reduce.setArg(current_arg++, workspace);
       reduce.setSizeArg(current_arg++, M);
       if(backend==driver::OPENCL)
-        matrix_product.setArg(current_arg++, C.handle.cl);
+        matrix_product.setArg(current_arg++, C.array.handle.cl);
       else
-        matrix_product.setArg(current_arg++, C.handle.cu);
+        matrix_product.setArg(current_arg++, C.array.handle.cu);
       reduce.setSizeArg(current_arg++, C.ld[1]);
-      reduce.setSizeArg(current_arg++, C.start);
+      reduce.setSizeArg(current_arg++, C.array.start);
       reduce.setSizeArg(current_arg++, C.ld[0]);
       reduce.setArg(current_arg++, beta);
       options.enqueue(program.context(), reduce, global, local);
@@ -721,17 +721,12 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     //Skip if empty
     if(M==0 || N == 0 || K ==0)
       return;
-
-    //Extract
-    array_holder const & A = args.A->array;
-    array_holder const & B = args.B->array;
-    array_holder const & C = args.C->array;
     //Enqueue
     execution_options_type const & options = control.execution_options();
-    if (A.ld[0] > 1 || B.ld[0] > 1 || C.ld[0] > 1)
-      fallback.enqueue_block(queue, M, N, K, A, B, C, args.alpha, args.beta, program, "fallback", options);
+    if (args.A->ld[0] > 1 || args.B->ld[0] > 1 || args.C->ld[0] > 1)
+      fallback.enqueue_block(queue, M, N, K, *args.A, *args.B, *args.C, args.alpha, args.beta, program, "fallback", options);
     else
-      enqueue_block(queue,  M, N, K, A, B, C, args.alpha, args.beta, program, suffix, options);
+      enqueue_block(queue,  M, N, K, *args.A, *args.B, *args.C, args.alpha, args.beta, program, suffix, options);
   }
 
   //

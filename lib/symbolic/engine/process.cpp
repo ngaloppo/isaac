@@ -80,7 +80,7 @@ std::string hash(expression_tree const & tree)
     {
       for(size_t i = 0 ; i < node.shape.size() ; ++i)
         *ptr++= node.shape[i]>1?'n':'1';
-      if(node.array.ld[0]>1) *ptr++= 's';
+      if(node.ld[0]>1) *ptr++= 's';
       *ptr++=(char)node.dtype;
       tools::fast_append(ptr, binder.get(node.array.handle, false));
     }
@@ -132,7 +132,7 @@ void set_arguments(expression_tree const & tree, driver::Kernel & kernel, unsign
           for(size_t i = 0 ; i < node.shape.size() ; i++)
           {
             if(node.shape[i] > 1)
-              kernel.setSizeArg(current_arg++, array.ld[i]);
+              kernel.setSizeArg(current_arg++, node.ld[i]);
           }
       }
     }
@@ -193,7 +193,7 @@ symbols_table symbolize(fusion_policy_t fusion_policy, isaac::expression_tree co
       table.insert({root, make_symbolic<host_scalar>(dtype, binder->get())});
     else if(node.type==DENSE_ARRAY_TYPE){
       bool is_assigned = std::find(assignee.begin(), assignee.end(), root)!=assignee.end();
-      table.insert({root, make_symbolic<buffer>(dtype, binder->get(node.array.handle, is_assigned), node.shape, node.array.ld)});
+      table.insert({root, make_symbolic<buffer>(dtype, binder->get(node.array.handle, is_assigned), node.shape, node.ld)});
     }
     else if(node.type==PLACEHOLDER_TYPE)
       table.insert({root, make_symbolic<placeholder>(node.ph.level)});

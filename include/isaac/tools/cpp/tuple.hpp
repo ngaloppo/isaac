@@ -41,6 +41,11 @@ public:
     tuple(int_t a) : data_{a} {}
     tuple(int_t a, int_t b) : data_{a, b} {}
 
+    tuple(tuple const & other) = default;
+    tuple(tuple&& other) = default;
+    tuple& operator=(tuple const & other) = default;
+    tuple& operator=(tuple && other) = default;
+
     std::vector<int_t>::iterator begin() { return data_.begin(); }
     std::vector<int_t>::const_iterator begin() const { return data_.begin(); }
     std::vector<int_t>::iterator end() { return data_.end(); }

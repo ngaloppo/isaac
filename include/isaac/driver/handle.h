@@ -64,6 +64,7 @@ private:
 
 public:
   Handle(backend_type backend, bool take_ownership = true);
+  backend_type backend() const;
   bool operator==(Handle const & other) const;
   bool operator!=(Handle const & other) const;
   bool operator<(Handle const & other) const;

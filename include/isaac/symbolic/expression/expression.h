@@ -70,7 +70,7 @@ enum node_type
   PLACEHOLDER_TYPE
 };
 
-struct handle_t
+union handle_t
 {
   cl_mem cl;
   CUdeviceptr cu;
@@ -79,7 +79,6 @@ struct handle_t
 struct array_holder
 {
   int_t start;
-  tuple ld;
   handle_t handle;
 };
 
@@ -96,18 +95,11 @@ public:
     node(array_base const & x);
     node(int_t lhs, op_element op, int_t rhs, numeric_type dtype, tuple const & shape);
 
-    node(node const &);
-    ~node();
-    node& operator=(node const &);
-
-    //Comparison
-//    bool operator==(node const & other);
-//    bool operator!=(node const & other);
-
     //Common
     node_type type;
     numeric_type dtype;
     tuple shape;
+    tuple ld;
 
     //Type-specific
     union

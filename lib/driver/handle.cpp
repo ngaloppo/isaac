@@ -90,6 +90,10 @@ Handle<CLType, CUType>::Handle(backend_type backend, bool take_ownership): backe
 }
 
 template<class CLType, class CUType>
+backend_type Handle<CLType, CUType>::backend() const
+{ return backend_; }
+
+template<class CLType, class CUType>
 bool Handle<CLType, CUType>::operator==(Handle const & other) const
 {
   if(backend_==CUDA && other.backend_==CUDA)
