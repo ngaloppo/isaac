@@ -6,46 +6,42 @@ namespace sc = isaac;
 typedef isaac::int_t int_t;
 
 template<typename T>
-void test_impl(T epsilon, simple_matrix_base<T> & cA, simple_matrix_base<T>& cB, simple_matrix_base<T>& cC, simple_vector_base<T>& cx, simple_vector_base<T>& cy,
-          sc::array_base& A, sc::array_base& B, sc::array_base& C, sc::array_base& x, sc::array_base& y)
+void test_impl(std::string const & SLICE, simple_matrix_base<T> & cA, simple_matrix_base<T>& cB, simple_matrix_base<T>& cC, simple_vector_base<T>& cx, simple_vector_base<T>& cy,
+          sc::array_base& A, sc::array_base& B, sc::array_base& C, sc::array_base& x, sc::array_base& y, int& nfail, int& npass)
 {
   using namespace std;
-
-  int failure_count = 0;
+  T epsilon = numeric_trait<T>::epsilon;
+  std::string TYPE = std::is_same<T, float>::value?"S":"D";
   sc::numeric_type dtype = C.dtype();
   sc::driver::Context const & ctx = C.context();
 
   int_t M = cC.size1();
   int_t N = cC.size2();
 
-
-  T aa = static_cast<T>(3.12);
-  T bb = static_cast<T>(3.5);
-  isaac::value_scalar a(aa), b(bb);
-  isaac::scalar da(a, ctx), db(b, ctx);
-
+  T a = 3.12, b = 3.5;
+  sc::scalar da(a, ctx), db(b, ctx);
   simple_vector<T> buffer(M*N);
-#define CONVERT
+
 #define RUN_TEST(NAME, CPU_LOOP, GPU_EXPR) \
   {\
-  std::cout << NAME "..." << std::flush;\
-  for(int_t i = 0 ; i < M ; ++i)\
-    for(int_t j = 0 ; j < N ; ++j)\
-        CPU_LOOP;\
-  GPU_EXPR;\
-  isaac::copy(C, buffer.data());\
-  std::vector<T> cCbuffer(M*N);\
-  for(int i = 0 ; i < M ; ++i)\
-    for(int j = 0 ; j < N ; ++j)\
-      cCbuffer[i + j*M] = cC(i,j);\
-  CONVERT;\
-  if(diff(cCbuffer, buffer, epsilon))\
-  {\
-    failure_count++;\
-    std::cout << " [Failure!]" << std::endl;\
-  }\
-  else\
-    std::cout << std::endl;\
+    std::cout << TYPE << NAME "-" << SLICE << "..." << std::flush;\
+    for(int_t i = 0 ; i < M ; ++i)\
+      for(int_t j = 0 ; j < N ; ++j)\
+          CPU_LOOP;\
+    GPU_EXPR;\
+    isaac::copy(C, buffer.data());\
+    std::vector<T> cCbuffer(M*N);\
+    for(int i = 0 ; i < M ; ++i)\
+      for(int j = 0 ; j < N ; ++j)\
+        cCbuffer[i + j*M] = cC(i,j);\
+    if(diff(cCbuffer, buffer, epsilon)) {\
+      nfail++;\
+      std::cout << " [Failure!]" << std::endl;\
+    }\
+    else{\
+      npass++;\
+      std::cout << std::endl;\
+    }\
   }
 
   RUN_TEST("C = A", cC(i,j) = cA(i,j), C = A)
@@ -53,12 +49,12 @@ void test_impl(T epsilon, simple_matrix_base<T> & cA, simple_matrix_base<T>& cB,
   RUN_TEST("C = A - B", cC(i,j) = cA(i,j) - cB(i,j), C = A - B)
   RUN_TEST("C = A + B + C", cC(i,j) = cA(i,j) + cB(i,j) + cC(i,j), C = A + B + C)
 
-  RUN_TEST("C = a*A", cC(i,j) = aa*cA(i,j), C = a*A)
-  RUN_TEST("C = da*A", cC(i,j) = aa*cA(i,j), C = da*A)
-  RUN_TEST("C = a*A + b*B", cC(i,j) = aa*cA(i,j) + bb*cB(i,j), C= a*A + b*B)
-  RUN_TEST("C = da*A + b*B", cC(i,j) = aa*cA(i,j) + bb*cB(i,j), C= da*A + b*B)
-  RUN_TEST("C = a*A + db*B", cC(i,j) = aa*cA(i,j) + bb*cB(i,j), C= a*A + db*B)
-  RUN_TEST("C = da*A + db*B", cC(i,j) = aa*cA(i,j) + bb*cB(i,j), C= da*A + db*B)
+  RUN_TEST("C = a*A", cC(i,j) = a*cA(i,j), C = a*A)
+  RUN_TEST("C = da*A", cC(i,j) = a*cA(i,j), C = da*A)
+  RUN_TEST("C = a*A + b*B", cC(i,j) = a*cA(i,j) + b*cB(i,j), C= a*A + b*B)
+  RUN_TEST("C = da*A + b*B", cC(i,j) = a*cA(i,j) + b*cB(i,j), C= da*A + b*B)
+  RUN_TEST("C = a*A + db*B", cC(i,j) = a*cA(i,j) + b*cB(i,j), C= a*A + db*B)
+  RUN_TEST("C = da*A + db*B", cC(i,j) = a*cA(i,j) + b*cB(i,j), C= da*A + db*B)
 
   RUN_TEST("C = exp(A)", cC(i,j) = exp(cA(i,j)), C= exp(A))
   RUN_TEST("C = abs(A)", cC(i,j) = abs(cA(i,j)), C= abs(A))
@@ -84,8 +80,6 @@ void test_impl(T epsilon, simple_matrix_base<T> & cA, simple_matrix_base<T>& cB,
   RUN_TEST("C = eye(M, N)", cC(i,j) = i==j, C= eye(M, N, C.dtype(), C.context()))
   RUN_TEST("C = outer(x, y)", cC(i,j) = cx[i]*cy[j], C= outer(x,y))
 
-#undef CONVERT
-#define CONVERT for(int_t i = 0 ; i < M*N ; ++i) {cCbuffer[i] = !!cCbuffer[i] ; buffer[i] = !!buffer[i];}
   RUN_TEST("C = A==B", cC(i,j) = cA(i,j)==cB(i,j), C= cast(A==B, dtype))
   RUN_TEST("C = A>=B", cC(i,j) = cA(i,j)>=cB(i,j), C= cast(A>=B, dtype))
   RUN_TEST("C = A>B", cC(i,j) = cA(i,j)>cB(i,j), C= cast(A>B, dtype))
@@ -94,13 +88,10 @@ void test_impl(T epsilon, simple_matrix_base<T> & cA, simple_matrix_base<T>& cB,
   RUN_TEST("C = A!=B", cC(i,j) = cA(i,j)!=cB(i,j), C= cast(A!=B, dtype))
 
 #undef RUN_TEST
-
-  if(failure_count > 0)
-      exit(EXIT_FAILURE);
 }
 
 template<typename T>
-void test(T epsilon, sc::driver::Context const & ctx)
+void test(sc::driver::Context const & ctx, int& nfail, int& npass)
 {
   int_t M = 173;
   int_t N = 241;
@@ -113,29 +104,11 @@ void test(T epsilon, sc::driver::Context const & ctx)
   INIT_VECTOR(M, SUBM, 5, 3, cx, x, ctx);
   INIT_VECTOR(N, SUBN, 7, 2, cy, y, ctx);
 
-  std::cout << "> standard..." << std::endl;
-  test_impl(epsilon, cA, cB, cC, cx, cy, A, B, C, x, y);
-  std::cout << "> slice..." << std::endl;
-  test_impl(epsilon, cA_s, cB_s, cC_s, cx_s, cy_s, A_s, B_s, C_s, x_s, y_s);
+  test_impl("FULL", cA, cB, cC, cx, cy, A, B, C, x, y, nfail, npass);
+  test_impl("SUB", cA_s, cB_s, cC_s, cx_s, cy_s, A_s, B_s, C_s, x_s, y_s, nfail, npass);
 }
 
 int main()
 {
-    std::list<isaac::driver::Context const *> data;
-    sc::driver::backend::contexts::get(data);
-    for(isaac::driver::Context const * context : data)
-  {
-    sc::driver::Device device = sc::driver::backend::queues::get(*context,0).device();
-    std::cout << "Device: " << device.name() << " on " << device.platform().name() << " " << device.platform().version() << std::endl;
-    std::cout << "---" << std::endl;
-    std::cout << ">> float" << std::endl;
-    test<float>(eps_float, *context);
-    if(device.fp64_support())
-    {
-        std::cout << ">> double" << std::endl;
-        test<double>(eps_double, *context);
-    }
-    std::cout << "---" << std::endl;
-  }
-  return EXIT_SUCCESS;
+  return run_test(test<float>, test<double>);
 }
