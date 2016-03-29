@@ -4,12 +4,18 @@
 #include <cassert>
 #include <vector>
 #include <algorithm>
+#include <functional>
 #include "isaac/array.h"
+
+namespace sc = isaac;
 
 typedef isaac::int_t int_t;
 
-static const float eps_float = static_cast<float>(1e-4);
-static const double eps_double = static_cast<double>(1e-8);
+template<typename T> struct numeric_trait;
+template<> struct numeric_trait<float> { static constexpr float epsilon = 1e-4; static const char* name; };
+template<> struct numeric_trait<double> { static constexpr double epsilon = 1e-8; static const char* name; };
+const char * numeric_trait<float>::name = "float";
+const char * numeric_trait<double>::name = "double";
 
 template<class T> struct BLAS;
 template<> struct BLAS<float> { template<class FT, class DT> static FT F(FT SAXPY, DT ) { return SAXPY; } };
@@ -27,6 +33,12 @@ enum interface_t
 #define OFF(X) X.start()
 #define INC(X) X.stride()[0]
 #define LD(X) X.stride()[1]
+
+cl_mem cl(sc::array_base const & x) { return x.data().handle().cl(); }
+CUdeviceptr cuhandle(sc::array_base const & x) { return x.data().handle().cu(); }
+CUdeviceptr off(sc::array_base const & x) { return x.start(); }
+CUdeviceptr inc(sc::array_base const & x) { return x.stride()[0]; }
+CUdeviceptr ld(sc::array_base const & x) { return x.stride()[1]; }
 
 template<class Iterator>
 std::string join(Iterator begin, Iterator end, std::string delimiter){
@@ -216,7 +228,6 @@ bool diff(VecType1 const & x, VecType2 const & y, typename VecType1::value_type 
   for(int_t i = 0 ; i < (int_t)x.size() ; ++i)
   {
     if(diff(x[i], y[i], epsilon)){
-      std::cout << i << " " << x[i] << " " << y[i] << std::endl;
       return true;
     }
   }
@@ -255,5 +266,129 @@ bool diff(isaac::array const & x, VecType const & y, typename VecType::value_typ
     isaac::view PREFIX ## T_s(PREFIX ## T( {START2, START2 + STRIDE2*SUBN, STRIDE2},\
                                                     {START1, START1 + STRIDE1*SUBM, STRIDE1}));\
 
+template<typename test_fun_t>
+int run_test(test_fun_t const & testf, test_fun_t const & testd)
+{
+    int nfail = 0;
+    int npass = 0;
+    std::list<isaac::driver::Context const *> data;
+    sc::driver::backend::contexts::get(data);
+    for(isaac::driver::Context const * context : data)
+    {
+      sc::driver::Device device = sc::driver::backend::queues::get(*context,0).device();
+      if(device.type() != sc::driver::Device::Type::GPU)
+          continue;
+      std::cout << "Device: " << device.name() << " on " << device.platform().name() << " " << device.platform().version() << std::endl;
+      std::cout << "---" << std::endl;
+      testf(*context, nfail, npass);
+      if(device.fp64_support())
+          testd(*context, nfail, npass);
+      std::cout << "---" << std::endl;
+    }
+    if(nfail>0)
+      return EXIT_FAILURE;
+    return EXIT_SUCCESS;
+}
+
+//template<class T>
+//struct test_vector{
+//    simple_vector<T> host;
+//    simple_vector_s<T> host_s;
+//    sc::array device;
+//    sc::view device_s;
+//};
+
+//template<class T>
+//test_vector<T> make_test_vector(int_t N, int_t subN, int_t start, int_t stride, sc::driver::Context const & ctx)
+//{
+//  simple_vector<T> host(N);
+//  simple_vector_s<T> host_s(host, start, start + stride*subN, stride);
+//  init_rand(host);
+//  isaac::array device(host.data(), ctx);
+//  isaac::view device_s = device[{start, start + stride*subN, stride}];
+//  return {host, host_s, device, device_s};
+//}
+
+#define ADD_TEST_1D_EW(NAME, CPU_LOOP, GPU_EXPR) \
+  {\
+    simple_vector<T> buffer(N);\
+    std::cout << TYPE << NAME "-" << SLICE << "..." << std::flush;\
+    for(int_t i = 0 ; i < N ; ++i)\
+      CPU_LOOP;\
+    GPU_EXPR;\
+    queue.synchronize();\
+    isaac::copy(y, buffer.data());\
+    if(diff(cy, buffer, epsilon)){\
+      nfail++;\
+      std::cout << " [FAIL] " << std::endl;\
+    }\
+    else{\
+      npass++;\
+      std::cout << std::endl;\
+    }\
+  }
+
+#define ADD_TEST_1D_RD(NAME, CPU_REDUCTION, INIT, ASSIGNMENT, GPU_REDUCTION) \
+  {\
+    T tmp = 0;\
+    std::cout << TYPE << NAME "-" << SLICE << "..." << std::flush;\
+    cs = INIT;\
+    for(int_t i = 0 ; i < N ; ++i)\
+      CPU_REDUCTION;\
+    cs= ASSIGNMENT ;\
+    GPU_REDUCTION;\
+    queue.synchronize();\
+    tmp = ds;\
+    if(std::isnan((T)tmp) || (std::abs(cs - tmp)/std::max(cs, tmp)) > epsilon){\
+      nfail++;\
+      std::cout << " [FAIL] " << std::endl;\
+    }\
+    else{\
+      npass++;\
+      std::cout << std::endl;\
+    }\
+  }
+
+  #define ADD_TEST_2D_RD(NAME, SIZE1, SIZE2, NEUTRAL, REDUCTION, ASSIGNMENT, GPU_REDUCTION, RES, BUF, CRES)\
+    {\
+      std::cout << TYPE << NAME "-" << SLICE << "..." << std::flush;\
+      for(int i = 0 ; i < SIZE1 ; ++i)\
+      {\
+        yi = NEUTRAL;\
+        xi = NEUTRAL;\
+        for(int j = 0 ; j < SIZE2 ; ++j)\
+          REDUCTION;\
+        ASSIGNMENT;\
+      }\
+      GPU_REDUCTION;\
+      queue.synchronize();\
+      sc::copy(RES, BUF.data());\
+      if(diff(CRES, BUF, epsilon)){\
+        nfail++;\
+        std::cout << " [FAIL] " << std::endl;\
+      }\
+      else{\
+        npass++;\
+        std::cout << std::endl;\
+      }\
+    }
+
+#define ADD_TEST_MATMUL(NAME, GPU_OP)\
+  {\
+    std::cout << TYPE << NAME "-" << SLICE << "..." << std::flush;\
+    GPU_OP;\
+    queue.synchronize();\
+    sc::copy(C, buffer);\
+    if(diff(buffer, cCbuffer, epsilon))\
+    {\
+      nfail++;\
+      std::cout << " [Failure!]" << std::endl;\
+    }\
+    else{\
+      npass++;\
+      std::cout << std::endl;\
+    }\
+  }
 
 #endif
+
