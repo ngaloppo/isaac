@@ -7,14 +7,13 @@
 namespace sc = isaac;
 
 template<typename T>
-void test_impl(std::string const & SLICE, simple_matrix_base<T> & cC, simple_matrix_base<T> const & cA, simple_matrix_base<T> const & cB, sc::array_base & C,
+void test_impl(std::string const & ST, simple_matrix_base<T> & cC, simple_matrix_base<T> const & cA, simple_matrix_base<T> const & cB, sc::array_base & C,
           sc::array_base const & A, sc::array_base const & AT,  sc::array_base const & B, sc::array_base const & BT, int& nfail, int& npass)
 {
-  T epsilon = numeric_trait<T>::epsilon;
+  std::string DT = std::is_same<T, float>::value?"S":"D";
   sc::int_t M = C.shape()[0], N = C.shape()[1], K = A.shape()[1];
-  std::string TYPE = std::is_same<T, float>::value?"S":"D";
-  T alpha = 1.43;
-  T beta = 0;
+  T alpha = 1.43, beta = 0;
+
   for(int i = 0 ; i < M ; ++i){
     for(int j = 0 ; j < N ; ++j){
       T cij = 0;
@@ -35,36 +34,36 @@ void test_impl(std::string const & SLICE, simple_matrix_base<T> & cC, simple_mat
   {
       cl_command_queue clqueue = queue.handle().cl();
      //Row-major
-      ADD_TEST_MATMUL("GEMM(ROW, N, N)", BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasRowMajor, clblasNoTrans, clblasNoTrans, N, M, K, alpha, CHANDLE(B), OFF(B), LD(B),
-                                                                 CHANDLE(A), OFF(A), LD(A), beta, CHANDLE(C), OFF(C), LD(C), 1, &clqueue, 0, NULL, NULL));
-      ADD_TEST_MATMUL("GEMM(ROW, N, T)", BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasRowMajor, clblasTrans, clblasNoTrans, N, M, K, alpha, CHANDLE(BT), OFF(BT), LD(BT),
-                                                                 CHANDLE(A), OFF(A), LD(A), beta, CHANDLE(C), OFF(C), LD(C), 1, &clqueue, 0, NULL, NULL));
-      ADD_TEST_MATMUL("GEMM(ROW, T, N)", BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasRowMajor, clblasNoTrans, clblasTrans, N, M, K, alpha, CHANDLE(B), OFF(B), LD(B),
-                                                                 CHANDLE(AT), OFF(AT), LD(AT), beta, CHANDLE(C), OFF(C), LD(C), 1, &clqueue, 0, NULL, NULL));
-      ADD_TEST_MATMUL("GEMM(ROW, T, T)", BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasRowMajor, clblasTrans, clblasTrans, N, M, K, alpha, CHANDLE(BT), OFF(BT), LD(BT),
-                                                                 CHANDLE(AT), OFF(AT), LD(AT), beta, CHANDLE(C), OFF(C), LD(C), 1, &clqueue, 0, NULL, NULL));
+      ADD_TEST_MATMUL(DT+"GEMM-ROW-NN"+ST, BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasRowMajor, clblasNoTrans, clblasNoTrans, N, M, K, alpha, cl(B), off(B), ld(B),
+                                                                 cl(A), off(A), ld(A), beta, cl(C), off(C), ld(C), 1, &clqueue, 0, NULL, NULL));
+      ADD_TEST_MATMUL(DT+"GEMM-ROW-NT"+ST, BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasRowMajor, clblasTrans, clblasNoTrans, N, M, K, alpha, cl(BT), off(BT), ld(BT),
+                                                                 cl(A), off(A), ld(A), beta, cl(C), off(C), ld(C), 1, &clqueue, 0, NULL, NULL));
+      ADD_TEST_MATMUL(DT+"GEMM-ROW-TN"+ST, BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasRowMajor, clblasNoTrans, clblasTrans, N, M, K, alpha, cl(B), off(B), ld(B),
+                                                                 cl(AT), off(AT), ld(AT), beta, cl(C), off(C), ld(C), 1, &clqueue, 0, NULL, NULL));
+      ADD_TEST_MATMUL(DT+"GEMM-ROW-TT"+ST, BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasRowMajor, clblasTrans, clblasTrans, N, M, K, alpha, cl(BT), off(BT), ld(BT),
+                                                                 cl(AT), off(AT), ld(AT), beta, cl(C), off(C), ld(C), 1, &clqueue, 0, NULL, NULL));
       //Column-major
-      ADD_TEST_MATMUL("GEMM(COL, N, N)", BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasColumnMajor, clblasNoTrans, clblasNoTrans, M, N, K, alpha, CHANDLE(A), OFF(A), LD(A),
-                                                                 CHANDLE(B), OFF(B), LD(B), beta, CHANDLE(C), OFF(C), LD(C), 1, &clqueue, 0, NULL, NULL));
-      ADD_TEST_MATMUL("GEMM(COL, N, T)", BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasColumnMajor, clblasNoTrans, clblasTrans, M, N, K, alpha, CHANDLE(A), OFF(A), LD(A),
-                                                                 CHANDLE(BT), OFF(BT), LD(BT), beta, CHANDLE(C), OFF(C), LD(C), 1, &clqueue, 0, NULL, NULL));
-      ADD_TEST_MATMUL("GEMM(COL, T, N)", BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasColumnMajor, clblasTrans, clblasNoTrans, M, N, K, alpha, CHANDLE(AT), OFF(AT), LD(AT),
-                                                                 CHANDLE(B), OFF(B), LD(B), beta, CHANDLE(C), OFF(C), LD(C), 1, &clqueue, 0, NULL, NULL));
-      ADD_TEST_MATMUL("GEMM(COL, T, T)", BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasColumnMajor, clblasTrans, clblasTrans, M, N, K, alpha, CHANDLE(AT), OFF(AT), LD(AT),
-                                                                 CHANDLE(BT), OFF(BT), LD(BT), beta, CHANDLE(C), OFF(C), LD(C), 1, &clqueue, 0, NULL, NULL));
+      ADD_TEST_MATMUL(DT+"GEMM-COL-NN"+ST, BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasColumnMajor, clblasNoTrans, clblasNoTrans, M, N, K, alpha, cl(A), off(A), ld(A),
+                                                                 cl(B), off(B), ld(B), beta, cl(C), off(C), ld(C), 1, &clqueue, 0, NULL, NULL));
+      ADD_TEST_MATMUL(DT+"GEMM-COL-NT"+ST, BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasColumnMajor, clblasNoTrans, clblasTrans, M, N, K, alpha, cl(A), off(A), ld(A),
+                                                                 cl(BT), off(BT), ld(BT), beta, cl(C), off(C), ld(C), 1, &clqueue, 0, NULL, NULL));
+      ADD_TEST_MATMUL(DT+"GEMM-COL-TN"+ST, BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasColumnMajor, clblasTrans, clblasNoTrans, M, N, K, alpha, cl(AT), off(AT), ld(AT),
+                                                                 cl(B), off(B), ld(B), beta, cl(C), off(C), ld(C), 1, &clqueue, 0, NULL, NULL));
+      ADD_TEST_MATMUL(DT+"GEMM-COL-TT"+ST, BLAS<T>::F(clblasSgemm,clblasDgemm)(clblasColumnMajor, clblasTrans, clblasTrans, M, N, K, alpha, cl(AT), off(AT), ld(AT),
+                                                                 cl(BT), off(BT), ld(BT), beta, cl(C), off(C), ld(C), 1, &clqueue, 0, NULL, NULL));
 
   }
 
   if(C.context().backend()==sc::driver::CUDA)
   {
-      ADD_TEST_MATMUL("GEMM-NN", BLAS<T>::F(cublasSgemm,cublasDgemm)('N', 'N', M, N, K, alpha, (T*)CUHANDLE(A) + OFF(A), LD(A),
-                                                                 (T*)CUHANDLE(B) + OFF(B), LD(B), beta, (T*)CUHANDLE(C) + OFF(C), LD(C)));
-      ADD_TEST_MATMUL("GEMM-NT", BLAS<T>::F(cublasSgemm,cublasDgemm)('N', 'T', M, N, K, alpha, (T*)CUHANDLE(A) + OFF(A), LD(A),
-                                                                 (T*)CUHANDLE(BT) + OFF(BT), LD(BT), beta, (T*)CUHANDLE(C) + OFF(C), LD(C)));
-      ADD_TEST_MATMUL("GEMM-TN", BLAS<T>::F(cublasSgemm,cublasDgemm)('T', 'N', M, N, K, alpha, (T*)CUHANDLE(AT) + OFF(AT), LD(AT),
-                                                                 (T*)CUHANDLE(B) + OFF(B), LD(B), beta, (T*)CUHANDLE(C) + OFF(C), LD(C)));
-      ADD_TEST_MATMUL("GEMM-TT", BLAS<T>::F(cublasSgemm,cublasDgemm)('T', 'T', M, N, K, alpha, (T*)CUHANDLE(AT) + OFF(AT), LD(AT),
-                                                                 (T*)CUHANDLE(BT) + OFF(BT), LD(BT), beta, (T*)CUHANDLE(C) + OFF(C), LD(C)));
+      ADD_TEST_MATMUL(DT+"GEMM-NN"+ST, BLAS<T>::F(cublasSgemm,cublasDgemm)('N', 'N', M, N, K, alpha, (T*)cu(A) + off(A), ld(A),
+                                                                 (T*)cu(B) + off(B), ld(B), beta, (T*)cu(C) + off(C), ld(C)));
+      ADD_TEST_MATMUL(DT+"GEMM-NT"+ST, BLAS<T>::F(cublasSgemm,cublasDgemm)('N', 'T', M, N, K, alpha, (T*)cu(A) + off(A), ld(A),
+                                                                 (T*)cu(BT) + off(BT), ld(BT), beta, (T*)cu(C) + off(C), ld(C)));
+      ADD_TEST_MATMUL(DT+"GEMM-TN"+ST, BLAS<T>::F(cublasSgemm,cublasDgemm)('T', 'N', M, N, K, alpha, (T*)cu(AT) + off(AT), ld(AT),
+                                                                 (T*)cu(B) + off(B), ld(B), beta, (T*)cu(C) + off(C), ld(C)));
+      ADD_TEST_MATMUL(DT+"GEMM-TT"+ST, BLAS<T>::F(cublasSgemm,cublasDgemm)('T', 'T', M, N, K, alpha, (T*)cu(AT) + off(AT), ld(AT),
+                                                                 (T*)cu(BT) + off(BT), ld(BT), beta, (T*)cu(C) + off(C), ld(C)));
   }
 }
 

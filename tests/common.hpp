@@ -28,14 +28,8 @@ enum interface_t
     CPP
 };
 
-#define CHANDLE(X) X.data().handle().cl()
-#define CUHANDLE(X) X.data().handle().cu()
-#define OFF(X) X.start()
-#define INC(X) X.stride()[0]
-#define LD(X) X.stride()[1]
-
 cl_mem cl(sc::array_base const & x) { return x.data().handle().cl(); }
-CUdeviceptr cuhandle(sc::array_base const & x) { return x.data().handle().cu(); }
+CUdeviceptr cu(sc::array_base const & x) { return x.data().handle().cu(); }
 CUdeviceptr off(sc::array_base const & x) { return x.start(); }
 CUdeviceptr inc(sc::array_base const & x) { return x.stride()[0]; }
 CUdeviceptr ld(sc::array_base const & x) { return x.stride()[1]; }
@@ -290,35 +284,15 @@ int run_test(test_fun_t const & testf, test_fun_t const & testd)
     return EXIT_SUCCESS;
 }
 
-//template<class T>
-//struct test_vector{
-//    simple_vector<T> host;
-//    simple_vector_s<T> host_s;
-//    sc::array device;
-//    sc::view device_s;
-//};
-
-//template<class T>
-//test_vector<T> make_test_vector(int_t N, int_t subN, int_t start, int_t stride, sc::driver::Context const & ctx)
-//{
-//  simple_vector<T> host(N);
-//  simple_vector_s<T> host_s(host, start, start + stride*subN, stride);
-//  init_rand(host);
-//  isaac::array device(host.data(), ctx);
-//  isaac::view device_s = device[{start, start + stride*subN, stride}];
-//  return {host, host_s, device, device_s};
-//}
-
 #define ADD_TEST_1D_EW(NAME, CPU_LOOP, GPU_EXPR) \
   {\
     simple_vector<T> buffer(N);\
-    std::cout << TYPE << NAME "-" << SLICE << "..." << std::flush;\
+    std::cout << NAME << "..." << std::flush;\
     for(int_t i = 0 ; i < N ; ++i)\
       CPU_LOOP;\
     GPU_EXPR;\
-    queue.synchronize();\
     isaac::copy(y, buffer.data());\
-    if(diff(cy, buffer, epsilon)){\
+    if(diff(cy, buffer, numeric_trait<T>::epsilon)){\
       nfail++;\
       std::cout << " [FAIL] " << std::endl;\
     }\
@@ -331,15 +305,14 @@ int run_test(test_fun_t const & testf, test_fun_t const & testd)
 #define ADD_TEST_1D_RD(NAME, CPU_REDUCTION, INIT, ASSIGNMENT, GPU_REDUCTION) \
   {\
     T tmp = 0;\
-    std::cout << TYPE << NAME "-" << SLICE << "..." << std::flush;\
+    std::cout << NAME << "..." << std::flush;\
     cs = INIT;\
     for(int_t i = 0 ; i < N ; ++i)\
       CPU_REDUCTION;\
     cs= ASSIGNMENT ;\
     GPU_REDUCTION;\
-    queue.synchronize();\
     tmp = ds;\
-    if(std::isnan((T)tmp) || (std::abs(cs - tmp)/std::max(cs, tmp)) > epsilon){\
+    if(std::isnan((T)tmp) || (std::abs(cs - tmp)/std::max(cs, tmp)) > numeric_trait<T>::epsilon){\
       nfail++;\
       std::cout << " [FAIL] " << std::endl;\
     }\
@@ -349,9 +322,31 @@ int run_test(test_fun_t const & testf, test_fun_t const & testd)
     }\
   }
 
+  #define ADD_TEST_2D_EW(NAME, CPU_LOOP, GPU_EXPR) \
+    {\
+      std::cout << NAME << "..." << std::flush;\
+      for(int_t i = 0 ; i < M ; ++i)\
+        for(int_t j = 0 ; j < N ; ++j)\
+            CPU_LOOP;\
+      GPU_EXPR;\
+      isaac::copy(C, buffer.data());\
+      std::vector<T> cCbuffer(M*N);\
+      for(int i = 0 ; i < M ; ++i)\
+        for(int j = 0 ; j < N ; ++j)\
+          cCbuffer[i + j*M] = cC(i,j);\
+      if(diff(cCbuffer, buffer, numeric_trait<T>::epsilon)) {\
+        nfail++;\
+        std::cout << " [Failure!]" << std::endl;\
+      }\
+      else{\
+        npass++;\
+        std::cout << std::endl;\
+      }\
+    }
+
   #define ADD_TEST_2D_RD(NAME, SIZE1, SIZE2, NEUTRAL, REDUCTION, ASSIGNMENT, GPU_REDUCTION, RES, BUF, CRES)\
     {\
-      std::cout << TYPE << NAME "-" << SLICE << "..." << std::flush;\
+      std::cout << NAME << "..." << std::flush;\
       for(int i = 0 ; i < SIZE1 ; ++i)\
       {\
         yi = NEUTRAL;\
@@ -361,9 +356,8 @@ int run_test(test_fun_t const & testf, test_fun_t const & testd)
         ASSIGNMENT;\
       }\
       GPU_REDUCTION;\
-      queue.synchronize();\
       sc::copy(RES, BUF.data());\
-      if(diff(CRES, BUF, epsilon)){\
+      if(diff(CRES, BUF, numeric_trait<T>::epsilon)){\
         nfail++;\
         std::cout << " [FAIL] " << std::endl;\
       }\
@@ -375,11 +369,10 @@ int run_test(test_fun_t const & testf, test_fun_t const & testd)
 
 #define ADD_TEST_MATMUL(NAME, GPU_OP)\
   {\
-    std::cout << TYPE << NAME "-" << SLICE << "..." << std::flush;\
+    std::cout << NAME << "..." << std::flush;\
     GPU_OP;\
-    queue.synchronize();\
     sc::copy(C, buffer);\
-    if(diff(buffer, cCbuffer, epsilon))\
+    if(diff(buffer, cCbuffer, numeric_trait<T>::epsilon))\
     {\
       nfail++;\
       std::cout << " [Failure!]" << std::endl;\

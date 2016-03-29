@@ -10,24 +10,23 @@ namespace sc = isaac;
 typedef sc::int_t int_t;
 
 template<typename T>
-void test_impl(std::string const & SLICE, simple_vector_base<T> & cx, simple_vector_base<T> & cy,
+void test_impl(std::string const & ST, simple_vector_base<T> & cx, simple_vector_base<T> & cy,
                                 sc::array_base & x, sc::array_base & y, int& nfail, int& npass)
 {
-  T epsilon = numeric_trait<T>::epsilon;
-  std::string TYPE = std::is_same<T, float>::value?"S":"D";
-  sc::driver::Context const & ctx = x.context();
-  int_t N = cx.size();
-  sc::driver::CommandQueue queue = sc::driver::backend::queues::get(ctx,0);
-  sc::array scratch(N, x.dtype());
+  std::string DT = std::is_same<T, float>::value?"S":"D";
+  std::string PFX = "[" + DT + "," + ST + "]";
+  sc::driver::Context const & context = x.context();
   T cs = 0;
-  isaac::scalar ds(cs, ctx);
+  sc::scalar ds(cs, context);
+  int_t N = cx.size();
+  sc::array scratch(N, x.dtype());
 
-  ADD_TEST_1D_RD("s = x'.y", cs+=cx[i]*cy[i], 0, cs, ds = dot(x,y));
-  ADD_TEST_1D_RD("s = exp(x'.y)", cs += cx[i]*cy[i], 0, std::exp(cs), ds = exp(dot(x,y)));
-  ADD_TEST_1D_RD("s = 1 + x'.y", cs += cx[i]*cy[i], 0, 1 + cs, ds = 1 + dot(x,y));
-  ADD_TEST_1D_RD("s = x'.y + y'.y", cs+= cx[i]*cy[i] + cy[i]*cy[i], 0, cs, ds = dot(x,y) + dot(y,y));
-  ADD_TEST_1D_RD("s = max(x)", cs = std::max(cs, cx[i]), std::numeric_limits<T>::min(), cs, ds = max(x));
-  ADD_TEST_1D_RD("s = min(x)", cs = std::min(cs, cx[i]), std::numeric_limits<T>::max(), cs, ds = min(x));
+  ADD_TEST_1D_RD(PFX + " s = x'.y", cs+=cx[i]*cy[i], 0, cs, ds = dot(x,y));
+  ADD_TEST_1D_RD(PFX + " s = exp(x'.y)", cs += cx[i]*cy[i], 0, std::exp(cs), ds = exp(dot(x,y)));
+  ADD_TEST_1D_RD(PFX + " s = 1 + x'.y", cs += cx[i]*cy[i], 0, 1 + cs, ds = 1 + dot(x,y));
+  ADD_TEST_1D_RD(PFX + " s = x'.y + y'.y", cs+= cx[i]*cy[i] + cy[i]*cy[i], 0, cs, ds = dot(x,y) + dot(y,y));
+  ADD_TEST_1D_RD(PFX + " s = max(x)", cs = std::max(cs, cx[i]), std::numeric_limits<T>::min(), cs, ds = max(x));
+  ADD_TEST_1D_RD(PFX + " s = min(x)", cs = std::min(cs, cx[i]), std::numeric_limits<T>::max(), cs, ds = min(x));
 }
 
 template<typename T>
