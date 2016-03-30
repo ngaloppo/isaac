@@ -1,5 +1,5 @@
 #include <cmath>
-#include "common.hpp"
+#include "api.hpp"
 #include "isaac/array.h"
 
 namespace sc = isaac;

@@ -1,7 +1,7 @@
 #include <cmath>
 #include <iostream>
 #include <type_traits>
-#include "common.hpp"
+#include "api.hpp"
 #include "isaac/array.h"
 #include "isaac/driver/common.h"
 #include "clBLAS.h"

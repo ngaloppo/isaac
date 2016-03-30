@@ -1,7 +1,7 @@
 #include <cmath>
 #include <iostream>
 
-#include "common.hpp"
+#include "api.hpp"
 #include "isaac/array.h"
 #include "clBLAS.h"
 #include "cublas.h"

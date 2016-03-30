@@ -31,6 +31,13 @@ namespace isaac
 namespace symbolic
 {
 
+namespace detail
+{
+  typedef std::vector<std::pair<size_t, expression_type> > breakpoints_t;
+  expression_type parse(expression_tree const & tree, breakpoints_t & bp);
+  expression_type parse(expression_tree const & tree, size_t idx, breakpoints_t & bp);
+}
+
 /** @brief Executes a expression_tree on the given queue for the given models map*/
 void execute(execution_handler const & , profiles::map_type &);
 

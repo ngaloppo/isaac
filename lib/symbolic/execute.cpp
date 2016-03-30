@@ -26,6 +26,7 @@
 #include "isaac/types.h"
 #include "isaac/array.h"
 #include "isaac/profiles/profiles.h"
+#include "isaac/symbolic/execute.h"
 #include "isaac/symbolic/expression/expression.h"
 #include "isaac/symbolic/expression/preset.h"
 #include "isaac/symbolic/expression/io.h"
@@ -38,7 +39,6 @@ namespace symbolic
 
   namespace detail
   {
-      typedef std::vector<std::pair<size_t, expression_type> > breakpoints_t;
 
       inline bool is_elementwise(expression_type type)
       { return type == ELEMENTWISE_1D || type == ELEMENTWISE_2D; }
@@ -53,6 +53,10 @@ namespace symbolic
 //          if(node.binary_operator.op.type==RESHAPE)
 //        }
 //      }
+
+      expression_type parse(expression_tree const & tree, breakpoints_t & bp){
+        return parse(tree, tree.root(), bp);
+      }
 
       /** @brief Parses the breakpoints for a given expression tree */
       expression_type parse(expression_tree const & tree, size_t idx, breakpoints_t & bp)
@@ -150,7 +154,7 @@ namespace symbolic
         detail::breakpoints_t breakpoints;
         breakpoints.reserve(8);
         /*----Parse required temporaries-----*/
-        final_type = detail::parse(tree, rootidx, breakpoints);
+        final_type = detail::parse(tree, breakpoints);
         std::set<size_t> found;
         breakpoints.erase(std::remove_if(breakpoints.begin(), breakpoints.end(), [&](detail::breakpoints_t::value_type const & x){return !found.insert(x.first).second;}), breakpoints.end());
         /*----Compute required temporaries----*/
