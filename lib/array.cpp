@@ -497,7 +497,7 @@ tuple max(tuple const & a, tuple const & b)
   std::vector<int_t> result;
   for(size_t i = 0 ; i < std::max(a.size(), b.size()) ; ++i){
       if(!(a[i] == b[i] || a[i]==1 || b[i]==1))
-        throw "Cannot broadcast";
+        throw semantic_error("operands could not be broadcast together with shapes " + to_string(a) + " " + to_string(b));
       result.push_back(std::max(a[i], b[i]));
   }
   return tuple(result);
@@ -907,10 +907,18 @@ expression_tree dot(LTYPE const & x, RTYPE const & y)\
   if(numgt1(xs)==1 && numgt1(ys)==1)\
     return sum(trans(x)*y);\
   /*Matrix-Vector*/\
-  if(numgt1(xs)==2 && numgt1(ys)==1)\
-    return reshape(detail::matvecprod(x, y), rshape);\
-  if(numgt1(xs)==1 && numgt1(ys)==2)\
-    return reshape(detail::matvecprod(trans(y), ravel(x)), rshape);\
+  if(numgt1(xs)==2 && numgt1(ys)==1){\
+    if(rshape.size()>1)\
+      return reshape(detail::matvecprod(x, y), rshape);\
+    else\
+      return detail::matvecprod(x, y);\
+  }\
+  if(numgt1(xs)==1 && numgt1(ys)==2){\
+    if(rshape.size()>1)\
+      return reshape(detail::matvecprod(trans(y), ravel(x)), rshape);\
+    else\
+      return detail::matvecprod(trans(y), ravel(x));\
+  }\
   else /*if(numgt1(x)==2 && numgt1(y)==2)*/\
     return detail::matmatprod(x, y);\
 }

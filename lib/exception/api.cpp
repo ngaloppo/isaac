@@ -35,9 +35,6 @@ operation_not_supported_exception::operation_not_supported_exception(std::string
 const char* operation_not_supported_exception::what() const throw()
 { return message_.c_str(); }
 
-operation_not_supported_exception::~operation_not_supported_exception() throw()
-{}
-
 //
 unknown_datatype::unknown_datatype(int v) :
   message_("ISAAC: The data-type provided was not recognized. The datatype code provided is " + tools::to_string(v)) {}
@@ -45,7 +42,13 @@ unknown_datatype::unknown_datatype(int v) :
 const char* unknown_datatype::what() const throw()
 { return message_.c_str(); }
 
-unknown_datatype::~unknown_datatype() throw()
-{}
+//
+semantic_error::semantic_error(std::string const & str) :
+  message_("Semantic error: " + str) {}
+
+const char* semantic_error::what() const throw()
+{ return message_.c_str(); }
+
+
 
 }

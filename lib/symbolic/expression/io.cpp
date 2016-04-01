@@ -23,6 +23,7 @@
 #include <sstream>
 #include <string>
 
+#include "isaac/symbolic/expression/operations.h"
 #include "isaac/symbolic/expression/io.h"
 #include "isaac/tools/cpp/string.hpp"
 #include "isaac/array.h"
@@ -32,14 +33,23 @@ namespace isaac
 
 #define ISAAC_MAP_TO_STRING(NAME) case NAME: return #NAME
 
+inline std::string to_string(const op_element& op)
+{
+  std::string res = to_string(op.type);
+  if(op.type_family==REDUCE) res = "reduce<" + res + ">";
+  if(op.type_family==REDUCE_ROWS) res = "reduce<" + res + ", rows>";
+  if(op.type_family==REDUCE_COLUMNS) res = "reduce<" + res + ", cols>";
+  return res;
+}
+
 inline std::string to_string(const expression_tree::node &node)
 {
   if(node.type==COMPOSITE_OPERATOR_TYPE)
   {
     std::string lhs = tools::to_string(node.binary_operator.lhs);
-    std::string op = tools::to_string(node.binary_operator.op.type_family) + "," + tools::to_string(node.binary_operator.op.type);
+    std::string op = to_string(node.binary_operator.op);
     std::string rhs = tools::to_string(node.binary_operator.rhs);
-    return"node [" + lhs + " | op = " + op + " | " + rhs + "]";
+    return"node (" + lhs + ", " + op + ", " + rhs + ")";
   }
   switch(node.type)
   {
@@ -48,8 +58,9 @@ inline std::string to_string(const expression_tree::node &node)
     case VALUE_SCALAR_TYPE:
       return "scalar";
     case DENSE_ARRAY_TYPE:
-      return "array["+tools::to_string(node.shape)+"]";
-    default: return "unknown";
+      return "array";
+    default:
+      return "unknown";
   }
 }
 

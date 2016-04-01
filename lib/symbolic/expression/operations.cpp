@@ -62,7 +62,7 @@ std::string to_string(operation_type type)
     case ELEMENT_ARGMIN_TYPE : return "argmin";
     case ELEMENT_POW_TYPE : return "pow";
 
-      //Arithmetic
+    //Arithmetic
     case MINUS_TYPE : return "-";
     case ASSIGN_TYPE : return "=";
     case INPLACE_ADD_TYPE : return "+=";
@@ -74,7 +74,7 @@ std::string to_string(operation_type type)
     case DIV_TYPE : return "/";
     case ELEMENT_DIV_TYPE : return "/";
 
-      //Relational
+    //Relational
     case NEGATE_TYPE: return "!";
     case ELEMENT_EQ_TYPE : return "==";
     case ELEMENT_NEQ_TYPE : return "!=";
@@ -99,6 +99,15 @@ std::string to_string(operation_type type)
     case CAST_ULONG_TYPE : return "(ulong)";
     case CAST_FLOAT_TYPE : return "(float)";
     case CAST_DOUBLE_TYPE : return "(double)";
+
+    //dot
+    case MATRIX_PRODUCT_NN_TYPE: return "matmatNN";
+    case MATRIX_PRODUCT_NT_TYPE: return "matmatNT";
+    case MATRIX_PRODUCT_TN_TYPE: return "matmatTN";
+    case MATRIX_PRODUCT_TT_TYPE: return "matmatTT";
+
+    //reshape
+    case RESHAPE_TYPE: return "reshape";
 
     default : throw operation_not_supported_exception("Unsupported operator");
   }

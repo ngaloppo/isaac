@@ -21,12 +21,13 @@ else()
     foreach(NAME element-1d element-2d reduce-1d reduce-2d)
         add_isaac_test("api/cpp" ${NAME})
     endforeach()
+    #runtime
+    foreach(NAME fusion)
+        add_isaac_test("runtime" ${NAME})
+    endforeach()
     #runtime/scheduler
     foreach(NAME heft)
         add_isaac_test("runtime/scheduler" ${NAME})
     endforeach()
-    #runtime/segmentation
-    foreach(NAME temporaries)
-        add_isaac_test("runtime/segmentation" ${NAME})
-    endforeach()
+
 endif()

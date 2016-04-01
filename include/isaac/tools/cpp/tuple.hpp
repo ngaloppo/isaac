@@ -24,6 +24,7 @@
 
 #include <vector>
 #include <iostream>
+#include <sstream>
 #include <iterator>
 #include "isaac/defines.h"
 #include "isaac/types.h"
@@ -66,12 +67,22 @@ private:
 
 inline ISAACAPI std::ostream& operator<<(std::ostream & oss, tuple const &tp)
 {
+  oss << "(";
   std::copy(tp.data_.begin(), tp.data_.end() - 1, std::ostream_iterator<int_t>(oss, ","));
   oss << tp.data_.back();
   if(tp.size()==1)
     oss << ",";
+  oss << ")";
   return oss;
 }
+
+inline std::string to_string(tuple const & tp)
+{
+    std::ostringstream oss;
+    oss << tp;
+    return oss.str();
+}
+
 
 inline ISAACAPI int_t max(tuple const & tp)
 { return std::accumulate(tp.begin(), tp.end(), std::numeric_limits<int_t>::min(), [](int_t a, int_t b){ return std::max(a, b); }); }
