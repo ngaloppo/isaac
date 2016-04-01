@@ -931,22 +931,43 @@ DEFINE_DOT(expression_tree, expression_tree)
 
 #undef DEFINE_DOT
 
+/*--- Shortcuts ---*/
 
 #define DEFINE_NORM(TYPE)\
-expression_tree norm(TYPE const & x, unsigned int order)\
+expression_tree norm(TYPE const & x, unsigned int order, int_t axis)\
 {\
   assert(order > 0 && order < 3);\
   switch(order)\
   {\
-    case 1: return sum(abs(x));\
-    default: return sqrt(sum(pow(x,2)));\
+    case 1: return sum(abs(x), axis);\
+    default: return sqrt(sum(pow(x,2), axis));\
   }\
 }
 
 DEFINE_NORM(array_base)
 DEFINE_NORM(expression_tree)
-
 #undef DEFINE_NORM
+
+#define DEFINE_MEAN(TYPE)\
+expression_tree mean(TYPE const & x, int_t axis)\
+{\
+  int_t N = (axis==-1)?prod(x.shape()):x.shape()[axis];\
+  return sum(x, axis)/N;\
+}
+
+DEFINE_MEAN(array_base)
+DEFINE_MEAN(expression_tree)
+#undef DEFINE_MEAN
+
+//#define DEFINE_VAR(TYPE)
+//expression_tree var(TYPE const & x, int_t axis)
+//{
+//  return mean(pow(x - mean(x, axis), 2), axis);
+//}
+
+//DEFINE_VAR(array_base)
+//DEFINE_VAR(expression_tree)
+//#undef DEFINE_VAR
 
 /*--- Fusion ----*/
 expression_tree fuse(expression_tree const & x, expression_tree const & y)

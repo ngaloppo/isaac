@@ -293,10 +293,6 @@ ISAAC_DECLARE_UNARY_OPERATOR(trans)
 ISAACAPI expression_tree cast(array_base const &, numeric_type dtype);
 ISAACAPI expression_tree cast(expression_tree const &, numeric_type dtype);
 
-ISAACAPI expression_tree norm(array_base const &, unsigned int order = 2);
-ISAACAPI expression_tree norm(expression_tree const &, unsigned int order = 2);
-
-
 //Matrix reduction
 
 #define ISAAC_DECLARE_REDUCTION(OPNAME) \
@@ -308,6 +304,17 @@ ISAAC_DECLARE_REDUCTION(argmax)
 ISAAC_DECLARE_REDUCTION((max))
 ISAAC_DECLARE_REDUCTION((min))
 ISAAC_DECLARE_REDUCTION(argmin)
+
+//Shortcuts
+
+ISAACAPI expression_tree norm(array_base const &, unsigned int order = 2, int_t axis = -1);
+ISAACAPI expression_tree norm(expression_tree const &, unsigned int order = 2, int_t axis = -1);
+
+ISAACAPI expression_tree mean(array_base const &, int_t axis = -1);
+ISAACAPI expression_tree mean(expression_tree const &, int_t axis = -1);
+
+//ISAACAPI expression_tree var(array_base const &, int_t axis = -1);
+//ISAACAPI expression_tree var(expression_tree const &, int_t axis = -1);
 
 //Fusion
 ISAACAPI expression_tree fuse(expression_tree const & x, expression_tree const & y);

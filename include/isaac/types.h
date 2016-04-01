@@ -33,6 +33,7 @@ namespace isaac
 typedef long long int_t;
 static const int_t start = 0;
 static const int_t end = -1;
+static const int_t newaxis = 1;
 
 struct slice
 {
