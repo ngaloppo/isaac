@@ -152,7 +152,7 @@ namespace symbolic
         expression_tree::node root_save = root, lhs_save = lhs, rhs_save = rhs;
 
         detail::breakpoints_t breakpoints;
-        breakpoints.reserve(8);
+        breakpoints.reserve(16);
         /*----Parse required temporaries-----*/
         final_type = detail::parse(tree, breakpoints);
         std::set<size_t> found;

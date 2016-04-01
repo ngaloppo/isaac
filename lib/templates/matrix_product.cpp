@@ -24,7 +24,7 @@
 #include "isaac/symbolic/engine/process.h"
 #include "isaac/templates/matrix_product.h"
 #include "isaac/templates/engine/keywords.h"
-#include "isaac/exception/operation_not_supported.h"
+#include "isaac/exception/api.h"
 #include "tools/arguments.hpp"
 #include "tools/vector_types.hpp"
 
@@ -432,8 +432,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
         stream << "//FMA computations" << std::endl;
         for(unsigned int kk=0 ; kk < p_.kS; ++kk)
         for(unsigned int nn=0; nn < p_.nS; ++nn)
-        for(unsigned int mm=0; mm < p_.mS; ++mm)
-        {
+        for(unsigned int mm=0; mm < p_.mS; ++mm){
           string res_str, lhs_str, rhs_str;
           res_str = "rC[" + to_string(mm) + "][" + to_string(nn) + "]";
           if (p_.simd_width==1)
@@ -449,10 +448,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
         stream.dec_tab();
         stream << "}" << std::endl;
-
         stream << "K -= " << p_.kL << ";" << std::endl;
-
-
 
         //Increment A pointers to global memory
         if (A_trans_=='N')
@@ -469,14 +465,8 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
         else
           for(unsigned int i = 0 ; i < npB ; ++i)
               stream << "Bi[" << i << "] += " << p_.kL << BSTRIDE1 << ";" << std::endl;
-
-
     };
-
-
     fetch_to_lds(false);
-
-
     stream.dec_tab();
     stream << "}" << std::endl;
 

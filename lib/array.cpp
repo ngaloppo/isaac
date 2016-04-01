@@ -26,7 +26,7 @@
 #include <stdexcept>
 
 #include "isaac/array.h"
-#include "isaac/exception/unknown_datatype.h"
+#include "isaac/exception/api.h"
 #include "isaac/profiles/profiles.h"
 #include "isaac/symbolic/execute.h"
 #include "isaac/symbolic/expression/io.h"
@@ -496,7 +496,8 @@ tuple max(tuple const & a, tuple const & b)
 {
   std::vector<int_t> result;
   for(size_t i = 0 ; i < std::max(a.size(), b.size()) ; ++i){
-      assert((a[i] == b[i] || a[i]==1 || b[i]==1) && "Cannot broadcast");
+      if(!(a[i] == b[i] || a[i]==1 || b[i]==1))
+        throw "Cannot broadcast";
       result.push_back(std::max(a[i], b[i]));
   }
   return tuple(result);

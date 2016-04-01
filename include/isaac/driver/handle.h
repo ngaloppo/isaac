@@ -39,6 +39,7 @@ namespace driver
       CUevent second;
   };
 
+
 #define HANDLE_TYPE(CLTYPE, CUTYPE) Handle<CLTYPE, CUTYPE>
 
 template<class CLType, class CUType>

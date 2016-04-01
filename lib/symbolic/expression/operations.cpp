@@ -24,7 +24,7 @@
 #include "isaac/tools/cpp/string.hpp"
 
 #include "isaac/array.h"
-#include "isaac/exception/operation_not_supported.h"
+#include "isaac/exception/api.h"
 
 namespace isaac
 {

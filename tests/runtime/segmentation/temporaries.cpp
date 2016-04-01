@@ -1,4 +1,5 @@
 #include "isaac/symbolic/execute.h"
+#include "isaac/symbolic/expression/io.h"
 #include "isaac/array.h"
 
 namespace sc = isaac;
@@ -7,7 +8,7 @@ int main()
 {
   int nfail = 0, npass = 0;
   sc::array A(3,4), B(3, 4);
-  sc::array y(3), x(4), z(4);
+  sc::array y(4), x(4), z(7);
   sc::scalar da(0);
 
   #define ADD_TMP_TEST(NAME, RESULT_TYPE, NTMP, SCEXPR) \
@@ -16,7 +17,7 @@ int main()
     sc::symbolic::detail::breakpoints_t breakpoints;\
     sc::expression_type type = sc::symbolic::detail::parse(tree, breakpoints);\
     std::cout << NAME << "...";\
-    if(!(type == RESULT_TYPE && breakpoints.size()==0)){\
+    if(!(type == RESULT_TYPE && breakpoints.size()==NTMP)){\
       std::cout << " [Failure!]" << std::endl;\
       nfail++;\
     }\
@@ -39,6 +40,7 @@ int main()
   //1D reduction
   ADD_TMP_TEST("da = sum(x)", sc::REDUCE_1D, 0, sc::assign(da, sum(x)));
   ADD_TMP_TEST("da = sum(ax + by)", sc::REDUCE_1D, 0, sc::assign(da, sum(2*x + 3*y)));
+  ADD_TMP_TEST("da = sum(ax + by) + sum(z)", sc::REDUCE_1D, 1, sc::assign(da, sum(2*x + 3*y) + sum(z)));
 
   //2D reduction
   ADD_TMP_TEST("x = sum(A, 0)", sc::REDUCE_2D_COLS, 0, sc::assign(x, sum(A, 0)));

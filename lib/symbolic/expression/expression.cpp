@@ -25,7 +25,7 @@
 #include "isaac/value_scalar.h"
 #include "isaac/symbolic/expression/expression.h"
 #include "isaac/symbolic/expression/preset.h"
-#include "isaac/exception/operation_not_supported.h"
+#include "isaac/exception/api.h"
 
 namespace isaac
 {

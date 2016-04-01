@@ -34,7 +34,7 @@
 #include "isaac/templates/elementwise_2d.h"
 #include "isaac/templates/reduce_2d.h"
 #include "isaac/templates/matrix_product.h"
-#include "isaac/exception/operation_not_supported.h"
+#include "isaac/exception/api.h"
 #include "isaac/symbolic/engine/process.h"
 #include "isaac/tools/sys/getenv.hpp"
 #include "isaac/tools/cpp/string.hpp"

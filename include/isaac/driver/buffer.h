@@ -47,7 +47,7 @@ private:
   static CUcontext context(CUdeviceptr h)
   {
       CUcontext res;
-      cuda::check(dispatch::cuPointerGetAttribute((void*)&res, CU_POINTER_ATTRIBUTE_CONTEXT, h));
+      check(dispatch::cuPointerGetAttribute((void*)&res, CU_POINTER_ATTRIBUTE_CONTEXT, h));
       return res;
   }
 

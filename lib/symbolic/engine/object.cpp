@@ -22,7 +22,7 @@
 #include <string>
 
 #include "isaac/array.h"
-#include "isaac/exception/operation_not_supported.h"
+#include "isaac/exception/api.h"
 #include "isaac/symbolic/engine/object.h"
 #include "isaac/symbolic/expression/expression.h"
 #include "isaac/tools/cpp/string.hpp"

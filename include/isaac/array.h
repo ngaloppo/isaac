@@ -345,6 +345,5 @@ array diag(array_base & x, int offset = 0);
 //
 ISAACAPI std::ostream& operator<<(std::ostream &, array_base const &);
 ISAACAPI std::ostream& operator<<(std::ostream &, expression_tree const &);
-
 }
 #endif

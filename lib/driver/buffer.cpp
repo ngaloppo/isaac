@@ -45,12 +45,12 @@ Buffer::Buffer(Context const & context, size_t size) : backend_(context.backend_
   switch(backend_)
   {
     case CUDA:
-      cuda::check(dispatch::cuMemAlloc(&h_.cu(), size));
+      check(dispatch::cuMemAlloc(&h_.cu(), size));
       break;
     case OPENCL:
       cl_int err;
       h_.cl() = dispatch::clCreateBuffer(context.h_.cl(), CL_MEM_READ_WRITE, size, NULL, &err);
-      ocl::check(err);
+      check(err);
       break;
     default:
       throw;
