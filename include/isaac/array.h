@@ -131,7 +131,7 @@ protected:
   driver::Buffer data_;
 
 public:
-  expression_tree T;
+  const expression_tree T;
 };
 
 class ISAACAPI array : public array_base

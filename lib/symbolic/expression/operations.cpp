@@ -106,8 +106,9 @@ std::string to_string(operation_type type)
     case MATRIX_PRODUCT_TN_TYPE: return "matmatTN";
     case MATRIX_PRODUCT_TT_TYPE: return "matmatTT";
 
-    //reshape
+    //others
     case RESHAPE_TYPE: return "reshape";
+    case TRANS_TYPE: return "trans";
 
     default : throw operation_not_supported_exception("Unsupported operator");
   }
