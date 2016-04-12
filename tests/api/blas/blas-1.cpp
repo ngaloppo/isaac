@@ -18,7 +18,7 @@ void test_impl(std::string const & ST, simple_vector_base<T> & cx, simple_vector
   int_t N = cy.size();
   sc::driver::CommandQueue & queue = sc::driver::backend::queues::get(x.context(),0);
   T cs = 0;
-  sc::scalar ds(cs, y.context());
+  sc::device_scalar ds(cs, y.context());
   sc::array scratch(N, y.dtype());
 
   if(queue.device().backend()==sc::driver::OPENCL)

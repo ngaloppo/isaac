@@ -23,6 +23,7 @@
 #define ISAAC_ARRAY_H_
 
 #include <iostream>
+#include <type_traits>
 #include "isaac/defines.h"
 #include "isaac/driver/backend.h"
 #include "isaac/jit/syntax/expression/expression.h"
@@ -33,7 +34,7 @@
 namespace isaac
 {
 
-class scalar;
+class device_scalar;
 class view;
 
 class ISAACAPI array_base
@@ -106,9 +107,8 @@ public:
   array_base& operator/=(expression_tree const &);
 
   //Indexing (1D)
-  expression_tree operator[](placeholder idx) const;
-  const scalar operator[](int_t) const;
-  scalar operator[](int_t);
+  const device_scalar operator[](int_t) const;
+  device_scalar operator[](int_t);
   view operator[](slice const &);
 
   //Indexing (2D)
@@ -157,19 +157,19 @@ public:
   using array_base::operator=;
 };
 
-class ISAACAPI scalar : public array_base
+class ISAACAPI device_scalar : public array_base
 {
-  friend value_scalar::value_scalar(const scalar &);
+  friend value_scalar::value_scalar(const device_scalar &);
   friend value_scalar::value_scalar(const expression_tree &);
 private:
   void inject(values_holder&) const;
   template<class T> T cast() const;
 public:
-  explicit scalar(numeric_type dtype, const driver::Buffer &data, int_t offset);
-  explicit scalar(value_scalar value, driver::Context const & context = driver::backend::contexts::get_default());
-  explicit scalar(numeric_type dtype, driver::Context const & context = driver::backend::contexts::get_default());
-  scalar(expression_tree const & proxy);
-  scalar& operator=(value_scalar const &);
+  explicit device_scalar(numeric_type dtype, const driver::Buffer &data, int_t offset);
+  explicit device_scalar(value_scalar value, driver::Context const & context = driver::backend::contexts::get_default());
+  explicit device_scalar(numeric_type dtype, driver::Context const & context = driver::backend::contexts::get_default());
+  device_scalar(expression_tree const & proxy);
+  device_scalar& operator=(value_scalar const &);
 //  scalar& operator=(scalar const & s);
   using array_base::operator =;
 
@@ -208,22 +208,14 @@ template<class T> ISAACAPI void copy(array_base const & gA, std::vector<T> & cA,
 #define ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR(OPNAME) \
 ISAACAPI expression_tree OPNAME (array_base const & x, expression_tree const & y);\
 ISAACAPI expression_tree OPNAME (array_base const & x, value_scalar const & y);\
-ISAACAPI expression_tree OPNAME (array_base const & x, placeholder const & y);\
 ISAACAPI expression_tree OPNAME (array_base const & x, array_base const & y);\
 \
 ISAACAPI expression_tree OPNAME (expression_tree const & x, expression_tree const & y);\
 ISAACAPI expression_tree OPNAME (expression_tree const & x, value_scalar const & y);\
-ISAACAPI expression_tree OPNAME (expression_tree const & x, placeholder const & y);\
 ISAACAPI expression_tree OPNAME (expression_tree const & x, array_base const & y);\
 \
 ISAACAPI expression_tree OPNAME (value_scalar const & y, expression_tree const & x);\
-ISAACAPI expression_tree OPNAME (value_scalar const & y, placeholder const & x);\
 ISAACAPI expression_tree OPNAME (value_scalar const & y, array_base const & x);\
-\
-ISAACAPI expression_tree OPNAME (placeholder const & y, expression_tree const & x);\
-ISAACAPI expression_tree OPNAME (placeholder const & y, placeholder const & x);\
-ISAACAPI expression_tree OPNAME (placeholder const & y, value_scalar const & x);\
-ISAACAPI expression_tree OPNAME (placeholder const & y, array_base const & x);
 
 ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR(operator +)
 ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR(operator -)
@@ -247,25 +239,6 @@ ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR(outer)
 ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR(assign)
 
 #undef ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR
-
-#define ISAAC_DECLARE_ROT(LTYPE, RTYPE, CTYPE, STYPE) \
-  expression_tree rot(LTYPE const & x, RTYPE const & y, CTYPE const & c, STYPE const & s);
-
-ISAAC_DECLARE_ROT(array_base, array_base, scalar, scalar)
-ISAAC_DECLARE_ROT(expression_tree, array_base, scalar, scalar)
-ISAAC_DECLARE_ROT(array_base, expression_tree, scalar, scalar)
-ISAAC_DECLARE_ROT(expression_tree, expression_tree, scalar, scalar)
-
-ISAAC_DECLARE_ROT(array_base, array_base, value_scalar, value_scalar)
-ISAAC_DECLARE_ROT(expression_tree, array_base, value_scalar, value_scalar)
-ISAAC_DECLARE_ROT(array_base, expression_tree, value_scalar, value_scalar)
-ISAAC_DECLARE_ROT(expression_tree, expression_tree, value_scalar, value_scalar)
-
-ISAAC_DECLARE_ROT(array_base, array_base, expression_tree, expression_tree)
-ISAAC_DECLARE_ROT(expression_tree, array_base, expression_tree, expression_tree)
-ISAAC_DECLARE_ROT(array_base, expression_tree, expression_tree, expression_tree)
-ISAAC_DECLARE_ROT(expression_tree, expression_tree, expression_tree, expression_tree)
-//--------------------------------
 
 
 //Unary operators
@@ -317,22 +290,6 @@ ISAACAPI expression_tree mean(expression_tree const &, int_t axis = -1);
 
 //ISAACAPI expression_tree var(array_base const &, int_t axis = -1);
 //ISAACAPI expression_tree var(expression_tree const &, int_t axis = -1);
-
-//Fusion
-ISAACAPI expression_tree fuse(expression_tree const & x, expression_tree const & y);
-
-//For
-ISAACAPI expression_tree sfor(expression_tree const & start, expression_tree const & end, expression_tree const & inc, expression_tree const & expression);
-static const placeholder _i0{0};
-static const placeholder _i1{1};
-static const placeholder _i2{2};
-static const placeholder _i3{3};
-static const placeholder _i4{4};
-static const placeholder _i5{5};
-static const placeholder _i6{6};
-static const placeholder _i7{7};
-static const placeholder _i8{8};
-static const placeholder _i9{9};
 
 //Initializers
 ISAACAPI expression_tree eye(int_t, int_t, isaac::numeric_type, driver::Context const & context = driver::backend::contexts::get_default());

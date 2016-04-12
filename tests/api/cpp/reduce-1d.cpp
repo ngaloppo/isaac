@@ -17,7 +17,7 @@ void test_impl(std::string const & ST, simple_vector_base<T> & cx, simple_vector
   std::string PFX = "[" + DT + "," + ST + "]";
   sc::driver::Context const & context = x.context();
   T cs = 0;
-  sc::scalar ds(cs, context);
+  sc::device_scalar ds(cs, context);
   int_t N = cx.size();
   sc::array scratch(N, x.dtype());
 

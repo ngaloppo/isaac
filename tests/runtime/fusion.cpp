@@ -8,7 +8,7 @@ int main()
   int nfail = 0, npass = 0;
   sc::array A(3,4), B(3, 4), C(3,3);
   sc::array y(3), u(4), x(4), z(7);
-  sc::scalar da(0);
+  sc::device_scalar da(0);
 
   #define ADD_TMP_TEST(NAME, RESULT_TYPE, NTMP, SCEXPR) \
   {\

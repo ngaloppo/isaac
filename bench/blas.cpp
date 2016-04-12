@@ -166,7 +166,7 @@ void bench(sc::numeric_type dtype, std::string operation)
       /* ISAAC */
       sc::array x(N, dtype), y(N, dtype);
       sc::array scratch(N, dtype);
-      sc::scalar s(dtype);
+      sc::device_scalar s(dtype);
       s = dot(x,y); queue.synchronize();
       BENCHMARK_ISAAC(s = dot(x,y), 2*N*dtsize/t)
       /* clblas */

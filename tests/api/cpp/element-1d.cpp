@@ -19,7 +19,7 @@ void test_impl(std::string const & ST, simple_vector_base<T> & cx, simple_vector
   sc::driver::Context const & context = x.context();
   int_t N = cz.size();
   T a = -4, b = 3.5;
-  sc::scalar da(a, context), db(b, context);
+  sc::device_scalar da(a, context), db(b, context);
 
   ADD_TEST_1D_EW(PFX + " z = 0", cz[i] = 0, z = sc::zeros({N}, dtype, context))
   ADD_TEST_1D_EW(PFX + " z = x", cz[i] = cx[i], z = x)

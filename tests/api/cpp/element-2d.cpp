@@ -15,7 +15,7 @@ void test_impl(std::string const & ST, simple_matrix_base<T> & cA, simple_matrix
   sc::driver::Context const & ctx = C.context();
   int_t M = cC.size1(), N = cC.size2();
   T a = 3.12, b = 3.5;
-  sc::scalar da(a, ctx), db(b, ctx);
+  sc::device_scalar da(a, ctx), db(b, ctx);
   simple_vector<T> buffer(M*N);
 
   ADD_TEST_2D_EW(PFX + " C = A", cC(i,j) = cA(i,j), C = A)

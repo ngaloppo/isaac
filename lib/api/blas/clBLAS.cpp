@@ -127,7 +127,7 @@ extern "C"
     { \
         sc::array x((sc::int_t)N, TYPE_ISAAC, sc::driver::Buffer(mx, false), (sc::int_t)offx, incx); \
         sc::array y((sc::int_t)N, TYPE_ISAAC, sc::driver::Buffer(my, false), (sc::int_t)offy, incy); \
-        sc::scalar s(TYPE_ISAAC, sc::driver::Buffer(dotProduct, false), (sc::int_t)offDP); \
+        sc::device_scalar s(TYPE_ISAAC, sc::driver::Buffer(dotProduct, false), (sc::int_t)offDP); \
         execute(sc::assign(s, dot(x,y)), s.context(), numCommandQueues, commandQueues, numEventsInWaitList, eventWaitList, events); \
         return clblasSuccess; \
     }
@@ -143,7 +143,7 @@ extern "C"
                              cl_uint numEventsInWaitList, const cl_event *eventWaitList, cl_event *events)\
     {\
         sc::array x((sc::int_t)N, TYPE_ISAAC, sc::driver::Buffer(mx, false), (sc::int_t)offx, incx);\
-        sc::scalar s(TYPE_ISAAC, sc::driver::Buffer(asum, false), (sc::int_t)offAsum);\
+        sc::device_scalar s(TYPE_ISAAC, sc::driver::Buffer(asum, false), (sc::int_t)offAsum);\
         execute(sc::assign(s, sum(abs(x))), s.context(), numCommandQueues, commandQueues, numEventsInWaitList, eventWaitList, events);\
         return clblasSuccess;\
     }

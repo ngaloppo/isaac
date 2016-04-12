@@ -267,21 +267,17 @@ array_base & array_base::operator/=(expression_tree const & rhs)
 
 /*--- Indexing operators -----*/
 //---------------------------------------
-expression_tree array_base::operator[](placeholder idx) const
-{
-  return expression_tree(*this, idx, op_element(BINARY_ARITHMETIC, ACCESS_INDEX_TYPE), &context_, dtype_, {1});
-}
 
-scalar array_base::operator [](int_t idx)
+device_scalar array_base::operator [](int_t idx)
 {
   assert(dim()<=1);
-  return scalar(dtype_, data_, start_ + idx);
+  return device_scalar(dtype_, data_, start_ + idx);
 }
 
-const scalar array_base::operator [](int_t idx) const
+const device_scalar array_base::operator [](int_t idx) const
 {
   assert(dim()<=1);
-  return scalar(dtype_, data_, start_ + idx);
+  return device_scalar(dtype_, data_, start_ + idx);
 }
 
 view array_base::operator[](slice const & e1)
@@ -354,10 +350,10 @@ void copy(driver::Context const & context, driver::Buffer const & data, T value)
 
 }
 
-scalar::scalar(numeric_type dtype, const driver::Buffer &data, int_t offset): array_base(1, dtype, data, offset, 1)
+device_scalar::device_scalar(numeric_type dtype, const driver::Buffer &data, int_t offset): array_base(1, dtype, data, offset, 1)
 { }
 
-scalar::scalar(value_scalar value, driver::Context const & context) : array_base(1, value.dtype(), context)
+device_scalar::device_scalar(value_scalar value, driver::Context const & context) : array_base(1, value.dtype(), context)
 {
   switch(dtype_)
   {
@@ -376,12 +372,12 @@ scalar::scalar(value_scalar value, driver::Context const & context) : array_base
 }
 
 
-scalar::scalar(numeric_type dtype, driver::Context const & context) : array_base(1, dtype, context)
+device_scalar::device_scalar(numeric_type dtype, driver::Context const & context) : array_base(1, dtype, context)
 { }
 
-scalar::scalar(expression_tree const & proxy) : array_base(proxy){ }
+device_scalar::device_scalar(expression_tree const & proxy) : array_base(proxy){ }
 
-void scalar::inject(values_holder & v) const
+void device_scalar::inject(values_holder & v) const
 {
     int_t dtsize = size_of(dtype_);
   #define HANDLE_CASE(DTYPE, VAL) \
@@ -406,7 +402,7 @@ void scalar::inject(values_holder & v) const
 }
 
 template<class TYPE>
-TYPE scalar::cast() const
+TYPE device_scalar::cast() const
 {
   values_holder v;
   inject(v);
@@ -431,7 +427,7 @@ TYPE scalar::cast() const
 
 }
 
-scalar& scalar::operator=(value_scalar const & s)
+device_scalar& device_scalar::operator=(value_scalar const & s)
 {
   driver::CommandQueue& queue = driver::backend::queues::get(context_, 0);
   int_t dtsize = size_of(dtype_);
@@ -458,7 +454,7 @@ scalar& scalar::operator=(value_scalar const & s)
   }
 }
 
-#define INSTANTIATE(type) scalar::operator type() const { return cast<type>(); }
+#define INSTANTIATE(type) device_scalar::operator type() const { return cast<type>(); }
   INSTANTIATE(char)
   INSTANTIATE(unsigned char)
   INSTANTIATE(short)
@@ -473,7 +469,7 @@ scalar& scalar::operator=(value_scalar const & s)
   INSTANTIATE(double)
 #undef INSTANTIATE
 
-std::ostream & operator<<(std::ostream & os, scalar const & s)
+std::ostream & operator<<(std::ostream & os, device_scalar const & s)
 {
   switch(s.dtype())
   {
@@ -534,9 +530,6 @@ expression_tree OPNAME (array_base const & x, array_base const & y) \
 expression_tree OPNAME (array_base const & x, value_scalar const & y) \
 { return expression_tree(x, y, op_element(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); }\
 \
-expression_tree OPNAME (array_base const & x, placeholder const & y) \
-{ return expression_tree(x, y, op_element(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); }\
-\
 \
 expression_tree OPNAME (expression_tree const & x, expression_tree const & y) \
 { return broadcast(x, y, op_element(BINARY_ARITHMETIC, OP), DTYPE); } \
@@ -547,9 +540,6 @@ expression_tree OPNAME (expression_tree const & x, array_base const & y) \
 expression_tree OPNAME (expression_tree const & x, value_scalar const & y) \
 { return expression_tree(x, y, op_element(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); } \
 \
-expression_tree OPNAME (expression_tree const & x, placeholder const & y) \
-{ return expression_tree(x, y, op_element(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); } \
-\
 \
 expression_tree OPNAME (value_scalar const & y, expression_tree const & x) \
 { return expression_tree(y, x, op_element(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); } \
@@ -557,22 +547,6 @@ expression_tree OPNAME (value_scalar const & y, expression_tree const & x) \
 expression_tree OPNAME (value_scalar const & y, array_base const & x) \
 { return expression_tree(y, x, op_element(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); }\
 \
-expression_tree OPNAME (value_scalar const & x, placeholder const & y) \
-{ return expression_tree(x, y, op_element(BINARY_ARITHMETIC, OP), NULL, DTYPE, {1}); }\
-\
-\
-expression_tree OPNAME (placeholder const & y, expression_tree const & x) \
-{ return expression_tree(y, x, op_element(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); } \
-\
-expression_tree OPNAME (placeholder const & y, value_scalar const & x) \
-{ return expression_tree(y, x, op_element(BINARY_ARITHMETIC, OP), NULL, DTYPE, {1}); } \
-\
-expression_tree OPNAME (placeholder const & y, array_base const & x) \
-{ return expression_tree(y, x, op_element(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); }\
-\
-expression_tree OPNAME (placeholder const & y, placeholder const & x) \
-{ return expression_tree(y, x, op_element(BINARY_ARITHMETIC, OP), NULL, INVALID_NUMERIC_TYPE, {1}); }
-
 
 DEFINE_ELEMENT_BINARY_OPERATOR(ADD_TYPE, operator +, x.dtype())
 DEFINE_ELEMENT_BINARY_OPERATOR(SUB_TYPE, operator -, x.dtype())
@@ -637,30 +611,6 @@ DEFINE_OUTER(array_base, array_base)
 DEFINE_OUTER(expression_tree, array_base)
 DEFINE_OUTER(array_base, expression_tree)
 DEFINE_OUTER(expression_tree, expression_tree)
-
-
-/*--- Rot ----*/
-//-----------------------------------
-
-#define DEFINE_ROT(LTYPE, RTYPE, CTYPE, STYPE)\
-expression_tree rot(LTYPE const & x, RTYPE const & y, CTYPE const & c, STYPE const & s)\
-{ return fuse(assign(x, c*x + s*y), assign(y, c*y - s*x)); }
-
-DEFINE_ROT(array_base, array_base, scalar, scalar)
-DEFINE_ROT(expression_tree, array_base, scalar, scalar)
-DEFINE_ROT(array_base, expression_tree, scalar, scalar)
-DEFINE_ROT(expression_tree, expression_tree, scalar, scalar)
-
-DEFINE_ROT(array_base, array_base, value_scalar, value_scalar)
-DEFINE_ROT(expression_tree, array_base, value_scalar, value_scalar)
-DEFINE_ROT(array_base, expression_tree, value_scalar, value_scalar)
-DEFINE_ROT(expression_tree, expression_tree, value_scalar, value_scalar)
-
-DEFINE_ROT(array_base, array_base, expression_tree, expression_tree)
-DEFINE_ROT(expression_tree, array_base, expression_tree, expression_tree)
-DEFINE_ROT(array_base, expression_tree, expression_tree, expression_tree)
-DEFINE_ROT(expression_tree, expression_tree, expression_tree, expression_tree)
-
 
 /*--- Casting Operators ----*/
 //-----------------------------------
@@ -858,13 +808,6 @@ namespace detail
 
   }
 
-}
-
-//Swap
-ISAACAPI void swap(view x, view y)
-{
-  //Seems like some compilers will generate incorrect code without the 1*...
-  runtime::execute(fuse(assign(y,1*x), assign(x,1*y)));
 }
 
 //Reshape
