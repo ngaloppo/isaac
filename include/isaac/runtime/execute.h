@@ -22,8 +22,7 @@
 #ifndef _ISAAC_SYMBOLIC_EXECUTE_H
 #define _ISAAC_SYMBOLIC_EXECUTE_H
 
-#include "isaac/runtime/inference/profiles.h"
-#include "isaac/runtime/execute.h"
+#include "isaac/runtime/backend.h"
 
 namespace isaac
 {
@@ -38,10 +37,10 @@ namespace detail
 }
 
 /** @brief Executes a expression_tree on the given queue for the given models map*/
-void execute(execution_handler const & , profiles::map_type &);
+void execute(launcher const & , implementation &);
 
 /** @brief Executes a expression_tree on the default models map*/
-void execute(execution_handler const &);
+void execute(launcher const &);
 
 }
 

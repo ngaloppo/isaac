@@ -22,7 +22,7 @@
 #ifndef ISAAC_DRIVER_DEVICE_H
 #define ISAAC_DRIVER_DEVICE_H
 
-#include "isaac/defines.h"
+#include "isaac/common.h"
 #include "isaac/driver/common.h"
 #include "isaac/driver/platform.h"
 #include "isaac/driver/handle.h"

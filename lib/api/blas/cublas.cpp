@@ -52,7 +52,7 @@ extern "C"
 
     cublasStatus cublasShutdown()
     {
-        isaac::runtime::profiles::release();
+        isaac::runtime::backend::implementations::release();
         isaac::driver::backend::release();
         return CUBLAS_STATUS_SUCCESS;
     }

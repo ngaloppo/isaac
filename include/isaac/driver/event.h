@@ -22,7 +22,7 @@
 #ifndef ISAAC_DRIVER_EVENT_H
 #define ISAAC_DRIVER_EVENT_H
 
-#include "isaac/defines.h"
+#include "isaac/common.h"
 #include "isaac/driver/common.h"
 #include "isaac/driver/handle.h"
 

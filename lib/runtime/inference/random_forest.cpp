@@ -19,14 +19,14 @@
  * MA 02110-1301  USA
  */
 
-#include "isaac/runtime/inference/predictors/random_forest.h"
+#include "isaac/runtime/inference/random_forest.h"
 #include "rapidjson/to_array.hpp"
 
 namespace isaac
 {
 namespace runtime
 {
-namespace predictors
+namespace inference
 {
 
 

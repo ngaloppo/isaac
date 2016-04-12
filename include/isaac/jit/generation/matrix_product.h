@@ -31,14 +31,27 @@ namespace isaac
 namespace templates
 {
 
-struct matrix_product_parameters : public base::parameters_type
+class matrix_product : public base
 {
-  matrix_product_parameters(unsigned int simd_width
-                            , unsigned int local_size_0, unsigned int KL, unsigned int local_size_1, unsigned int D
-                            , unsigned int ms, unsigned int ks, unsigned int ns
-                            , fetching_policy_type A_fetching_policy, fetching_policy_type B_fetching_policy
-                            , unsigned int local_fetch_0, unsigned int local_fetch_1);
-
+private:
+  unsigned int temporary_workspace(expression_tree const & expressions) const;
+  unsigned int lmem_usage(expression_tree const & expressions) const;
+  unsigned int registers_usage(expression_tree const & expressions) const;
+  int is_invalid_impl(driver::Device const &, expression_tree const &) const;
+  std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::symbols_table const &) const;
+  void enqueue_block(driver::CommandQueue & queue, int_t M, int_t N, int_t K, const expression_tree::node &A, const expression_tree::node &B, const expression_tree::node &C,
+                     scalar const &alpha, scalar const &beta, driver::Program const & program, std::string const & suffix, runtime::environment const & options);
+  std::vector<int_t> infos(expression_tree const & expressions,  isaac::symbolic::preset::matrix_product::args &arguments) const;
+public:
+  matrix_product(unsigned int s
+                 ,unsigned int ls0, unsigned int KL, unsigned int ls1, unsigned int D
+                 ,unsigned int ms, unsigned int ks, unsigned int ns
+                 ,fetching_policy_type Afetch, fetching_policy_type Bfetch
+                 ,unsigned int fetch0, unsigned int fetch1
+                 ,char A_trans, char B_trans);
+  std::vector<int_t> input_sizes(expression_tree const & expressions) const;
+  void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, expression_tree const & tree, runtime::environment const & opt);
+private:
   unsigned int kL;
   unsigned int depth;
 
@@ -55,26 +68,6 @@ struct matrix_product_parameters : public base::parameters_type
   unsigned int mL;
   unsigned int nL;
 
-  bool prefetch;
-  bool unroll_outer;
-};
-
-class matrix_product : public base_impl<matrix_product, matrix_product_parameters>
-{
-private:
-  unsigned int temporary_workspace(expression_tree const & expressions) const;
-  unsigned int lmem_usage(expression_tree const & expressions) const;
-  unsigned int registers_usage(expression_tree const & expressions) const;
-  int is_invalid_impl(driver::Device const &, expression_tree const &) const;
-  std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::symbols_table const &) const;
-  void enqueue_block(driver::CommandQueue & queue, int_t M, int_t N, int_t K, const expression_tree::node &A, const expression_tree::node &B, const expression_tree::node &C,
-                     scalar const &alpha, scalar const &beta, driver::Program const & program, std::string const & suffix, runtime::execution_options_type const & options);
-  std::vector<int_t> infos(expression_tree const & expressions,  isaac::symbolic::preset::matrix_product::args &arguments) const;
-public:
-  matrix_product(matrix_product::parameters_type const & parameters, char A_trans, char B_trans);
-  std::vector<int_t> input_sizes(expression_tree const & expressions) const;
-  void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, runtime::execution_handler const &ctr);
-private:
   const char A_trans_;
   const char B_trans_;
   expression_type type_;

@@ -25,7 +25,7 @@
 #include <string>
 #include <exception>
 
-#include "isaac/defines.h"
+#include "isaac/common.h"
 
 namespace isaac
 {
@@ -37,21 +37,6 @@ class operation_not_supported_exception : public std::exception
 public:
   operation_not_supported_exception();
   operation_not_supported_exception(std::string message);
-  virtual const char* what() const throw();
-private:
-DISABLE_MSVC_WARNING_C4251
-  std::string message_;
-RESTORE_MSVC_WARNING_C4251
-};
-RESTORE_MSVC_WARNING_C4275
-
-
-/** @brief Exception for the case the generator is unable to deal with the operation */
-DISABLE_MSVC_WARNING_C4275
-class ISAACAPI unknown_datatype : public std::exception
-{
-public:
-  unknown_datatype(int);
   virtual const char* what() const throw();
 private:
 DISABLE_MSVC_WARNING_C4251

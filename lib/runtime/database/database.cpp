@@ -20,23 +20,23 @@
  */
 
 #include "isaac/driver/device.h"
-#include "isaac/runtime/inference/profiles.h"
+#include "isaac/runtime/backend.h"
 
 //Default
-#include "database/unknown/unknown.hpp"
+#include "unknown/unknown.hpp"
 
 //Intel
-#include "database/intel/broadwell.hpp"
+#include "intel/broadwell.hpp"
 
 //NVidia
-#include "database/nvidia/sm_2_0.hpp"
-#include "database/nvidia/sm_3_0.hpp"
-#include "database/nvidia/sm_3_5.hpp"
-#include "database/nvidia/sm_5_2.hpp"
+#include "nvidia/sm_2_0.hpp"
+#include "nvidia/sm_3_0.hpp"
+#include "nvidia/sm_3_5.hpp"
+#include "nvidia/sm_5_2.hpp"
 
 //AMD
-#include "database/amd/gcn_1_1.hpp"
-#include "database/amd/gcn_1_2.hpp"
+#include "amd/gcn_1_1.hpp"
+#include "amd/gcn_1_2.hpp"
 
 namespace isaac
 {
@@ -46,7 +46,7 @@ namespace runtime
 #define DATABASE_ENTRY(TYPE, VENDOR, ARCHITECTURE, STRING) \
             {std::make_tuple(driver::Device::Type::TYPE, driver::Device::Vendor::VENDOR, driver::Device::Architecture::ARCHITECTURE), STRING}
 
-const profiles::presets_type profiles::presets_ =
+const backend::implementations::database_type backend::implementations::database_ =
 {
     //DEFAULT
     DATABASE_ENTRY(UNKNOWN, UNKNOWN, UNKNOWN, database::unknown::unknown),

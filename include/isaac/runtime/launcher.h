@@ -30,13 +30,13 @@ namespace isaac
 namespace runtime
 {
 
-struct execution_options_type
+struct environment
 {
-  execution_options_type(unsigned int _queue_id = 0, std::list<driver::Event>* _events = NULL, std::vector<driver::Event>* _dependencies = NULL) :
+  environment(unsigned int _queue_id = 0, std::list<driver::Event>* _events = NULL, std::vector<driver::Event>* _dependencies = NULL) :
      events(_events), dependencies(_dependencies), queue_id_(_queue_id)
   {}
 
-  execution_options_type(driver::CommandQueue const & queue, std::list<driver::Event> *_events = NULL, std::vector<driver::Event> *_dependencies = NULL) :
+  environment(driver::CommandQueue const & queue, std::list<driver::Event> *_events = NULL, std::vector<driver::Event> *_dependencies = NULL) :
       events(_events), dependencies(_dependencies), queue_id_(-1), queue_(new driver::CommandQueue(queue))
   {}
 
@@ -68,37 +68,25 @@ private:
   std::shared_ptr<driver::CommandQueue> queue_;
 };
 
-struct dispatcher_options_type
+struct optimize
 {
-  dispatcher_options_type(bool _tune = false, int _label = -1) : tune(_tune), label(_label){}
+  optimize(bool _tune = false, int _label = -1) : tune(_tune), label(_label){}
   bool tune;
   int label;
 };
 
-struct compilation_options_type
-{
-  compilation_options_type(std::string const & _program_name = "", bool _recompile = false) : program_name(_program_name), recompile(_recompile){}
-  std::string program_name;
-  bool recompile;
-};
-
-class execution_handler
+class launcher
 {
 public:
-  execution_handler(expression_tree const & x, execution_options_type const& execution_options = execution_options_type(),
-             dispatcher_options_type const & dispatcher_options = dispatcher_options_type(),
-             compilation_options_type const & compilation_options = compilation_options_type())
-                : x_(x), execution_options_(execution_options), dispatcher_options_(dispatcher_options), compilation_options_(compilation_options){}
-  execution_handler(expression_tree const & x, runtime::execution_handler const & other) : x_(x), execution_options_(other.execution_options_), dispatcher_options_(other.dispatcher_options_), compilation_options_(other.compilation_options_){}
-  expression_tree const & x() const { return x_; }
-  execution_options_type const & execution_options() const { return execution_options_; }
-  dispatcher_options_type const & dispatcher_options() const { return dispatcher_options_; }
-  compilation_options_type const & compilation_options() const { return compilation_options_; }
+  launcher(expression_tree const & tree, environment const& env = environment(), optimize const & opt = optimize()) : tree_(tree), env_(env), opt_(opt){}
+  launcher(expression_tree const & tree, launcher const & other) : tree_(tree), env_(other.env_), opt_(other.opt_){}
+  expression_tree const & tree() const { return tree_; }
+  environment const & env() const { return env_; }
+  optimize const & opt() const { return opt_; }
 private:
-  expression_tree x_;
-  execution_options_type execution_options_;
-  dispatcher_options_type dispatcher_options_;
-  compilation_options_type compilation_options_;
+  expression_tree tree_;
+  environment env_;
+  optimize opt_;
 };
 
 }

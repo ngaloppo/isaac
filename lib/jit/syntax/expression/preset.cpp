@@ -40,7 +40,7 @@ void matrix_product::handle_node(expression_tree::data_type const & tree, size_t
     expression_tree::node const & right = tree[node.binary_operator.rhs];
 
     //Matrix-Matrix product node
-    if(node.binary_operator.op.type_family==MATRIX_PRODUCT)
+    if(node.binary_operator.op.family==MATRIX_PRODUCT)
     {
         if(left.type==DENSE_ARRAY_TYPE) a.A = &left;
         if(right.type==DENSE_ARRAY_TYPE) a.B = &right;
@@ -59,7 +59,7 @@ void matrix_product::handle_node(expression_tree::data_type const & tree, size_t
     {
         //alpha*PROD
         if(left.type==VALUE_SCALAR_TYPE  && right.type==COMPOSITE_OPERATOR_TYPE
-           && right.binary_operator.op.type_family==MATRIX_PRODUCT)
+           && right.binary_operator.op.family==MATRIX_PRODUCT)
         {
             a.alpha = cast(scalar(left.value, left.dtype), node.dtype);
             handle_node(tree, node.binary_operator.rhs, a);

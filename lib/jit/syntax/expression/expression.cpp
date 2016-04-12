@@ -52,7 +52,7 @@ expression_tree::node::node(array_base const & x) : type(DENSE_ARRAY_TYPE), dtyp
   ld = x.stride();
 }
 
-expression_tree::node::node(int_t lhs, op_element op, int_t rhs, numeric_type dt, tuple const & sh)
+expression_tree::node::node(int_t lhs, token op, int_t rhs, numeric_type dt, tuple const & sh)
 {
   type = COMPOSITE_OPERATOR_TYPE;
   dtype = dt;
@@ -63,7 +63,7 @@ expression_tree::node::node(int_t lhs, op_element op, int_t rhs, numeric_type dt
 }
 
 //
-expression_tree::expression_tree(node const & lhs, node const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
+expression_tree::expression_tree(node const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
   root_(2), context_(context)
 {
   tree_.reserve(3);
@@ -72,7 +72,7 @@ expression_tree::expression_tree(node const & lhs, node const & rhs, op_element 
   tree_.emplace_back(node(0, op, 1, dtype, shape));
 }
 
-expression_tree::expression_tree(expression_tree const & lhs, node const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
+expression_tree::expression_tree(expression_tree const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
  tree_(lhs.tree_.size() + 2), root_(tree_.size() - 1), context_(context)
 {
   std::move(lhs.tree_.begin(), lhs.tree_.end(), tree_.begin());
@@ -80,7 +80,7 @@ expression_tree::expression_tree(expression_tree const & lhs, node const & rhs, 
   tree_[root_] = node(lhs.root_, op, root_ - 1, dtype, shape);
 }
 
-expression_tree::expression_tree(node const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
+expression_tree::expression_tree(node const & lhs, expression_tree const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
   tree_(rhs.tree_.size() + 2), root_(tree_.size() - 1), context_(context)
 {
   std::move(rhs.tree_.begin(), rhs.tree_.end(), tree_.begin());
@@ -88,7 +88,7 @@ expression_tree::expression_tree(node const & lhs, expression_tree const & rhs, 
   tree_[root_] = node(root_ - 1, op, rhs.root_, dtype, shape);
 }
 
-expression_tree::expression_tree(expression_tree const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape):
+expression_tree::expression_tree(expression_tree const & lhs, expression_tree const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape):
   tree_(lhs.tree_.size() + rhs.tree_.size() + 1), root_(tree_.size()-1), context_(context)
 {  
   std::size_t lsize = lhs.tree_.size();
@@ -122,10 +122,10 @@ int_t expression_tree::dim() const
 { return (int_t)shape().size(); }
 
 expression_tree expression_tree::operator-()
-{ return expression_tree(*this,  invalid_node(), op_element(UNARY_ARITHMETIC, SUB_TYPE), context_, dtype(), shape()); }
+{ return expression_tree(*this,  invalid_node(), token(UNARY_ARITHMETIC, SUB_TYPE), context_, dtype(), shape()); }
 
 expression_tree expression_tree::operator!()
-{ return expression_tree(*this, invalid_node(), op_element(UNARY_ARITHMETIC, NEGATE_TYPE), context_, INT_TYPE, shape()); }
+{ return expression_tree(*this, invalid_node(), token(UNARY_ARITHMETIC, NEGATE_TYPE), context_, INT_TYPE, shape()); }
 
 expression_tree::node const & expression_tree::operator[](size_t idx) const
 { return tree_[idx]; }
@@ -136,12 +136,12 @@ expression_tree::node & expression_tree::operator[](size_t idx)
 //io
 #define ISAAC_MAP_TO_STRING(NAME) case NAME: return #NAME
 
-inline std::string to_string(const op_element& op)
+inline std::string to_string(const token& op)
 {
   std::string res = to_string(op.type);
-  if(op.type_family==REDUCE) res = "reduce<" + res + ">";
-  if(op.type_family==REDUCE_ROWS) res = "reduce<" + res + ", rows>";
-  if(op.type_family==REDUCE_COLUMNS) res = "reduce<" + res + ", cols>";
+  if(op.family==REDUCE) res = "reduce<" + res + ">";
+  if(op.family==REDUCE_ROWS) res = "reduce<" + res + ", rows>";
+  if(op.family==REDUCE_COLUMNS) res = "reduce<" + res + ", cols>";
   return res;
 }
 

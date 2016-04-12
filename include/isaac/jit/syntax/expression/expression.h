@@ -32,11 +32,8 @@
 #include "isaac/driver/kernel.h"
 #include "isaac/driver/ndrange.h"
 #include "isaac/driver/buffer.h"
-
 #include "isaac/jit/syntax/expression/operations.h"
 #include "isaac/tools/cpp/tuple.hpp"
-
-#include "isaac/types.h"
 #include "isaac/scalar.h"
 #include <memory>
 #include <iostream>
@@ -53,21 +50,13 @@ enum node_type
   INVALID_SUBTYPE = 0,
   COMPOSITE_OPERATOR_TYPE,
   VALUE_SCALAR_TYPE,
-  DENSE_ARRAY_TYPE,
-  PLACEHOLDER_TYPE
+  DENSE_ARRAY_TYPE
 };
 
 union handle_t
 {
   cl_mem cl;
   CUdeviceptr cu;
-};
-
-
-struct array_holder
-{
-  int_t start;
-  handle_t handle;
 };
 
 class expression_tree
@@ -80,7 +69,7 @@ public:
     node(invalid_node);
     node(scalar const & x);
     node(array_base const & x);
-    node(int_t lhs, op_element op, int_t rhs, numeric_type dtype, tuple const & shape);
+    node(int_t lhs, token op, int_t rhs, numeric_type dtype, tuple const & shape);
 
     //Common
     node_type type;
@@ -93,24 +82,27 @@ public:
     {
       //Operator
       struct{
-        int_t lhs;
-        op_element op;
-        int_t rhs;
+        int lhs;
+        token op;
+        int rhs;
       }binary_operator;
       //Scalar
       values_holder value;
       //Array
-      array_holder array;
+      struct {
+        int_t start;
+        handle_t handle;
+      }array;
     };
   };
 
   typedef std::vector<node>     data_type;
 
 public:
-  expression_tree(node const & lhs, node const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
-  expression_tree(expression_tree const & lhs, node const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
-  expression_tree(node const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
-  expression_tree(expression_tree const & lhs, expression_tree const & rhs, op_element const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
+  expression_tree(node const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
+  expression_tree(expression_tree const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
+  expression_tree(node const & lhs, expression_tree const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
+  expression_tree(expression_tree const & lhs, expression_tree const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
 
   tuple shape() const;
   int_t dim() const;
@@ -130,17 +122,6 @@ private:
   std::size_t root_;
   driver::Context const * context_;
 };
-
-template<class T> typename std::enable_if<!std::is_arithmetic<T>::value, T const &>::type wrap_generic(T const & x){ return x;}
-template<class T> typename std::enable_if<std::is_arithmetic<T>::value, scalar>::type wrap_generic(T x) { return scalar(x); }
-
-template<typename T>
-ISAACAPI typename std::conditional<std::is_arithmetic<T>::value, scalar, T const &>::type make_tuple(driver::Context const &, T const & x)
-{ return wrap_generic(x); }
-
-template<typename T, typename... Args>
-ISAACAPI expression_tree make_tuple(driver::Context const & context, T const & x, Args... args)
-{ return expression_tree(wrap_generic(x), make_tuple(context, args...), op_element(BINARY_ARITHMETIC, PAIR_TYPE), &context, numeric_type_of(x), {1}); }
 
 //io
 std::string to_string(node_type const & f);

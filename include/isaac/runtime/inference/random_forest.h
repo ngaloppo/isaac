@@ -23,7 +23,7 @@
 #define ISAAC_MODEL_PREDICTORS_RANDOM_FOREST_H
 
 #include <vector>
-#include "isaac/types.h"
+#include "isaac/common.h"
 
 namespace rapidjson{
 class CrtAllocator;
@@ -37,7 +37,7 @@ namespace isaac
 {
 namespace runtime
 {
-namespace predictors
+namespace inference
 {
 
 class random_forest

@@ -22,9 +22,7 @@
 #ifndef ISAAC_VALUE_SCALAR_H
 #define ISAAC_VALUE_SCALAR_H
 
-#include "isaac/defines.h"
-#include "isaac/types.h"
-#include "isaac/common/numeric_type.h"
+#include "isaac/common.h"
 #include <stdint.h>
 
 namespace isaac

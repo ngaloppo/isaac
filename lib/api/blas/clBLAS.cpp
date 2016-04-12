@@ -35,7 +35,7 @@ extern "C"
 
     void clblasTeardown()
     {
-        isaac::runtime::profiles::release();
+        isaac::runtime::backend::implementations::release();
         isaac::driver::backend::release();
     }
 
@@ -50,8 +50,8 @@ extern "C"
         for(cl_uint i = 0 ; i < numCommandQueues ; ++i)
         {
             std::list<sc::driver::Event> levents;
-            sc::runtime::execution_options_type options(sc::driver::CommandQueue(commandQueues[i],false), &levents, &waitlist);
-            sc::runtime::execute(sc::runtime::execution_handler(operation, options), sc::runtime::profiles::get(options.queue(context)));
+            sc::runtime::environment options(sc::driver::CommandQueue(commandQueues[i],false), &levents, &waitlist);
+            sc::runtime::execute(sc::runtime::launcher(operation, options), sc::runtime::backend::implementations::get(options.queue(context)));
             if(events)
             {
                 events[i] = levents.front().handle().cl();

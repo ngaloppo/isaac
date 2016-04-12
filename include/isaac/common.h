@@ -19,14 +19,56 @@
  * MA 02110-1301  USA
  */
 
-#ifndef ISAAC_COMMON_NUMERIC_TYPE_H
-#define ISAAC_COMMON_NUMERIC_TYPE_H
+
+#ifndef ISAAC_DEFINES_H
+#define ISAAC_DEFINES_H
+
+#if defined(_WIN32) || defined(_MSC_VER)
+    #ifdef ISAAC_DLL
+        #define ISAACAPI  __declspec(dllexport)
+    #else
+        #define ISAACAPI  __declspec(dllimport)
+    #endif
+#else
+    #define ISAACAPI   __attribute__((visibility("default")))
+#endif
+
+#if defined(_WIN32) || defined(_MSC_VER)
+	#define DISABLE_MSVC_WARNING_C4251 __pragma(warning(disable: 4251))
+	#define RESTORE_MSVC_WARNING_C4251 __pragma(warning(default: 4251))
+	#define DISABLE_MSVC_WARNING_C4275 __pragma(warning(disable: 4275))
+	#define RESTORE_MSVC_WARNING_C4275 __pragma(warning(disable: 4275))
+
+#else
+    #define DISABLE_MSVC_WARNING_C4251
+    #define RESTORE_MSVC_WARNING_C4251
+    #define DISABLE_MSVC_WARNING_C4275
+    #define RESTORE_MSVC_WARNING_C4275
+#endif
 
 #include <stdexcept>
-#include "isaac/exception/api.h"
 
 namespace isaac
 {
+
+/* Isaac's INT type */
+typedef long long int_t;
+
+/* Data-types */
+/** @brief Exception for the case the generator is unable to deal with the operation */
+DISABLE_MSVC_WARNING_C4275
+class ISAACAPI unknown_datatype : public std::exception
+{
+public:
+  unknown_datatype(int);
+  virtual const char* what() const throw();
+private:
+DISABLE_MSVC_WARNING_C4251
+  std::string message_;
+RESTORE_MSVC_WARNING_C4251
+};
+RESTORE_MSVC_WARNING_C4275
+
 
 enum numeric_type
 {
@@ -49,26 +91,34 @@ inline std::string to_string(numeric_type const & type)
 {
   switch (type)
   {
-//  case BOOL_TYPE: return "bool";
-  case CHAR_TYPE: return "char";
-  case UCHAR_TYPE: return "uchar";
-  case SHORT_TYPE: return "short";
-  case USHORT_TYPE: return "ushort";
-  case INT_TYPE:  return "int";
-  case UINT_TYPE: return "uint";
-  case LONG_TYPE:  return "long";
-  case ULONG_TYPE: return "ulong";
-//  case HALF_TYPE : return "half";
-  case FLOAT_TYPE : return "float";
-  case DOUBLE_TYPE : return "double";
-  default : throw unknown_datatype(type);
+  //  case BOOL_TYPE: return "bool";
+    case CHAR_TYPE: return "char";
+    case UCHAR_TYPE: return "uchar";
+    case SHORT_TYPE: return "short";
+    case USHORT_TYPE: return "ushort";
+    case INT_TYPE:  return "int";
+    case UINT_TYPE: return "uint";
+    case LONG_TYPE:  return "long";
+    case ULONG_TYPE: return "ulong";
+  //  case HALF_TYPE : return "half";
+    case FLOAT_TYPE : return "float";
+    case DOUBLE_TYPE : return "double";
+    default : throw unknown_datatype(type);
   }
 }
 
 inline numeric_type numeric_type_from_string(std::string const & name)
 {
-  if(name=="float32") return FLOAT_TYPE;
-  if(name=="float64") return DOUBLE_TYPE;
+  if(name=="int8") return CHAR_TYPE;
+  else if(name=="uint8") return UCHAR_TYPE;
+  else if(name=="int16") return SHORT_TYPE;
+  else if(name=="uint16") return USHORT_TYPE;
+  else if(name=="int32") return INT_TYPE;
+  else if(name=="uint32") return UINT_TYPE;
+  else if(name=="int64") return LONG_TYPE;
+  else if(name=="uint64") return ULONG_TYPE;
+  else if(name=="float32") return FLOAT_TYPE;
+  else if(name=="float64") return DOUBLE_TYPE;
   throw std::invalid_argument("Invalid datatype: " + name);
 }
 
@@ -130,8 +180,11 @@ template<> struct to_numeric_type<unsigned long> { static const numeric_type val
 template<> struct to_numeric_type<float> { static const numeric_type value = FLOAT_TYPE; };
 template<> struct to_numeric_type<double> { static const numeric_type value = DOUBLE_TYPE; };
 
-template<class T> typename std::enable_if<std::is_arithmetic<T>::value, numeric_type>::type numeric_type_of(T) { return to_numeric_type<T>::value; }
-template<class T> typename std::enable_if<!std::is_arithmetic<T>::value, numeric_type>::type numeric_type_of(T const & x) { return x.dtype(); }
-}
+template<class T> typename std::enable_if<std::is_arithmetic<T>::value, numeric_type>::type numeric_type_of(T)
+{ return to_numeric_type<T>::value; }
 
+template<class T> typename std::enable_if<!std::is_arithmetic<T>::value, numeric_type>::type numeric_type_of(T const & x)
+{ return x.dtype(); }
+
+}
 #endif

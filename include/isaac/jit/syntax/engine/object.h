@@ -28,7 +28,6 @@
 #include "isaac/jit/syntax/engine/macro.h"
 #include "isaac/jit/syntax/expression/expression.h"
 #include "isaac/jit/generation/engine/stream.h"
-#include "isaac/types.h"
 
 namespace isaac
 {
@@ -44,13 +43,13 @@ typedef std::map<size_t, std::shared_ptr<object> > symbols_table;
 class node
 {
 public:
-  node(size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
-  op_element op() const;
+  node(size_t root, token op, expression_tree const & tree, symbols_table const & table);
+  token op() const;
   object const * lhs() const;
   object const * rhs() const;
   size_t root() const;
 protected:
-  op_element op_;
+  token op_;
   object* lhs_;
   object* rhs_;
   size_t root_;
@@ -89,7 +88,7 @@ public:
 class arithmetic_node : public object, public node
 {
 public:
-  arithmetic_node(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  arithmetic_node(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table);
 protected:
   std::string op_str_;
 };
@@ -98,7 +97,7 @@ protected:
 class binary_arithmetic_node: public arithmetic_node
 {
 public:
-  binary_arithmetic_node(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  binary_arithmetic_node(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table);
   std::string evaluate(std::map<std::string, std::string> const & table) const;
 };
 
@@ -106,7 +105,7 @@ public:
 class unary_arithmetic_node: public arithmetic_node
 {
 public:
-  unary_arithmetic_node(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  unary_arithmetic_node(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table);
   std::string evaluate(std::map<std::string, std::string> const & table) const;
 };
 
@@ -114,26 +113,26 @@ public:
 class sfor: public object, public node
 {
 public:
-  sfor(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  sfor(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table);
 };
 
 //Reductions
 class reduction : public object, public node
 {
 public:
-  reduction(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  reduction(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table);
 };
 
 class reduce_1d : public reduction
 {
 public:
-  reduce_1d(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  reduce_1d(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table);
 };
 
 class reduce_2d : public reduction
 {
 public:
-  reduce_2d(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  reduce_2d(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table);
 };
 
 //Host scalar
@@ -141,13 +140,6 @@ class host_scalar : public leaf
 {
 public:
   host_scalar(driver::Context const & context, std::string const & scalartype, unsigned int id);
-};
-
-//Placeholder
-class placeholder : public leaf
-{
-public:
-  placeholder(driver::Context const & context, unsigned int level);
 };
 
 //Arrays
@@ -176,25 +168,25 @@ private:
 class index_modifier: public array, public node
 {
 public:
-  index_modifier(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  index_modifier(std::string const & scalartype, unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table);
 };
 
 class reshape : public index_modifier
 {
 public:
-  reshape(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  reshape(std::string const & scalartype, unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table);
 };
 
 class trans : public index_modifier
 {
 public:
-  trans(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  trans(std::string const & scalartype, unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table);
 };
 
 class diag_vector : public index_modifier
 {
 public:
-  diag_vector(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table);
+  diag_vector(std::string const & scalartype, unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table);
 };
 
 

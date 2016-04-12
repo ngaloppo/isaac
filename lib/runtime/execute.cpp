@@ -23,9 +23,7 @@
 #include <list>
 #include <vector>
 #include <stdexcept>
-#include "isaac/types.h"
 #include "isaac/array.h"
-#include "isaac/runtime/inference/profiles.h"
 #include "isaac/runtime/execute.h"
 #include "isaac/jit/syntax/expression/expression.h"
 #include "isaac/jit/syntax/expression/preset.h"
@@ -67,18 +65,18 @@ namespace runtime
           size_t ridx = node.binary_operator.rhs;
           expression_type ltype = parse(tree, lidx, bp);
           expression_type rtype = parse(tree, ridx, bp);
-          op_element const & op = node.binary_operator.op;
+          token const & op = node.binary_operator.op;
           //Reduction
-          if(op.type_family==REDUCE || op.type_family==REDUCE_ROWS || op.type_family==REDUCE_COLUMNS)
+          if(op.family==REDUCE || op.family==REDUCE_ROWS || op.family==REDUCE_COLUMNS)
           {
             if(!is_elementwise(ltype)) bp.push_back({lidx, ltype});
             if(!is_elementwise(rtype)) bp.push_back({ridx, rtype});
-            if(op.type_family==REDUCE) return REDUCE_1D;
-            if(op.type_family==REDUCE_ROWS) return REDUCE_2D_ROWS;
-            if(op.type_family==REDUCE_COLUMNS) return REDUCE_2D_COLS;
+            if(op.family==REDUCE) return REDUCE_1D;
+            if(op.family==REDUCE_ROWS) return REDUCE_2D_ROWS;
+            if(op.family==REDUCE_COLUMNS) return REDUCE_2D_COLS;
           }
           //Matrix Product
-          if(op.type_family==MATRIX_PRODUCT)
+          if(op.family==MATRIX_PRODUCT)
           {
             if(tree[lidx].type!=DENSE_ARRAY_TYPE) bp.push_back({lidx, ltype});
             if(tree[ridx].type!=DENSE_ARRAY_TYPE) bp.push_back({ridx, rtype});
@@ -88,7 +86,7 @@ namespace runtime
             if(op.type==MATRIX_PRODUCT_TT_TYPE) return MATRIX_PRODUCT_TT;
           }
           //Arithmetic
-          if(op.type_family==UNARY_ARITHMETIC || op.type_family==BINARY_ARITHMETIC)
+          if(op.family==UNARY_ARITHMETIC || op.family==BINARY_ARITHMETIC)
           {
             //Non-elementwise kernels are temporaries when reshaped
             if(op.type==RESHAPE_TYPE && !is_elementwise(ltype))
@@ -128,10 +126,10 @@ namespace runtime
   }
 
   /** @brief Executes a expression_tree on the given models map*/
-  void execute(execution_handler const & c, profiles::map_type & profiles)
+  void execute(launcher const & c, implementation & impl)
   {
     typedef isaac::array array;
-    expression_tree tree = c.x();
+    expression_tree tree = c.tree();
     /*----Optimize----*/
 //    detail::optimize(tree);
     /*----Process-----*/
@@ -160,8 +158,8 @@ namespace runtime
         for(auto current: breakpoints)
         {
           expression_tree::node const & node = tree[current.first];
-          expression_type type = current.second;
-          std::shared_ptr<profiles::value_type> const & profile = profiles[std::make_pair(type, node.dtype)];
+          expression_type op = current.second;
+          std::shared_ptr<instruction> const & instr =  impl[{op, node.dtype}];
 
           //Create temporary
           std::shared_ptr<array> tmp = std::make_shared<array>(node.shape, node.dtype, context);
@@ -173,7 +171,7 @@ namespace runtime
           root.dtype = node.dtype;
           lhs = expression_tree::node(*tmp);
           rhs = node;
-          profile->execute(execution_handler(tree, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
+          instr->execute(tree, c.env(), c.opt());
           //Update the expression tree
           root = root_save;
           lhs = lhs_save;
@@ -183,12 +181,12 @@ namespace runtime
     }
 
     /*-----Compute final expression-----*/
-    profiles[std::make_pair(final_type, tree[rootidx].dtype)]->execute(execution_handler(tree, c.execution_options(), c.dispatcher_options(), c.compilation_options()));
+     impl[std::make_pair(final_type, tree[rootidx].dtype)]->execute(tree, c.env(), c.opt());
   }
 
-  void execute(execution_handler const & c)
+  void execute(launcher const & c)
   {
-    execute(c, profiles::get(c.execution_options().queue(c.x().context())));
+    execute(c, backend::implementations::get(c.env().queue(c.tree().context())));
   }
 
 }

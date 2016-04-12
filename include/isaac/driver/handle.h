@@ -24,7 +24,7 @@
 
 #include <memory>
 
-#include "isaac/defines.h"
+#include "isaac/common.h"
 #include "isaac/driver/common.h"
 #include <iostream>
 namespace isaac

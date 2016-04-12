@@ -23,7 +23,7 @@
 #define ISAAC_DRIVER_COMMAND_QUEUE_H
 
 #include <map>
-#include "isaac/defines.h"
+#include "isaac/common.h"
 #include "isaac/driver/common.h"
 #include "isaac/driver/context.h"
 #include "isaac/driver/device.h"

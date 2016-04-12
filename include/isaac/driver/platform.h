@@ -25,7 +25,7 @@
 #include <vector>
 #include <string>
 
-#include "isaac/defines.h"
+#include "isaac/common.h"
 #include "isaac/driver/common.h"
 
 namespace isaac

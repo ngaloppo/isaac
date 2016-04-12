@@ -29,7 +29,7 @@ namespace isaac
 
 
 /** @brief Optimization enum for grouping operations into unary or binary operations. Just for optimization of lookups. */
-enum operation_type_family
+enum token_family
 {
   INVALID_ = 0,
 
@@ -47,7 +47,7 @@ enum operation_type_family
 };
 
 /** @brief Enumeration for identifying the possible operations */
-enum operation_type
+enum token_type
 {
   INVALID_TYPE = 0,
 
@@ -135,21 +135,21 @@ enum operation_type
   SFOR_TYPE,
 };
 
-struct op_element
+struct token
 {
-  op_element();
-  op_element(operation_type_family const & _type_family, operation_type const & _type);
-  operation_type_family   type_family;
-  operation_type          type;
+  token();
+  token(token_family const & _family, token_type const & _type);
+  token_family family;
+  token_type type;
 };
 
-std::string to_string(operation_type type);
+std::string to_string(token_type type);
 
-bool is_assignment(operation_type op);
-bool is_operator(operation_type op);
-bool is_function(operation_type op);
-bool is_cast(operation_type op);
-bool is_indexing(operation_type op);
+bool is_assignment(token_type op);
+bool is_operator(token_type op);
+bool is_function(token_type op);
+bool is_cast(token_type op);
+bool is_indexing(token_type op);
 
 }
 

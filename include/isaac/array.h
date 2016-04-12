@@ -24,11 +24,10 @@
 
 #include <iostream>
 #include <type_traits>
-#include "isaac/defines.h"
+#include "isaac/common.h"
 #include "isaac/driver/backend.h"
 #include "isaac/jit/syntax/expression/expression.h"
-#include "isaac/runtime/handler.h"
-#include "isaac/types.h"
+#include "isaac/runtime/execute.h"
 #include "isaac/tools/cpp/tuple.hpp"
 
 namespace isaac
@@ -36,6 +35,28 @@ namespace isaac
 
 class device_scalar;
 class view;
+
+typedef long long int_t;
+static const int_t start = 0;
+static const int_t end = -1;
+static const int_t newaxis = 1;
+
+struct slice
+{
+//  slice(int_t _start) : start(_start), end(_start + 1), stride(1){}
+  slice(int_t _start, int_t _end, int_t _stride = 1) : start(_start), end(_end), stride(_stride) { }
+
+  int_t size(int_t bound) const
+  {
+    int_t effective_end = (end < 0)?bound - std::abs(end + 1):end;
+    return (effective_end - start)/stride;
+  }
+
+  int_t start;
+  int_t end;
+  int_t stride;
+};
+static const slice all = slice{start, end, 1};
 
 class ISAACAPI array_base
 {
@@ -64,7 +85,7 @@ public:
   array_base(tuple const & shape, numeric_type dtype, driver::Context const & context = driver::backend::contexts::get_default());
   array_base(tuple const & shape, numeric_type dtype, int_t start, tuple const & stride, driver::Context const & context = driver::backend::contexts::get_default());
   array_base(tuple const & shape, numeric_type dtype, int_t start, tuple const & stride, driver::Buffer const & data);
-  explicit array_base(runtime::execution_handler const &);
+  explicit array_base(runtime::launcher const &);
 
   //Make the class virtual
   virtual ~array_base() = 0;
@@ -85,7 +106,7 @@ public:
   //Numeric operators
   array_base& operator=(array_base const &);
   array_base& operator=(expression_tree const &);
-  array_base& operator=(runtime::execution_handler const &);
+  array_base& operator=(runtime::launcher const &);
   template<class T>
   array_base & operator=(std::vector<T> const & rhs);
   array_base & operator=(scalar const & rhs);

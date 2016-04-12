@@ -22,7 +22,7 @@
 #ifndef ISAAC_DRIVER_NDRANGE_H
 #define ISAAC_DRIVER_NDRANGE_H
 
-#include "isaac/defines.h"
+#include "isaac/common.h"
 #include "isaac/driver/common.h"
 
 namespace isaac

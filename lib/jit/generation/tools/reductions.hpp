@@ -20,21 +20,18 @@
  */
 
 #include <string>
-#include <stdexcept>
-
 #include "isaac/driver/common.h"
 #include "isaac/jit/generation/engine/keywords.h"
 #include "isaac/jit/generation/engine/stream.h"
 #include "isaac/jit/syntax/expression/expression.h"
 #include "isaac/jit/syntax/engine/object.h"
-#include "isaac/types.h"
 
 namespace isaac
 {
 namespace templates
 {
 
-inline void compute_reduce_1d(kernel_generation_stream & os, std::string acc, std::string cur, op_element const & op)
+inline void compute_reduce_1d(kernel_generation_stream & os, std::string acc, std::string cur, token const & op)
 {
   if (is_function(op.type))
     os << acc << "=" << to_string(op.type) << "(" << acc << "," << cur << ");" << std::endl;
@@ -42,7 +39,7 @@ inline void compute_reduce_1d(kernel_generation_stream & os, std::string acc, st
     os << acc << "= (" << acc << ")" << to_string(op.type)  << "(" << cur << ");" << std::endl;
 }
 
-inline void compute_index_reduce_1d(kernel_generation_stream & os, std::string acc, std::string cur, std::string const & acc_value, std::string const & cur_value, op_element const & op)
+inline void compute_index_reduce_1d(kernel_generation_stream & os, std::string acc, std::string cur, std::string const & acc_value, std::string const & cur_value, token const & op)
 {
   //        os << acc << " = " << cur_value << ">" << acc_value  << "?" << cur << ":" << acc << ";" << std::endl;
   os << acc << "= select(" << acc << "," << cur << "," << cur_value << ">" << acc_value << ");" << std::endl;
@@ -54,7 +51,7 @@ inline void compute_index_reduce_1d(kernel_generation_stream & os, std::string a
   os << "(" << acc_value << "," << cur_value << ");"<< std::endl;
 }
 
-inline std::string neutral_element(op_element const & op, driver::backend_type backend, std::string const & dtype)
+inline std::string neutral_element(token const & op, driver::backend_type backend, std::string const & dtype)
 {
   std::string INF = Infinity(backend, dtype).get();
   std::string N_INF = "-" + INF;

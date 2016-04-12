@@ -24,7 +24,7 @@
 #include <exception>
 
 #include "isaac/driver/dispatch.h"
-#include "isaac/defines.h"
+#include "isaac/common.h"
 
 
 namespace isaac

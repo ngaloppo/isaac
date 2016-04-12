@@ -26,12 +26,8 @@
 #include <list>
 #include <vector>
 
-#include "isaac/common/expression_type.h"
-#include "isaac/common/numeric_type.h"
-
 #include "isaac/driver/dispatch.h"
-#include "isaac/defines.h"
-#include "isaac/types.h"
+#include "isaac/common.h"
 
 namespace isaac
 {
@@ -66,10 +62,10 @@ public:
       friend class backend;
   public:
       static void release();
-      static ProgramCache & get(CommandQueue const & queue, expression_type expression, numeric_type dtype);
+      static ProgramCache & get(CommandQueue const & queue);
   private:
 DISABLE_MSVC_WARNING_C4251
-      static std::map<std::tuple<CommandQueue, expression_type, numeric_type>, ProgramCache * > cache_;
+      static std::map<CommandQueue, ProgramCache * > cache_;
 RESTORE_MSVC_WARNING_C4251
   };
 

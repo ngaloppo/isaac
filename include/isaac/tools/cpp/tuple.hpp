@@ -26,8 +26,8 @@
 #include <iostream>
 #include <sstream>
 #include <iterator>
-#include "isaac/defines.h"
-#include "isaac/types.h"
+#include <algorithm>
+#include "isaac/common.h"
 
 namespace isaac
 {

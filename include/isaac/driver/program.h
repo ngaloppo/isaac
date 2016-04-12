@@ -24,7 +24,7 @@
 
 #include <map>
 
-#include "isaac/defines.h"
+#include "isaac/common.h"
 #include "isaac/driver/common.h"
 #include "isaac/driver/handle.h"
 #include "isaac/driver/context.h"

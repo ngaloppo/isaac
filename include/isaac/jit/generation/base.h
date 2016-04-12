@@ -27,10 +27,8 @@
 #include <set>
 #include <cmath>
 
-#include "isaac/types.h"
 #include "isaac/jit/generation/engine/stream.h"
-#include "isaac/runtime/handler.h"
-#include "isaac/jit/syntax/engine/binder.h"
+#include "isaac/runtime/launcher.h"
 #include "isaac/jit/syntax/engine/object.h"
 
 namespace isaac
@@ -72,49 +70,25 @@ static const int TEMPLATE_BLOCK_SIZE_TOO_LARGE = -20;
 
 class base
 {
-public:
-  struct parameters_type
-  {
-    parameters_type(unsigned int _simd_width, int_t _local_size_1, int_t _local_size_2, int_t _num_kernels);
-    unsigned int simd_width;
-    unsigned int local_size_0;
-    unsigned int local_size_1;
-    unsigned int num_kernels;
-  };
 private:
   virtual std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::symbols_table const & mapping) const = 0;
+  virtual int is_invalid_impl(driver::Device const &, expression_tree const &) const;
+
 public:
-  base(fusion_policy_t fusion_policy);
+  base(unsigned int s, unsigned int ls0, unsigned int ls1, unsigned int nk);
   virtual unsigned int temporary_workspace(expression_tree const &) const;
   virtual unsigned int lmem_usage(expression_tree const &) const;
   virtual unsigned int registers_usage(expression_tree const &) const;
   virtual std::vector<int_t> input_sizes(expression_tree const & expressions) const = 0;
-  virtual ~base();
   std::string generate(std::string const & suffix, expression_tree const & expressions, driver::Device const & device);
-  virtual int is_invalid(expression_tree const & expressions, driver::Device const & device) const = 0;
-  virtual void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, runtime::execution_handler const & expressions) = 0;
-  virtual std::shared_ptr<base> clone() const = 0;
-private:
-  fusion_policy_t fusion_policy_;
-};
-
-
-template<class TemplateType, class ParametersType>
-class base_impl : public base
-{
-private:
-  virtual int is_invalid_impl(driver::Device const &, expression_tree const &) const;
-public:
-  typedef ParametersType parameters_type;
-  base_impl(parameters_type const & parameters, fusion_policy_t fusion_policy);
-  unsigned int local_size_0() const;
-  unsigned int local_size_1() const;
-  std::shared_ptr<base> clone() const;
-  /** @brief returns whether or not the profile has undefined behavior on particular device */
   int is_invalid(expression_tree const & expressions, driver::Device const & device) const;
+  virtual void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, expression_tree const & tree, runtime::environment const & opt) = 0;
+
 protected:
-  parameters_type p_;
-  fusion_policy_t fusion_policy_;
+  unsigned int simd_width;
+  unsigned int local_size_0;
+  unsigned int local_size_1;
+  unsigned int num_kernels;
 };
 
 }

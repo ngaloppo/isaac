@@ -29,11 +29,11 @@
 namespace isaac
 {
 
-op_element::op_element() {}
+token::token() {}
 
-op_element::op_element(operation_type_family const & _type_family, operation_type const & _type) : type_family(_type_family), type(_type){}
+token::token(token_family const & _family, token_type const & _type) : family(_family), type(_type){}
 
-std::string to_string(operation_type type)
+std::string to_string(token_type type)
 {
   switch (type)
   {
@@ -114,14 +114,14 @@ std::string to_string(operation_type type)
   }
 }
 
-bool is_assignment(operation_type op)
+bool is_assignment(token_type op)
 {
   return op== ASSIGN_TYPE
       || op== INPLACE_ADD_TYPE
       || op== INPLACE_SUB_TYPE;
 }
 
-bool is_operator(operation_type op)
+bool is_operator(token_type op)
 {
   return is_assignment(op)
       || op == ADD_TYPE
@@ -138,7 +138,7 @@ bool is_operator(operation_type op)
       || op == ELEMENT_LEQ_TYPE ;
 }
 
-bool is_cast(operation_type op)
+bool is_cast(token_type op)
 {
   return op == CAST_BOOL_TYPE
       || op == CAST_CHAR_TYPE
@@ -154,7 +154,7 @@ bool is_cast(operation_type op)
       ;
 }
 
-bool is_function(operation_type op)
+bool is_function(token_type op)
 {
   return is_cast(op)
       || op == ABS_TYPE
@@ -183,7 +183,7 @@ bool is_function(operation_type op)
 
 }
 
-bool is_indexing(operation_type op)
+bool is_indexing(token_type op)
 {
   return op == ELEMENT_ARGFMAX_TYPE
       || op == ELEMENT_ARGMAX_TYPE

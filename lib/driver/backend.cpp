@@ -67,15 +67,14 @@ void backend::programs::release()
     cache_.clear();
 }
 
-ProgramCache & backend::programs::get(CommandQueue const & queue, expression_type expression, numeric_type dtype)
+ProgramCache & backend::programs::get(CommandQueue const & queue)
 {
-    std::tuple<CommandQueue, expression_type, numeric_type> key(queue, expression, dtype);
-    if(cache_.find(key)==cache_.end())
-        return *cache_.insert(std::make_pair(key, new ProgramCache())).first->second;
-    return *cache_.at(key);
+    if(cache_.find(queue)==cache_.end())
+        return *cache_.insert(std::make_pair(queue, new ProgramCache())).first->second;
+    return *cache_.at(queue);
 }
 
-std::map<std::tuple<CommandQueue, expression_type, numeric_type>, ProgramCache * >  backend::programs::cache_;
+std::map<CommandQueue, ProgramCache * >  backend::programs::cache_;
 
 /*-----------------------------------*/
 //-----------  Kernels --------------*/

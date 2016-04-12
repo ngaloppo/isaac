@@ -88,13 +88,13 @@ namespace detail
       std::list<sc::driver::Event> events;
       std::vector<sc::driver::Event> cdependencies = tools::to_vector<sc::driver::Event>(dependencies);
 
-      sc::execution_options_type execution_options(queue_id, &events, &cdependencies);
-      sc::dispatcher_options_type dispatcher_options(tune, label);
+      sc::environment execution_options(queue_id, &events, &cdependencies);
+      sc::optimize dispatcher_options(tune, label);
       sc::compilation_options_type compilation_options(program_name, force_recompile);
       sc::expression_tree::node const & root = tree[tree.root()];
       if(sc::is_assignment(root.binary_operator.op.type))
       {
-          sc::symbolic::execute(sc::execution_handler(tree, execution_options, dispatcher_options, compilation_options), isaac::profiles::get(execution_options.queue(tree.context())));
+          sc::symbolic::execute(sc::launcher(tree, execution_options, dispatcher_options, compilation_options), isaac::profiles::get(execution_options.queue(tree.context())));
           sc::expression_tree::node const & lhs = tree[root.binary_operator.lhs];
           sc::driver::Buffer const & data = sc::driver::make_buffer(tree.context().backend(), lhs.array.handle.cl, lhs.array.handle.cu, false);
           std::shared_ptr<sc::array> parray(new sc::array(lhs.shape, lhs.dtype, lhs.array.start, lhs.ld, data));
@@ -102,7 +102,7 @@ namespace detail
       }
       else
       {
-          std::shared_ptr<sc::array> parray(new sc::array(sc::execution_handler(tree, execution_options, dispatcher_options, compilation_options)));
+          std::shared_ptr<sc::array> parray(new sc::array(sc::launcher(tree, execution_options, dispatcher_options, compilation_options)));
           return bp::make_tuple(parray, tools::to_list(events.begin(), events.end()));
       }
   }

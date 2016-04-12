@@ -37,29 +37,19 @@ namespace isaac
 namespace templates
 {
 
-matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
-                          , unsigned int local_size_0, unsigned int KL, unsigned int local_size_1, unsigned int D
-                          , unsigned int ms, unsigned int ks, unsigned int ns
-                          , fetching_policy_type A_fetching_policy, fetching_policy_type B_fetching_policy
-                          , unsigned int local_fetch_0, unsigned int local_fetch_1): base::parameters_type(simd_width, local_size_0, local_size_1, 1),
-  kL(KL), depth(D), mS(ms), kS(ks), nS(ns), A_fetching_policy(A_fetching_policy), B_fetching_policy(B_fetching_policy),
-  local_fetch_0(local_fetch_0), local_fetch_1(local_fetch_1),
-  mL(ms*local_size_0), nL(ns*local_size_1)
-{
-}
 
 
   unsigned int matrix_product::lmem_usage(expression_tree const & expression) const
   {
     unsigned int N = 0;
-    N += p_.kL * p_.mL;
-    N += p_.nL * p_.kL;
+    N += kL * mL;
+    N += nL * kL;
     return N*size_of(expression.dtype());
   }
 
   unsigned int matrix_product::registers_usage(expression_tree const & expression) const
   {
-    unsigned int N = p_.mS * p_.nS + p_.mS * p_.kS + p_.kS * p_.nS;
+    unsigned int N = mS * nS + mS * kS + kS * nS;
     return N*size_of(expression.dtype());
   }
 
@@ -67,54 +57,54 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
   {
       std::vector<int_t> MNK = input_sizes(expressions);
       int_t M = MNK[0]; int_t N = MNK[1];
-      if(p_.depth > 1)
-        return M*N*p_.depth;
+      if(depth > 1)
+        return M*N*depth;
       return 0;
   }
 
   int matrix_product::is_invalid_impl(driver::Device const &, expression_tree const &) const
   {
-//    if(device.vendor()==driver::Device::Vendor::NVIDIA && p_.simd_width > 1)
+//    if(device.vendor()==driver::Device::Vendor::NVIDIA && simd_width > 1)
 //      return TEMPLATE_INVALID_SIMD_WIDTH;
 
-    if(p_.A_fetching_policy!=FETCH_FROM_LOCAL || p_.B_fetching_policy!=FETCH_FROM_LOCAL)
+    if(A_fetching_policy!=FETCH_FROM_LOCAL || B_fetching_policy!=FETCH_FROM_LOCAL)
       return TEMPLATE_INVALID_FETCHING_POLICY_TYPE;
 
-    if ((p_.mS % p_.simd_width) > 0 || (p_.nS % p_.simd_width) > 0)
+    if ((mS % simd_width) > 0 || (nS % simd_width) > 0)
       return TEMPLATE_MS_NS_MUST_BE_SIMD_WIDTH_MULTIPLE;
 
-    if(p_.mL > 256 || p_.nL > 256)
+    if(mL > 256 || nL > 256)
        return TEMPLATE_BLOCK_SIZE_TOO_LARGE;
 
-    if ( p_.kS % p_.kL == 0)
+    if ( kS % kL == 0)
       return TEMPLATE_KS_MUST_BE_SMALLER_THAN_KL;
 
-    if (p_.A_fetching_policy==FETCH_FROM_LOCAL || p_.B_fetching_policy==FETCH_FROM_LOCAL){
-      if ((p_.local_fetch_0*p_.local_fetch_1) !=(p_.local_size_0*p_.local_size_1))
+    if (A_fetching_policy==FETCH_FROM_LOCAL || B_fetching_policy==FETCH_FROM_LOCAL){
+      if ((local_fetch_0*local_fetch_1) !=(local_size_0*local_size_1))
         return TEMPLATE_LOCAL_FETCH_PRODUCT_MUST_MATCH_LOCAL_SIZE_PRODUCT;
     }
 
-    if (p_.A_fetching_policy==FETCH_FROM_LOCAL)
+    if (A_fetching_policy==FETCH_FROM_LOCAL)
     {
-      unsigned int bound1 = (A_trans_=='N')?p_.kL:p_.mL;
-      unsigned int bound0 = (A_trans_=='N')?p_.mL:p_.kL;
+      unsigned int bound1 = (A_trans_=='N')?kL:mL;
+      unsigned int bound0 = (A_trans_=='N')?mL:kL;
 
-      if (p_.local_fetch_1>0 && (bound1 % p_.local_fetch_1)> 0)
+      if (local_fetch_1>0 && (bound1 % local_fetch_1)> 0)
         return A_trans_=='N'?TEMPLATE_LOCAL_FETCH_1_MUST_BE_KL_MULTIPLE:TEMPLATE_LOCAL_FETCH_1_MUST_BE_ML_MULTIPLE;
 
-      if (p_.local_fetch_0>0 && (bound0 % (p_.local_fetch_0*p_.simd_width)) > 0)
+      if (local_fetch_0>0 && (bound0 % (local_fetch_0*simd_width)) > 0)
         return A_trans_=='N'?TEMPLATE_LOCAL_FETCH_0_MUST_BE_NL_MULTIPLE:TEMPLATE_LOCAL_FETCH_0_MUST_BE_KL_MULTIPLE;
 
     }
-    if (p_.B_fetching_policy==FETCH_FROM_LOCAL)
+    if (B_fetching_policy==FETCH_FROM_LOCAL)
     {
-      unsigned int bound1 = (B_trans_=='T')?p_.kL:p_.nL;
-      unsigned int bound0 = (B_trans_=='T')?p_.nL:p_.kL;
+      unsigned int bound1 = (B_trans_=='T')?kL:nL;
+      unsigned int bound0 = (B_trans_=='T')?nL:kL;
 
-      if (p_.local_fetch_1>0 && (bound1 % p_.local_fetch_1)> 0)
+      if (local_fetch_1>0 && (bound1 % local_fetch_1)> 0)
         return B_trans_=='T'?TEMPLATE_LOCAL_FETCH_1_MUST_BE_KL_MULTIPLE:TEMPLATE_LOCAL_FETCH_1_MUST_BE_ML_MULTIPLE;
 
-      if (p_.local_fetch_0>0 && (bound0 % (p_.local_fetch_0*p_.simd_width)) > 0)
+      if (local_fetch_0>0 && (bound0 % (local_fetch_0*simd_width)) > 0)
         return B_trans_=='T'?TEMPLATE_LOCAL_FETCH_1_MUST_BE_KL_MULTIPLE:TEMPLATE_LOCAL_FETCH_1_MUST_BE_ML_MULTIPLE;
 
     }
@@ -128,10 +118,10 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     using tools::to_string;
 
     driver::backend_type backend = device.backend();
-    bool has_depth = p_.depth > 1;
-#define VLOAD(offset, ptr) vload(p_.simd_width, sdtype, offset, ptr, "1", backend, true)
-#define VLOAD_MISALIGNED(offset, ptr) vload(p_.simd_width, sdtype, offset, ptr, "1", backend, false)
-#define VSTORE(value, offset, ptr) vstore(p_.simd_width, sdtype, value, offset, ptr, "1", backend)
+    bool has_depth = depth > 1;
+#define VLOAD(offset, ptr) vload(simd_width, sdtype, offset, ptr, "1", backend, true)
+#define VLOAD_MISALIGNED(offset, ptr) vload(simd_width, sdtype, offset, ptr, "1", backend, false)
+#define VSTORE(value, offset, ptr) vstore(simd_width, sdtype, value, offset, ptr, "1", backend)
 
     symbolic::preset::matrix_product::args args;
     infos(tree, args);
@@ -145,7 +135,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     kernel_generation_stream stream(backend);
     numeric_type dtype = tree.dtype();
     std::string sdtype = to_string(dtype);
-    std::string vdtype = append_width(sdtype, p_.simd_width);
+    std::string vdtype = append_width(sdtype, simd_width);
 
     //////////////////
     /// DECLARATIONS
@@ -159,7 +149,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     switch(backend)
     {
       case driver::OPENCL:
-        stream << " __attribute__((reqd_work_group_size(" << p_.local_size_0 << "," << p_.local_size_1 << ",1)))" << std::endl;
+        stream << " __attribute__((reqd_work_group_size(" << local_size_0 << "," << local_size_1 << ",1)))" << std::endl;
         break;
       default:
         break;
@@ -177,18 +167,18 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
     ///Declare
     stream << "//blocks" << std::endl;
-    stream << sdtype << " rC[" << p_.mS << "][" << p_.nS << "] = {{0}};" << std::endl;
-    stream << vdtype << " rA[" << p_.kS << "][" << p_.mS/p_.simd_width << "];" << std::endl;
-    stream << vdtype << " rB[" << p_.kS << "][" << p_.nS/p_.simd_width << "];" << std::endl;
+    stream << sdtype << " rC[" << mS << "][" << nS << "] = {{0}};" << std::endl;
+    stream << vdtype << " rA[" << kS << "][" << mS/simd_width << "];" << std::endl;
+    stream << vdtype << " rB[" << kS << "][" << nS/simd_width << "];" << std::endl;
     stream << std::endl;
 
     stream << "//pointers" << std::endl;
-    size_t llda = (A_trans_=='N')?p_.mL:p_.kL;
-    size_t lldb = (B_trans_=='T')?p_.nL:p_.kL;
-    stream << "$LOCAL " << sdtype << " lA[" << p_.kL*p_.mL << "];" << std::endl;
-    stream << "$LOCAL " << sdtype << " lB[" << p_.kL*p_.nL << "];" << std::endl;
-    unsigned int npA = p_.mL/(A_trans_=='N'?p_.local_fetch_0*p_.simd_width:p_.local_fetch_1);
-    unsigned int npB = p_.nL/(B_trans_=='T'?p_.local_fetch_0*p_.simd_width:p_.local_fetch_1);
+    size_t llda = (A_trans_=='N')?mL:kL;
+    size_t lldb = (B_trans_=='T')?nL:kL;
+    stream << "$LOCAL " << sdtype << " lA[" << kL*mL << "];" << std::endl;
+    stream << "$LOCAL " << sdtype << " lB[" << kL*nL << "];" << std::endl;
+    unsigned int npA = mL/(A_trans_=='N'?local_fetch_0*simd_width:local_fetch_1);
+    unsigned int npB = nL/(B_trans_=='T'?local_fetch_0*simd_width:local_fetch_1);
     stream << "$GLOBAL " << sdtype << "* Ai[" << npA << "];" << std::endl;
     stream << "$GLOBAL " << sdtype << "* Bi[" << npB << "];" << std::endl;
     stream << std::endl;
@@ -213,20 +203,20 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     if(has_depth)
     {
       stream << "gidz = $GROUP_IDX_2;" << std::endl;
-      stream << "div = (K+" << p_.depth-1 << ")/" << p_.depth << ";" << std::endl;
+      stream << "div = (K+" << depth-1 << ")/" << depth << ";" << std::endl;
       stream << "offz = div*gidz;" << std::endl;
       stream << "K = min(K - div*gidz, ($SIZE_T)div);" << std::endl;
     }
 
-    stream << "idt = " << p_.local_size_0 << "*ids.w + ids.z;" << std::endl;
-    stream << "idT.y = idt/" << p_.local_fetch_0 << ";" << std::endl;
-    stream << "idT.x = idt - " << p_.local_fetch_0 << "*idT.y;" << std::endl;
+    stream << "idt = " << local_size_0 << "*ids.w + ids.z;" << std::endl;
+    stream << "idT.y = idt/" << local_fetch_0 << ";" << std::endl;
+    stream << "idT.x = idt - " << local_fetch_0 << "*idT.y;" << std::endl;
     stream << std::endl;
 
     stream << "//Adjust pointers and bounds per work-item" << std::endl;
-    stream << "ids.x *= " << p_.mL << ";" << std::endl;
-    stream << "ids.y *= " << p_.nL << ";" << std::endl;
-    stream << "idT.x *= " << p_.simd_width << ";" << std::endl;
+    stream << "ids.x *= " << mL << ";" << std::endl;
+    stream << "ids.y *= " << nL << ";" << std::endl;
+    stream << "idT.x *= " << simd_width << ";" << std::endl;
 
     stream << "M -= ids.x;" << std::endl;
     if(A_trans_=='N')
@@ -289,19 +279,19 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
     for(unsigned int i = 0 ; i < npA ; i++ )
         if (A_trans_=='N')
-          stream << "Ai[" << i << "] += " << Select(backend, to_string(i*p_.local_fetch_0*p_.simd_width) + " < M", "(int)((idT.x + " + to_string(i*p_.local_fetch_0*p_.simd_width) + ")" + ASTRIDE1 + ")", "0") << ";" << std::endl;
+          stream << "Ai[" << i << "] += " << Select(backend, to_string(i*local_fetch_0*simd_width) + " < M", "(int)((idT.x + " + to_string(i*local_fetch_0*simd_width) + ")" + ASTRIDE1 + ")", "0") << ";" << std::endl;
         else
-          stream << "Ai[" << i << "] += " << Select(backend, to_string(i*p_.local_fetch_1) + " < M", "(int)((idT.y + " + to_string(i*p_.local_fetch_1) + ")*lda)", "0") << ";" << std::endl;
+          stream << "Ai[" << i << "] += " << Select(backend, to_string(i*local_fetch_1) + " < M", "(int)((idT.y + " + to_string(i*local_fetch_1) + ")*lda)", "0") << ";" << std::endl;
 
     for(unsigned int i = 0 ; i < npB ; i++ )
         if (B_trans_=='T')
-            stream << "Bi[" << i << "] += " << Select(backend, to_string(i*p_.local_fetch_0*p_.simd_width) + " < N", "(int)((idT.x + " + to_string(i*p_.local_fetch_0*p_.simd_width) + ")" + BSTRIDE1 + ")", "0") << ";" << std::endl;
+            stream << "Bi[" << i << "] += " << Select(backend, to_string(i*local_fetch_0*simd_width) + " < N", "(int)((idT.x + " + to_string(i*local_fetch_0*simd_width) + ")" + BSTRIDE1 + ")", "0") << ";" << std::endl;
         else
-            stream << "Bi[" << i << "] += " << Select(backend, to_string(i*p_.local_fetch_1) + " < N", "(int)((idT.y + " + to_string(i*p_.local_fetch_1) + ")*ldb)", "0") << ";" << std::endl;
+            stream << "Bi[" << i << "] += " << Select(backend, to_string(i*local_fetch_1) + " < N", "(int)((idT.y + " + to_string(i*local_fetch_1) + ")*ldb)", "0") << ";" << std::endl;
 
     stream << std::endl;
     stream << "//Outer loop" << std::endl;
-    stream << "while(K >=" << p_.kL << ")" << std::endl;
+    stream << "while(K >=" << kL << ")" << std::endl;
     stream << "{" << std::endl;
     stream.inc_tab();
 
@@ -315,13 +305,13 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
         stream << "//Fetch A to local memory" << std::endl;
         if (A_trans_=='N')
         {
-          for(unsigned int k = 0; k < p_.kL; k += p_.local_fetch_1)
-            for(unsigned int m = 0; m < p_.mL; m += p_.local_fetch_0*p_.simd_width)
+          for(unsigned int k = 0; k < kL; k += local_fetch_1)
+            for(unsigned int m = 0; m < mL; m += local_fetch_0*simd_width)
             {
-              std::string mm = to_string(m/(p_.simd_width*p_.local_fetch_0));
+              std::string mm = to_string(m/(simd_width*local_fetch_0));
               std::string kk = to_string(k);
               if(last_iteration)
-                  for(unsigned int s = 0 ; s < p_.simd_width ; ++s)
+                  for(unsigned int s = 0 ; s < simd_width ; ++s)
                       stream << "ldsA[" << k*llda + m + s << "] = (condy" << k << " && " << s << "< M)? Ai[" << mm << "][" << k << "*lda + " << s << "] : 0;" << std::endl;
               else
                 stream << VSTORE(VLOAD_MISALIGNED("0" ,"&Ai[" + mm +"][" + kk + "*lda]"), "0", "ldsA + " + to_string(k*llda+m)) << ";" << std::endl;
@@ -329,13 +319,13 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
         }
         else
         {
-            for(unsigned int k = 0; k < p_.kL; k += p_.local_fetch_0*p_.simd_width)
-            for(unsigned int m = 0; m < p_.mL; m += p_.local_fetch_1)
+            for(unsigned int k = 0; k < kL; k += local_fetch_0*simd_width)
+            for(unsigned int m = 0; m < mL; m += local_fetch_1)
               {
-                std::string mm = to_string(m/p_.local_fetch_1);
+                std::string mm = to_string(m/local_fetch_1);
                 std::string kk = to_string(k);
                 if(last_iteration)
-                    for(unsigned int s = 0 ; s < p_.simd_width ; ++s)
+                    for(unsigned int s = 0 ; s < simd_width ; ++s)
                         stream << "ldsA[" << m*llda + k + s << "] = condx" << k + s << "? Ai[" << mm << "][" << k + s << ASTRIDE1 << "] : 0;" << std::endl;
 
                 else
@@ -346,13 +336,13 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
         stream << "//Fetch B to local memory" << std::endl;
         if (B_trans_=='T')
         {
-          for(unsigned int k = 0; k < p_.kL; k += p_.local_fetch_1)
-            for(unsigned int n = 0; n < p_.nL; n += p_.local_fetch_0*p_.simd_width)
+          for(unsigned int k = 0; k < kL; k += local_fetch_1)
+            for(unsigned int n = 0; n < nL; n += local_fetch_0*simd_width)
             {
-              std::string nn = to_string(n/(p_.simd_width*p_.local_fetch_0));
+              std::string nn = to_string(n/(simd_width*local_fetch_0));
               std::string kk = to_string(k);
               if(last_iteration)
-                  for(unsigned int s = 0 ; s < p_.simd_width ; ++s)
+                  for(unsigned int s = 0 ; s < simd_width ; ++s)
                       stream << "ldsB[" << k*lldb + n + s << "] = (condy" << k << " && " << s << "< N)? Bi[" <<  nn << "][" << kk << "*ldb +" << s << "] : 0;" << std::endl;
               else
                 stream << VSTORE(VLOAD_MISALIGNED("0" ,"&Bi[" + nn +"][" + kk + "*ldb]"), "0", "ldsB + " + to_string(k*lldb+n)) << ";" << std::endl;
@@ -360,13 +350,13 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
         }
         else
         {
-          for(unsigned int k = 0; k < p_.kL; k += p_.local_fetch_0*p_.simd_width)
-            for(unsigned int n = 0; n < p_.nL; n += p_.local_fetch_1)
+          for(unsigned int k = 0; k < kL; k += local_fetch_0*simd_width)
+            for(unsigned int n = 0; n < nL; n += local_fetch_1)
             {
-              std::string nn = to_string(n/p_.local_fetch_1);
+              std::string nn = to_string(n/local_fetch_1);
               std::string kk = to_string(k);
               if(last_iteration)
-                  for(unsigned int s = 0 ; s < p_.simd_width ; ++s)
+                  for(unsigned int s = 0 ; s < simd_width ; ++s)
                       stream << "ldsB[" << n*lldb + k + s << "] = condx" << k + s << "? Bi[" << nn << "][" << k + s << BSTRIDE1 << "] : 0;" << std::endl;
 
               else
@@ -375,98 +365,98 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
         }
 
         if(A_trans_=='N')
-            stream << "ldsA = lA + ids.z*" << p_.simd_width << ";" << std::endl;
+            stream << "ldsA = lA + ids.z*" << simd_width << ";" << std::endl;
         else
-            stream << "ldsA = lA + ids.z*" << llda*p_.simd_width << ";" << std::endl;
+            stream << "ldsA = lA + ids.z*" << llda*simd_width << ";" << std::endl;
 
         if(B_trans_=='T')
-            stream << "ldsB = lB + ids.w*" << p_.simd_width << ";" << std::endl;
+            stream << "ldsB = lB + ids.w*" << simd_width << ";" << std::endl;
         else
-            stream << "ldsB = lB + ids.w*" << lldb*p_.simd_width << ";" << std::endl;
+            stream << "ldsB = lB + ids.w*" << lldb*simd_width << ";" << std::endl;
 
         stream << "$LOCAL_BARRIER;" << std::endl;
 
         stream << "//Inner loop" << std::endl;
-        stream << "for(unsigned int k = 0; k < " << p_.kL << "; k+=" << p_.kS << "){" << std::endl;
+        stream << "for(unsigned int k = 0; k < " << kL << "; k+=" << kS << "){" << std::endl;
         stream.inc_tab();
 
         stream << "//Fetch A to registers" << std::endl;
         stream << "#pragma unroll" << std::endl;
-        stream << "for(unsigned int kk = 0; kk < " << p_.kS << "; kk++)" << std::endl;
-        stream << "#pragma unroll " << p_.mS/p_.simd_width << std::endl;
-        stream << "for(unsigned int mm = 0; mm < " << p_.mS/p_.simd_width << "; mm++)" << std::endl;
+        stream << "for(unsigned int kk = 0; kk < " << kS << "; kk++)" << std::endl;
+        stream << "#pragma unroll " << mS/simd_width << std::endl;
+        stream << "for(unsigned int mm = 0; mm < " << mS/simd_width << "; mm++)" << std::endl;
         stream << "{" << std::endl;
         stream.inc_tab();
         if(A_trans_=='N')
-            stream << "rA[kk][mm] = "  << VLOAD("0", "ldsA + k*" + to_string(llda) + " + mm*" + to_string(p_.local_size_0*p_.simd_width) + "+ kk*" + to_string(llda)) << ";" << std::endl;
+            stream << "rA[kk][mm] = "  << VLOAD("0", "ldsA + k*" + to_string(llda) + " + mm*" + to_string(local_size_0*simd_width) + "+ kk*" + to_string(llda)) << ";" << std::endl;
         else
         {
-            if(p_.simd_width==1)
-                stream << "rA[kk][mm] = ldsA[k + mm*" << p_.local_size_0*llda <<  "+ kk"  << "];" << std::endl;
+            if(simd_width==1)
+                stream << "rA[kk][mm] = ldsA[k + mm*" << local_size_0*llda <<  "+ kk"  << "];" << std::endl;
             else
-                for(unsigned int s = 0 ; s < p_.simd_width ; ++s)
-                    stream << access_vector_type("rA[kk][mm]", s) << " = ldsA[k + (mm*" << p_.simd_width*p_.local_size_0 << " + " << s << ")*" << llda <<  "+ kk];" << std::endl;
+                for(unsigned int s = 0 ; s < simd_width ; ++s)
+                    stream << access_vector_type("rA[kk][mm]", s) << " = ldsA[k + (mm*" << simd_width*local_size_0 << " + " << s << ")*" << llda <<  "+ kk];" << std::endl;
         }
 
         stream.dec_tab();
         stream << "}" << std::endl;
 
         stream << "//Fetch B to registers" << std::endl;
-        stream << "#pragma unroll " << p_.kS << std::endl;
-        stream << "for(unsigned int kk = 0; kk < " << p_.kS << "; kk++)" << std::endl;
-        stream << "#pragma unroll " << p_.nS/p_.simd_width << std::endl;
-        stream << "for(unsigned int nn = 0; nn < " << p_.nS/p_.simd_width << "; nn++)" << std::endl;
+        stream << "#pragma unroll " << kS << std::endl;
+        stream << "for(unsigned int kk = 0; kk < " << kS << "; kk++)" << std::endl;
+        stream << "#pragma unroll " << nS/simd_width << std::endl;
+        stream << "for(unsigned int nn = 0; nn < " << nS/simd_width << "; nn++)" << std::endl;
         stream << "{" << std::endl;
         stream.inc_tab();
         if(B_trans_=='T')
-            stream << "rB[kk][nn] = " << VLOAD("0", "ldsB + k*" + to_string(lldb) + " + nn*" + to_string(p_.local_size_1*p_.simd_width)  + "+ kk*" + to_string(lldb)) << ";" << std::endl;
+            stream << "rB[kk][nn] = " << VLOAD("0", "ldsB + k*" + to_string(lldb) + " + nn*" + to_string(local_size_1*simd_width)  + "+ kk*" + to_string(lldb)) << ";" << std::endl;
         else
         {
-            if(p_.simd_width==1)
-                stream << "rB[kk][nn] = ldsB[k"  << " + nn*" << p_.local_size_1*lldb <<  "+ kk"  << "];" << std::endl;
+            if(simd_width==1)
+                stream << "rB[kk][nn] = ldsB[k"  << " + nn*" << local_size_1*lldb <<  "+ kk"  << "];" << std::endl;
             else
-                for(unsigned int s = 0 ; s < p_.simd_width ; ++s)
-                    stream << access_vector_type("rB[kk][nn]", s) << " = ldsB[k"  << " + (nn*" << p_.simd_width*p_.local_size_1 << " + " << s << ")*" << lldb <<  "+ kk];" << std::endl;
+                for(unsigned int s = 0 ; s < simd_width ; ++s)
+                    stream << access_vector_type("rB[kk][nn]", s) << " = ldsB[k"  << " + (nn*" << simd_width*local_size_1 << " + " << s << ")*" << lldb <<  "+ kk];" << std::endl;
         }
         stream.dec_tab();
         stream << "}" << std::endl;
 
         stream << "//FMA computations" << std::endl;
-        for(unsigned int kk=0 ; kk < p_.kS; ++kk)
-        for(unsigned int nn=0; nn < p_.nS; ++nn)
-        for(unsigned int mm=0; mm < p_.mS; ++mm){
+        for(unsigned int kk=0 ; kk < kS; ++kk)
+        for(unsigned int nn=0; nn < nS; ++nn)
+        for(unsigned int mm=0; mm < mS; ++mm){
           string res_str, lhs_str, rhs_str;
           res_str = "rC[" + to_string(mm) + "][" + to_string(nn) + "]";
-          if (p_.simd_width==1)
+          if (simd_width==1)
             lhs_str = "rA[" + to_string(kk) + "][" + to_string(mm) + "]";
           else
-            lhs_str = access_vector_type("rA[" + to_string(kk) + "][" + to_string(mm/p_.simd_width) + "]", mm%p_.simd_width);
-          if (p_.simd_width==1)
+            lhs_str = access_vector_type("rA[" + to_string(kk) + "][" + to_string(mm/simd_width) + "]", mm%simd_width);
+          if (simd_width==1)
             rhs_str = "rB[" + to_string(kk) + "]["+to_string(nn)+"]";
           else
-            rhs_str = access_vector_type("rB[" + to_string(kk) + "]["+to_string(nn/p_.simd_width)+"]", nn%p_.simd_width);
+            rhs_str = access_vector_type("rB[" + to_string(kk) + "]["+to_string(nn/simd_width)+"]", nn%simd_width);
           stream << res_str << "= $MAD(" << lhs_str << "," << rhs_str << "," << res_str << ");" << std::endl;
         }
 
         stream.dec_tab();
         stream << "}" << std::endl;
-        stream << "K -= " << p_.kL << ";" << std::endl;
+        stream << "K -= " << kL << ";" << std::endl;
 
         //Increment A pointers to global memory
         if (A_trans_=='N')
           for(unsigned int i = 0 ; i < npA ; ++i)
-              stream << "Ai[" << i << "] += "  << p_.kL << "*lda;" << std::endl;
+              stream << "Ai[" << i << "] += "  << kL << "*lda;" << std::endl;
         else
           for(unsigned int i = 0 ; i < npA ; ++i)
-              stream << "Ai[" << i << "] += "  << p_.kL << ASTRIDE1 << ";" << std::endl;
+              stream << "Ai[" << i << "] += "  << kL << ASTRIDE1 << ";" << std::endl;
 
         //Increment B pointers to global memory
         if (B_trans_=='T')
           for(unsigned int i = 0 ; i < npB ; ++i)
-              stream << "Bi[" << i << "] += " << p_.kL << "*ldb;" << std::endl;
+              stream << "Bi[" << i << "] += " << kL << "*ldb;" << std::endl;
         else
           for(unsigned int i = 0 ; i < npB ; ++i)
-              stream << "Bi[" << i << "] += " << p_.kL << BSTRIDE1 << ";" << std::endl;
+              stream << "Bi[" << i << "] += " << kL << BSTRIDE1 << ";" << std::endl;
     };
     fetch_to_lds(false);
     stream.dec_tab();
@@ -476,15 +466,15 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     if(A_trans_=='N' || B_trans_=='T')
     {
         stream << "int Ky = K - idT.y;" << std::endl;
-        for(unsigned int k = 0; k < p_.kL; k += p_.local_fetch_1)
+        for(unsigned int k = 0; k < kL; k += local_fetch_1)
             stream << "int condy" << k << " = " << k << " < Ky;" << std::endl;
     }
 
     if(A_trans_=='T' || B_trans_=='N')
     {
         stream << "int Kx = K - idT.x;" << std::endl;
-        for(unsigned int k = 0 ; k < p_.kL ; k += p_.local_fetch_0*p_.simd_width)
-            for(unsigned int s = 0 ; s < p_.simd_width ; ++s)
+        for(unsigned int k = 0 ; k < kL ; k += local_fetch_0*simd_width)
+            for(unsigned int s = 0 ; s < simd_width ; ++s)
                 stream << "int condx" << k + s << " = " << k + s << " < Kx;" << std::endl;
     }
     fetch_to_lds(true);
@@ -503,35 +493,35 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     stream << "N += ids.y;" << std::endl;
 
     stream << "C += ids.x" << CSTRIDE1 << ";" << std::endl;
-    stream << "C += ids.z*" << p_.simd_width << CSTRIDE1 << ";" << std::endl;
+    stream << "C += ids.z*" << simd_width << CSTRIDE1 << ";" << std::endl;
     stream << "C += ids.y*ldc;" << std::endl;
-    stream << "C += ids.w*" << p_.simd_width << "*ldc;" << std::endl;
+    stream << "C += ids.w*" << simd_width << "*ldc;" << std::endl;
     if(has_depth)
         stream << "C += gidz*ldc*N;" << std::endl;
 
     stream << "M -= ids.x;" << std::endl;
-    stream << "M -= ids.z*" << p_.simd_width << ";" << std::endl;
+    stream << "M -= ids.z*" << simd_width << ";" << std::endl;
 
     stream << "N -= ids.y;" << std::endl;
-    stream << "N -= ids.w*" << p_.simd_width <<  ";" << std::endl;
+    stream << "N -= ids.w*" << simd_width <<  ";" << std::endl;
 
-    for(unsigned int n=0; n < p_.nS; ++n)
+    for(unsigned int n=0; n < nS; ++n)
     {
-        string Cj = to_string((n/p_.simd_width)*(p_.local_size_1*p_.simd_width) + n%p_.simd_width);
+        string Cj = to_string((n/simd_width)*(local_size_1*simd_width) + n%simd_width);
         stream << "if(" << Cj << " >= N) return;" << std::endl;
-        for(unsigned int m=0; m < p_.mS; ++m)
+        for(unsigned int m=0; m < mS; ++m)
             stream << "rC[" << m << "][" << n << "] *= alpha;" << std::endl;
-        for(unsigned int m=0; m < p_.mS; ++m)
+        for(unsigned int m=0; m < mS; ++m)
         {
-            string Ci = to_string((m/p_.simd_width)*(p_.local_size_0*p_.simd_width) + m%p_.simd_width);
+            string Ci = to_string((m/simd_width)*(local_size_0*simd_width) + m%simd_width);
             stream << "if(" << Ci << "< M) ";
             if(has_depth)
                 stream << "C[" << Ci << CSTRIDE1 << "] = rC[" << m << "][" << n << "];" << std::endl;
             else
                 stream << "C[" << Ci << CSTRIDE1 << "] = rC[" << m << "][" << n << "] + ((beta != (" << sdtype << ")0)?(beta*" << "C[" << Ci << CSTRIDE1 << "]):0);" << std::endl;
         }
-        if((n+1)%p_.simd_width==0){
-            stream << "C += ldc*" << p_.local_size_1*p_.simd_width - p_.simd_width + 1 << ";" << std::endl;
+        if((n+1)%simd_width==0){
+            stream << "C += ldc*" << local_size_1*simd_width - simd_width + 1 << ";" << std::endl;
         }
         else{
             stream << "C += ldc;" << std::endl;
@@ -583,7 +573,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
   void matrix_product::enqueue_block(driver::CommandQueue & queue, int_t M, int_t N, int_t K,
                      expression_tree::node const & A, expression_tree::node const & B, expression_tree::node const & C,
                      scalar const & alpha, scalar const & beta,
-                     driver::Program const & program, std::string const & suffix, runtime::execution_options_type const & options)
+                     driver::Program const & program, std::string const & suffix, runtime::environment const & options)
   {
     using tools::align;
 
@@ -599,8 +589,8 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     reduce_name += suffix;
 
     driver::Kernel matrix_product(program, matrix_product_name.c_str());
-    driver::NDRange local(p_.local_size_0, p_.local_size_1, 1);
-    driver::NDRange global(align(align(M,p_.mS)/p_.mS, p_.local_size_0), align(align(N,p_.nS)/p_.nS, p_.local_size_1), p_.depth);
+    driver::NDRange local(local_size_0, local_size_1, 1);
+    driver::NDRange global(align(align(M,mS)/mS, local_size_0), align(align(N,nS)/nS, local_size_1), depth);
 
     unsigned int current_arg = 0;
 
@@ -608,7 +598,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     matrix_product.setSizeArg(current_arg++, M);
     matrix_product.setSizeArg(current_arg++, N);
     matrix_product.setSizeArg(current_arg++, K);
-    if(p_.depth==1)
+    if(depth==1)
     {
         if(backend==driver::OPENCL)
           matrix_product.setArg(current_arg++, C.array.handle.cl);
@@ -647,15 +637,15 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     matrix_product.setArg(current_arg++, beta);
     options.enqueue(program.context(), matrix_product, global, local);
 
-    if(p_.depth > 1)
+    if(depth > 1)
     {
       unsigned int current_arg = 0;
       driver::Kernel reduce(program, reduce_name.c_str());
-      driver::NDRange local(p_.local_size_0, p_.local_size_1);
-      driver::NDRange global(align(M, p_.local_size_0), align(N, p_.local_size_1));
+      driver::NDRange local(local_size_0, local_size_1);
+      driver::NDRange global(align(M, local_size_0), align(N, local_size_1));
       reduce.setSizeArg(current_arg++, M);
       reduce.setSizeArg(current_arg++, N);
-      reduce.setSizeArg(current_arg++, p_.depth);
+      reduce.setSizeArg(current_arg++, depth);
       reduce.setArg(current_arg++, workspace);
       reduce.setSizeArg(current_arg++, M);
       if(backend==driver::OPENCL)
@@ -682,7 +672,15 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     return {M, N, K};
   }
 
-  matrix_product::matrix_product(matrix_product_parameters const & parameters, char A_trans, char B_trans) : base_impl<matrix_product, matrix_product_parameters>(parameters, FUSE_INDEPENDENT), A_trans_(A_trans), B_trans_(B_trans)
+  matrix_product::matrix_product(unsigned int s
+                                 ,unsigned int ls0, unsigned int KL, unsigned int ls1, unsigned int D
+                                 ,unsigned int ms, unsigned int ks, unsigned int ns
+                                 ,fetching_policy_type Afetch, fetching_policy_type Bfetch
+                                 ,unsigned int fetch0, unsigned int fetch1
+                                 ,char A_trans, char B_trans) : base(s, ls0, ls1, 1),
+    kL(KL), depth(D), mS(ms), kS(ks), nS(ns), A_fetching_policy(Afetch), B_fetching_policy(Bfetch),
+    local_fetch_0(fetch0), local_fetch_1(fetch1),
+    mL(ms*local_size_0), nL(ns*local_size_1), A_trans_(A_trans), B_trans_(B_trans)
   {
     if(A_trans_=='N' && B_trans_=='N') type_ = MATRIX_PRODUCT_NN;
     else if(A_trans_=='T' && B_trans_=='N') type_ = MATRIX_PRODUCT_TN;
@@ -697,19 +695,16 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
     return infos((expression_tree&)expressions, dummy);
   }
 
-  void matrix_product::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, runtime::execution_handler const & control)
+  void matrix_product::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix,
+                               expression_tree const & tree, runtime::environment const & options)
   {
-    expression_tree const & expressions = control.x();
     symbolic::preset::matrix_product::args args;
-    std::vector<int_t> MNK = infos(expressions, args);
+    std::vector<int_t> MNK = infos(tree, args);
     int_t M = MNK[0];
     int_t N = MNK[1];
     int_t K = MNK[2];
-    //Skip if empty
     if(M==0 || N == 0 || K ==0)
       return;
-    //Enqueue
-    runtime::execution_options_type const & options = control.execution_options();
     enqueue_block(queue,  M, N, K, *args.A, *args.B, *args.C, args.alpha, args.beta, program, suffix, options);
   }
 
@@ -719,7 +714,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
                            , int_t ms, int_t ks, int_t ns
                            , fetching_policy_type Afetch , fetching_policy_type Bfetch
                            , int_t lfetch0, int_t lfetch1) :
-    matrix_product(matrix_product_parameters(simd, ls0, KL, ls1, D, ms, ks, ns, Afetch, Bfetch, lfetch0, lfetch1), 'N', 'N')
+    matrix_product(simd, ls0, KL, ls1, D, ms, ks, ns, Afetch, Bfetch, lfetch0, lfetch1, 'N', 'N')
   {
   }
 
@@ -729,7 +724,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
                            , int_t ms, int_t ks, int_t ns
                            , fetching_policy_type Afetch , fetching_policy_type Bfetch
                            , int_t lfetch0, int_t lfetch1) :
-    matrix_product(matrix_product_parameters(simd, ls0, KL, ls1, D, ms, ks, ns, Afetch, Bfetch, lfetch0, lfetch1), 'T', 'N')
+    matrix_product(simd, ls0, KL, ls1, D, ms, ks, ns, Afetch, Bfetch, lfetch0, lfetch1, 'T', 'N')
   { }
 
   //
@@ -738,7 +733,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
                            , int_t ms, int_t ks, int_t ns
                            , fetching_policy_type Afetch , fetching_policy_type Bfetch
                            , int_t lfetch0, int_t lfetch1) :
-    matrix_product(matrix_product_parameters(simd, ls0, KL, ls1, D, ms, ks, ns, Afetch, Bfetch, lfetch0, lfetch1), 'N', 'T')
+    matrix_product(simd, ls0, KL, ls1, D, ms, ks, ns, Afetch, Bfetch, lfetch0, lfetch1, 'N', 'T')
   { }
 
   //
@@ -747,7 +742,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
                            , int_t ms, int_t ks, int_t ns
                            , fetching_policy_type Afetch , fetching_policy_type Bfetch
                            , int_t lfetch0, int_t lfetch1) :
-    matrix_product(matrix_product_parameters(simd, ls0, KL, ls1, D, ms, ks, ns, Afetch, Bfetch, lfetch0, lfetch1), 'T', 'T')
+    matrix_product(simd, ls0, KL, ls1, D, ms, ks, ns, Afetch, Bfetch, lfetch0, lfetch1, 'T', 'T')
   { }
 
 }

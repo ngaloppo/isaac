@@ -36,17 +36,9 @@ namespace isaac
 namespace templates
 {
 
-elementwise_1d_parameters::elementwise_1d_parameters(unsigned int _simd_width,
-                       unsigned int _group_size, unsigned int _num_groups,
-                       fetching_policy_type _fetching_policy) :
-      base::parameters_type(_simd_width, _group_size, 1, 1), num_groups(_num_groups), fetching_policy(_fetching_policy)
-{
-}
-
-
 int elementwise_1d::is_invalid_impl(driver::Device const &, expression_tree const &) const
 {
-  if (p_.fetching_policy==FETCH_FROM_LOCAL)
+  if (fetching_policy==FETCH_FROM_LOCAL)
     return TEMPLATE_INVALID_FETCHING_POLICY_TYPE;
   return TEMPLATE_VALID;
 }
@@ -65,7 +57,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
     case driver::CUDA:
       stream << "#include  \"vector.h\"" << std::endl; break;
     case driver::OPENCL:
-      stream << " __attribute__((reqd_work_group_size(" << p_.local_size_0 << "," << p_.local_size_1 << ",1)))" << std::endl; break;
+      stream << " __attribute__((reqd_work_group_size(" << local_size_0 << "," << local_size_1 << ",1)))" << std::endl; break;
   }
 
   stream << "$KERNEL void elementwise_1d" << suffix << "($SIZE_T N, " << tools::join(kernel_arguments(device, symbols, tree), ", ") << ")";
@@ -83,7 +75,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
     stream.inc_tab();
   }
 
-  element_wise_loop_1D(stream, p_.fetching_policy, p_.simd_width, "i", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](unsigned int simd_width)
+  element_wise_loop_1D(stream, fetching_policy, simd_width, "i", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](unsigned int simd_width)
   {
     std::string dtype = append_width("#scalartype",simd_width);
 
@@ -118,14 +110,8 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   return stream.str();
 }
 
-elementwise_1d::elementwise_1d(elementwise_1d_parameters const & parameters,
-                               fusion_policy_t fusion_policy) :
-    base_impl<elementwise_1d, elementwise_1d_parameters>(parameters, fusion_policy)
-{}
-
 elementwise_1d::elementwise_1d(unsigned int simd, unsigned int ls, unsigned int ng,
-                               fetching_policy_type fetch, fusion_policy_t bind):
-    base_impl<elementwise_1d, elementwise_1d_parameters>(elementwise_1d_parameters(simd,ls,ng,fetch), bind)
+                               fetching_policy_type fetch): base(simd, ls, 1, 1), num_groups(ng), fetching_policy(fetch)
 {}
 
 
@@ -134,23 +120,23 @@ std::vector<int_t> elementwise_1d::input_sizes(expression_tree const & expressio
   return {max(expressions.shape())};
 }
 
-void elementwise_1d::enqueue(driver::CommandQueue &, driver::Program const & program, std::string const & suffix, runtime::execution_handler const & control)
+void elementwise_1d::enqueue(driver::CommandQueue &, driver::Program const & program, std::string const & suffix,
+                             expression_tree const & tree, runtime::environment const & opt)
 {
-  expression_tree const & expressions = control.x();
   //Size
-  int_t size = input_sizes(expressions)[0];
+  int_t size = input_sizes(tree)[0];
   //Kernel
   std::string name = "elementwise_1d";
   name += suffix;
   driver::Kernel kernel(program, name.c_str());
   //NDRange
-  driver::NDRange global(p_.local_size_0*p_.num_groups);
-  driver::NDRange local(p_.local_size_0);
+  driver::NDRange global(local_size_0*num_groups);
+  driver::NDRange local(local_size_0);
   //Arguments
   unsigned int current_arg = 0;
   kernel.setSizeArg(current_arg++, size);
-  symbolic::set_arguments(expressions, kernel, current_arg, fusion_policy_);
-  control.execution_options().enqueue(program.context(), kernel, global, local);
+  symbolic::set_arguments(tree, kernel, current_arg);
+  opt.enqueue(program.context(), kernel, global, local);
 }
 
 

@@ -112,7 +112,7 @@ leaf::leaf(driver::Context const & context, std::string const & scalartype, std:
 { add_base("leaf"); }
 
 //
-node::node(size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : op_(op), lhs_(NULL), rhs_(NULL), root_(root)
+node::node(size_t root, token op, expression_tree const & tree, symbols_table const & table) : op_(op), lhs_(NULL), rhs_(NULL), root_(root)
 {
   expression_tree::node const & node = tree[root];
   symbols_table::const_iterator it;
@@ -122,7 +122,7 @@ node::node(size_t root, op_element op, expression_tree const & tree, symbols_tab
     rhs_ = it->second.get();
 }
 
-op_element node::op() const
+token node::op() const
 { return op_; }
 
 object const * node::lhs() const
@@ -135,15 +135,15 @@ size_t node::root() const
 { return root_; }
 
 //
-sfor::sfor(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : object(tree.context(), to_string(tree[root].dtype), id), node(root, op, tree, table)
+sfor::sfor(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table) : object(tree.context(), to_string(tree[root].dtype), id), node(root, op, tree, table)
 { add_base("sfor"); }
 
 //
-arithmetic_node::arithmetic_node(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : object(tree.context(), to_string(tree[root].dtype), id), node(root, op, tree, table), op_str_(to_string(op.type))
+arithmetic_node::arithmetic_node(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table) : object(tree.context(), to_string(tree[root].dtype), id), node(root, op, tree, table), op_str_(to_string(op.type))
 { }
 
 //
-binary_arithmetic_node::binary_arithmetic_node(unsigned int id, size_t root, op_element op, expression_tree const & expression, symbols_table const & table) : arithmetic_node(id, root, op, expression, table)
+binary_arithmetic_node::binary_arithmetic_node(unsigned int id, size_t root, token op, expression_tree const & expression, symbols_table const & table) : arithmetic_node(id, root, op, expression, table)
 { add_base("binary_arithmetic_node"); }
 
 std::string binary_arithmetic_node::evaluate(std::map<std::string, std::string> const & table) const
@@ -157,7 +157,7 @@ std::string binary_arithmetic_node::evaluate(std::map<std::string, std::string> 
 }
 
 //
-unary_arithmetic_node::unary_arithmetic_node(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) :
+unary_arithmetic_node::unary_arithmetic_node(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table) :
     arithmetic_node(id, root, op, tree, table)
 { add_base("unary_arithmetic_node"); }
 
@@ -165,29 +165,18 @@ std::string unary_arithmetic_node::evaluate(std::map<std::string, std::string> c
 { return op_str_ + "(" + lhs_->evaluate(table) + ")"; }
 
 //
-reduction::reduction(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) :
+reduction::reduction(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table) :
   object(tree.context(), to_string(tree[root].dtype), id), node(root, op, tree, table)
 { add_base("reduction"); }
 
 //
-reduce_1d::reduce_1d(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : reduction(id, root, op, tree, table)
+reduce_1d::reduce_1d(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table) : reduction(id, root, op, tree, table)
 { add_base("reduce_1d"); }
 
 
 //
-reduce_2d::reduce_2d(unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : reduction(id, root, op, tree, table)
+reduce_2d::reduce_2d(unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table) : reduction(id, root, op, tree, table)
 { add_base("reduce_2d"); }
-
-//
-placeholder::placeholder(driver::Context const & context, unsigned int level) : leaf(context, "int", "sforidx" + tools::to_string(level))
-{
-  macros_.insert("at(): #name");
-  macros_.insert("at(i): #name");
-  macros_.insert("at(i,j): #name");
-
-  add_base("placebolder");
-  add_load(false);
-}
 
 //
 host_scalar::host_scalar(driver::Context const & context, std::string const & scalartype, unsigned int id) : leaf(context, scalartype, id)
@@ -256,14 +245,14 @@ buffer::buffer(driver::Context const & context, std::string const & scalartype, 
 }
 
 //
-index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : array(tree.context(), scalartype, id), node(root, op, tree, table)
+index_modifier::index_modifier(const std::string &scalartype, unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table) : array(tree.context(), scalartype, id), node(root, op, tree, table)
 {
   add_base("index_modifier");
   add_load(false);
 }
 
 //Reshaping
-reshape::reshape(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
+reshape::reshape(std::string const & scalartype, unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
 {
   add_base("reshape");
 
@@ -317,7 +306,7 @@ reshape::reshape(std::string const & scalartype, unsigned int id, size_t root, o
 }
 
 //Transposition
-trans::trans(std::string const & scalartype, unsigned int id, size_t root, op_element op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
+trans::trans(std::string const & scalartype, unsigned int id, size_t root, token op, expression_tree const & tree, symbols_table const & table) : index_modifier(scalartype, id, root, op, tree, table)
 {
   add_base("trans");
   tuple shape = tree[root].shape;
@@ -339,7 +328,7 @@ trans::trans(std::string const & scalartype, unsigned int id, size_t root, op_el
 }
 
 //
-diag_vector::diag_vector(const std::string &scalartype, unsigned int id, size_t root, op_element op, const expression_tree &tree, const symbols_table &table) : index_modifier(scalartype, id, root, op, tree, table)
+diag_vector::diag_vector(const std::string &scalartype, unsigned int id, size_t root, token op, const expression_tree &tree, const symbols_table &table) : index_modifier(scalartype, id, root, op, tree, table)
 {
   add_base("diag_vector");
 

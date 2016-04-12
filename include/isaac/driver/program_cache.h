@@ -23,7 +23,7 @@
 #define ISAAC_DRIVER_PROGRAM_CACHE_H
 
 #include <map>
-#include "isaac/defines.h"
+#include "isaac/common.h"
 #include "isaac/driver/program.h"
 
 namespace isaac
