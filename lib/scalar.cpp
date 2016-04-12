@@ -25,14 +25,14 @@
 #include <iostream>
 #include <algorithm>
 #include "isaac/array.h"
-#include "isaac/value_scalar.h"
+#include "isaac/scalar.h"
 #include "isaac/exception/api.h"
 
 namespace isaac
 {
 
 template<class T>
-void value_scalar::init(T const & s)
+void scalar::init(T const & s)
 {
   switch(dtype_)
   {
@@ -52,7 +52,7 @@ void value_scalar::init(T const & s)
   }
 }
 
-#define INSTANTIATE(CLTYPE) value_scalar::value_scalar(CLTYPE value, numeric_type dtype) : dtype_(dtype) { init(value); }
+#define INSTANTIATE(CLTYPE) scalar::scalar(CLTYPE value, numeric_type dtype) : dtype_(dtype) { init(value); }
 
 INSTANTIATE(char)
 INSTANTIATE(unsigned char)
@@ -69,18 +69,18 @@ INSTANTIATE(double)
 
 #undef INSTANTIATE
 
-value_scalar::value_scalar(numeric_type dtype) : dtype_(dtype) {}
-value_scalar::value_scalar(device_scalar const & s) : dtype_(s.dtype()) { s.inject(values_); }
-value_scalar::value_scalar(expression_tree const &expr) : dtype_(expr.dtype()) { device_scalar(expr).inject(values_); }
-value_scalar::value_scalar(values_holder values, numeric_type dtype) : values_(values), dtype_(dtype) {}
-values_holder value_scalar::values() const
+scalar::scalar(numeric_type dtype) : dtype_(dtype) {}
+scalar::scalar(device_scalar const & s) : dtype_(s.dtype()) { s.inject(values_); }
+scalar::scalar(expression_tree const &expr) : dtype_(expr.dtype()) { device_scalar(expr).inject(values_); }
+scalar::scalar(values_holder values, numeric_type dtype) : values_(values), dtype_(dtype) {}
+values_holder scalar::values() const
 { return values_; }
 
-numeric_type value_scalar::dtype() const
+numeric_type scalar::dtype() const
 { return dtype_; }
 
 template<class T>
-T value_scalar::cast() const
+T scalar::cast() const
 {
   switch(dtype_)
   {
@@ -98,7 +98,7 @@ T value_scalar::cast() const
   }
 }
 
-#define INSTANTIATE(type) value_scalar::operator type() const { return cast<type>(); }
+#define INSTANTIATE(type) scalar::operator type() const { return cast<type>(); }
   //INSTANTIATE(bool)
   INSTANTIATE(char)
   INSTANTIATE(unsigned char)
@@ -114,20 +114,20 @@ T value_scalar::cast() const
   INSTANTIATE(double)
 #undef INSTANTIATE
 
-value_scalar int8(int8_t v) { return value_scalar(v); }
-value_scalar uint8(uint8_t v) { return value_scalar(v); }
-value_scalar int16(int16_t v) { return value_scalar(v); }
-value_scalar uint16(uint16_t v) { return value_scalar(v); }
-value_scalar int32(int32_t v) { return value_scalar(v); }
-value_scalar uint32(uint32_t v) { return value_scalar(v); }
-value_scalar int64(int64_t v) { return value_scalar(v); }
-value_scalar uint64(uint64_t v) { return value_scalar(v); }
-value_scalar float32(float v) { return value_scalar(v); }
-value_scalar float64(double v) { return value_scalar(v); }
+scalar int8(int8_t v) { return scalar(v); }
+scalar uint8(uint8_t v) { return scalar(v); }
+scalar int16(int16_t v) { return scalar(v); }
+scalar uint16(uint16_t v) { return scalar(v); }
+scalar int32(int32_t v) { return scalar(v); }
+scalar uint32(uint32_t v) { return scalar(v); }
+scalar int64(int64_t v) { return scalar(v); }
+scalar uint64(uint64_t v) { return scalar(v); }
+scalar float32(float v) { return scalar(v); }
+scalar float64(double v) { return scalar(v); }
 
 #define VALUE(type, OP, x, y) (type)x OP y
 #define INSTANTIATE(NAME, LDEC, RDEC, OP)\
-value_scalar NAME(LDEC, RDEC)\
+scalar NAME(LDEC, RDEC)\
 {\
   switch(x.dtype())\
   {\
@@ -146,30 +146,30 @@ value_scalar NAME(LDEC, RDEC)\
 }
 
 #define INSTANTIATE_ALL(NAME, EXPR)\
-  INSTANTIATE(NAME, value_scalar const & x, char y, EXPR)\
-  INSTANTIATE(NAME, value_scalar const & x, unsigned char y, EXPR)\
-  INSTANTIATE(NAME, value_scalar const & x, short y, EXPR)\
-  INSTANTIATE(NAME, value_scalar const & x, unsigned short y, EXPR)\
-  INSTANTIATE(NAME, value_scalar const & x, int y, EXPR)\
-  INSTANTIATE(NAME, value_scalar const & x, unsigned int y, EXPR)\
-  INSTANTIATE(NAME, value_scalar const & x, long y, EXPR)\
-  INSTANTIATE(NAME, value_scalar const & x, unsigned long y, EXPR)\
-  INSTANTIATE(NAME, value_scalar const & x, long long y, EXPR)\
-  INSTANTIATE(NAME, value_scalar const & x, unsigned long long y, EXPR)\
-  INSTANTIATE(NAME, value_scalar const & x, float y, EXPR)\
-  INSTANTIATE(NAME, value_scalar const & x, double y, EXPR)\
-  INSTANTIATE(NAME, char y,   value_scalar const & x, EXPR)\
-  INSTANTIATE(NAME, unsigned char y,  value_scalar const & x, EXPR)\
-  INSTANTIATE(NAME, short y,  value_scalar const & x, EXPR)\
-  INSTANTIATE(NAME, unsigned short y, value_scalar const & x, EXPR)\
-  INSTANTIATE(NAME, int y,    value_scalar const & x, EXPR)\
-  INSTANTIATE(NAME, unsigned int y,   value_scalar const & x, EXPR)\
-  INSTANTIATE(NAME, long y,   value_scalar const & x, EXPR)\
-  INSTANTIATE(NAME, unsigned long y,  value_scalar const & x, EXPR)\
-  INSTANTIATE(NAME, long long y,   value_scalar const & x, EXPR)\
-  INSTANTIATE(NAME, unsigned long long y,  value_scalar const & x, EXPR)\
-  INSTANTIATE(NAME, float y,  value_scalar const & x, EXPR)\
-  INSTANTIATE(NAME, double y, value_scalar const & x, EXPR)
+  INSTANTIATE(NAME, scalar const & x, char y, EXPR)\
+  INSTANTIATE(NAME, scalar const & x, unsigned char y, EXPR)\
+  INSTANTIATE(NAME, scalar const & x, short y, EXPR)\
+  INSTANTIATE(NAME, scalar const & x, unsigned short y, EXPR)\
+  INSTANTIATE(NAME, scalar const & x, int y, EXPR)\
+  INSTANTIATE(NAME, scalar const & x, unsigned int y, EXPR)\
+  INSTANTIATE(NAME, scalar const & x, long y, EXPR)\
+  INSTANTIATE(NAME, scalar const & x, unsigned long y, EXPR)\
+  INSTANTIATE(NAME, scalar const & x, long long y, EXPR)\
+  INSTANTIATE(NAME, scalar const & x, unsigned long long y, EXPR)\
+  INSTANTIATE(NAME, scalar const & x, float y, EXPR)\
+  INSTANTIATE(NAME, scalar const & x, double y, EXPR)\
+  INSTANTIATE(NAME, char y,   scalar const & x, EXPR)\
+  INSTANTIATE(NAME, unsigned char y,  scalar const & x, EXPR)\
+  INSTANTIATE(NAME, short y,  scalar const & x, EXPR)\
+  INSTANTIATE(NAME, unsigned short y, scalar const & x, EXPR)\
+  INSTANTIATE(NAME, int y,    scalar const & x, EXPR)\
+  INSTANTIATE(NAME, unsigned int y,   scalar const & x, EXPR)\
+  INSTANTIATE(NAME, long y,   scalar const & x, EXPR)\
+  INSTANTIATE(NAME, unsigned long y,  scalar const & x, EXPR)\
+  INSTANTIATE(NAME, long long y,   scalar const & x, EXPR)\
+  INSTANTIATE(NAME, unsigned long long y,  scalar const & x, EXPR)\
+  INSTANTIATE(NAME, float y,  scalar const & x, EXPR)\
+  INSTANTIATE(NAME, double y, scalar const & x, EXPR)
 
 INSTANTIATE_ALL(operator+, +)
 INSTANTIATE_ALL(operator-, -)
@@ -195,7 +195,7 @@ INSTANTIATE_ALL(pow, std::pow)
 #undef INSTANTIATE_ALL
 #undef INSTANTIATE
 
-value_scalar cast(value_scalar const & in, numeric_type dtype)
+scalar cast(scalar const & in, numeric_type dtype)
 {
   switch(dtype)
   {
@@ -213,7 +213,7 @@ value_scalar cast(value_scalar const & in, numeric_type dtype)
   }
 }
 
-std::ostream & operator<<(std::ostream & os, value_scalar const & s)
+std::ostream & operator<<(std::ostream & os, scalar const & s)
 {
   switch(s.dtype())
   {

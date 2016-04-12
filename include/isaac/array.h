@@ -88,21 +88,21 @@ public:
   array_base& operator=(runtime::execution_handler const &);
   template<class T>
   array_base & operator=(std::vector<T> const & rhs);
-  array_base & operator=(value_scalar const & rhs);
+  array_base & operator=(scalar const & rhs);
 
   expression_tree operator-();
   expression_tree operator!();
 
-  array_base& operator+=(value_scalar const &);
+  array_base& operator+=(scalar const &);
   array_base& operator+=(array_base const &);
   array_base& operator+=(expression_tree const &);
-  array_base& operator-=(value_scalar const &);
+  array_base& operator-=(scalar const &);
   array_base& operator-=(array_base const &);
   array_base& operator-=(expression_tree const &);
-  array_base& operator*=(value_scalar const &);
+  array_base& operator*=(scalar const &);
   array_base& operator*=(array_base const &);
   array_base& operator*=(expression_tree const &);
-  array_base& operator/=(value_scalar const &);
+  array_base& operator/=(scalar const &);
   array_base& operator/=(array_base const &);
   array_base& operator/=(expression_tree const &);
 
@@ -159,17 +159,17 @@ public:
 
 class ISAACAPI device_scalar : public array_base
 {
-  friend value_scalar::value_scalar(const device_scalar &);
-  friend value_scalar::value_scalar(const expression_tree &);
+  friend scalar::scalar(const device_scalar &);
+  friend scalar::scalar(const expression_tree &);
 private:
   void inject(values_holder&) const;
   template<class T> T cast() const;
 public:
   explicit device_scalar(numeric_type dtype, const driver::Buffer &data, int_t offset);
-  explicit device_scalar(value_scalar value, driver::Context const & context = driver::backend::contexts::get_default());
+  explicit device_scalar(scalar value, driver::Context const & context = driver::backend::contexts::get_default());
   explicit device_scalar(numeric_type dtype, driver::Context const & context = driver::backend::contexts::get_default());
   device_scalar(expression_tree const & proxy);
-  device_scalar& operator=(value_scalar const &);
+  device_scalar& operator=(scalar const &);
 //  scalar& operator=(scalar const & s);
   using array_base::operator =;
 
@@ -207,15 +207,15 @@ template<class T> ISAACAPI void copy(array_base const & gA, std::vector<T> & cA,
 
 #define ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR(OPNAME) \
 ISAACAPI expression_tree OPNAME (array_base const & x, expression_tree const & y);\
-ISAACAPI expression_tree OPNAME (array_base const & x, value_scalar const & y);\
+ISAACAPI expression_tree OPNAME (array_base const & x, scalar const & y);\
 ISAACAPI expression_tree OPNAME (array_base const & x, array_base const & y);\
 \
 ISAACAPI expression_tree OPNAME (expression_tree const & x, expression_tree const & y);\
-ISAACAPI expression_tree OPNAME (expression_tree const & x, value_scalar const & y);\
+ISAACAPI expression_tree OPNAME (expression_tree const & x, scalar const & y);\
 ISAACAPI expression_tree OPNAME (expression_tree const & x, array_base const & y);\
 \
-ISAACAPI expression_tree OPNAME (value_scalar const & y, expression_tree const & x);\
-ISAACAPI expression_tree OPNAME (value_scalar const & y, array_base const & x);\
+ISAACAPI expression_tree OPNAME (scalar const & y, expression_tree const & x);\
+ISAACAPI expression_tree OPNAME (scalar const & y, array_base const & x);\
 
 ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR(operator +)
 ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR(operator -)

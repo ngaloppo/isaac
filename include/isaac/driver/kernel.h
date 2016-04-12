@@ -26,7 +26,7 @@
 #include "isaac/driver/common.h"
 #include "isaac/driver/program.h"
 #include "isaac/driver/handle.h"
-#include "isaac/value_scalar.h"
+#include "isaac/scalar.h"
 
 #include <memory>
 
@@ -47,7 +47,7 @@ public:
 
 public:
   Kernel(Program const & program, const char * name);
-  void setArg(unsigned int index, value_scalar const & scal);
+  void setArg(unsigned int index, scalar const & scal);
   void setArg(unsigned int index, std::size_t size, void* ptr);
   void setArg(unsigned int index, Buffer const &);
   void setSizeArg(unsigned int index, std::size_t N);

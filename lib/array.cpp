@@ -169,7 +169,7 @@ array_base & array_base::operator=(array_base const & rhs)
     return *this;
 }
 
-array_base & array_base::operator=(value_scalar const & rhs)
+array_base & array_base::operator=(scalar const & rhs)
 {
     if(min(shape_)==0) return *this;
     assert(dtype_ == rhs.dtype());
@@ -229,7 +229,7 @@ expression_tree array_base::operator!()
 { return expression_tree(*this, invalid_node(), op_element(UNARY_ARITHMETIC, NEGATE_TYPE), &context_, INT_TYPE, shape_); }
 
 //
-array_base & array_base::operator+=(value_scalar const & rhs)
+array_base & array_base::operator+=(scalar const & rhs)
 { return *this = expression_tree(*this, rhs, op_element(BINARY_ARITHMETIC, ADD_TYPE), &context_, dtype_, shape_); }
 
 array_base & array_base::operator+=(array_base const & rhs)
@@ -238,7 +238,7 @@ array_base & array_base::operator+=(array_base const & rhs)
 array_base & array_base::operator+=(expression_tree const & rhs)
 { return *this = expression_tree(*this, rhs, op_element(BINARY_ARITHMETIC, ADD_TYPE), &rhs.context(), dtype_, shape_); }
 //----
-array_base & array_base::operator-=(value_scalar const & rhs)
+array_base & array_base::operator-=(scalar const & rhs)
 { return *this = expression_tree(*this, rhs, op_element(BINARY_ARITHMETIC, SUB_TYPE), &context_, dtype_, shape_); }
 
 array_base & array_base::operator-=(array_base const & rhs)
@@ -247,7 +247,7 @@ array_base & array_base::operator-=(array_base const & rhs)
 array_base & array_base::operator-=(expression_tree const & rhs)
 { return *this = expression_tree(*this, rhs, op_element(BINARY_ARITHMETIC, SUB_TYPE), &rhs.context(), dtype_, shape_); }
 //----
-array_base & array_base::operator*=(value_scalar const & rhs)
+array_base & array_base::operator*=(scalar const & rhs)
 { return *this = expression_tree(*this, rhs, op_element(BINARY_ARITHMETIC, MULT_TYPE), &context_, dtype_, shape_); }
 
 array_base & array_base::operator*=(array_base const & rhs)
@@ -256,7 +256,7 @@ array_base & array_base::operator*=(array_base const & rhs)
 array_base & array_base::operator*=(expression_tree const & rhs)
 { return *this = expression_tree(*this, rhs, op_element(BINARY_ARITHMETIC, MULT_TYPE), &rhs.context(), dtype_, shape_); }
 //----
-array_base & array_base::operator/=(value_scalar const & rhs)
+array_base & array_base::operator/=(scalar const & rhs)
 { return *this = expression_tree(*this, rhs, op_element(BINARY_ARITHMETIC, DIV_TYPE), &context_, dtype_, shape_); }
 
 array_base & array_base::operator/=(array_base const & rhs)
@@ -353,7 +353,7 @@ void copy(driver::Context const & context, driver::Buffer const & data, T value)
 device_scalar::device_scalar(numeric_type dtype, const driver::Buffer &data, int_t offset): array_base(1, dtype, data, offset, 1)
 { }
 
-device_scalar::device_scalar(value_scalar value, driver::Context const & context) : array_base(1, value.dtype(), context)
+device_scalar::device_scalar(scalar value, driver::Context const & context) : array_base(1, value.dtype(), context)
 {
   switch(dtype_)
   {
@@ -427,7 +427,7 @@ TYPE device_scalar::cast() const
 
 }
 
-device_scalar& device_scalar::operator=(value_scalar const & s)
+device_scalar& device_scalar::operator=(scalar const & s)
 {
   driver::CommandQueue& queue = driver::backend::queues::get(context_, 0);
   int_t dtsize = size_of(dtype_);
@@ -527,7 +527,7 @@ expression_tree OPNAME (array_base const & x, expression_tree const & y) \
 expression_tree OPNAME (array_base const & x, array_base const & y) \
 { return broadcast(x, y, op_element(BINARY_ARITHMETIC, OP), DTYPE); }\
 \
-expression_tree OPNAME (array_base const & x, value_scalar const & y) \
+expression_tree OPNAME (array_base const & x, scalar const & y) \
 { return expression_tree(x, y, op_element(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); }\
 \
 \
@@ -537,14 +537,14 @@ expression_tree OPNAME (expression_tree const & x, expression_tree const & y) \
 expression_tree OPNAME (expression_tree const & x, array_base const & y) \
 { return broadcast(x, y, op_element(BINARY_ARITHMETIC, OP), DTYPE); } \
 \
-expression_tree OPNAME (expression_tree const & x, value_scalar const & y) \
+expression_tree OPNAME (expression_tree const & x, scalar const & y) \
 { return expression_tree(x, y, op_element(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); } \
 \
 \
-expression_tree OPNAME (value_scalar const & y, expression_tree const & x) \
+expression_tree OPNAME (scalar const & y, expression_tree const & x) \
 { return expression_tree(y, x, op_element(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); } \
 \
-expression_tree OPNAME (value_scalar const & y, array_base const & x) \
+expression_tree OPNAME (scalar const & y, array_base const & x) \
 { return expression_tree(y, x, op_element(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); }\
 \
 
@@ -644,7 +644,7 @@ expression_tree cast(expression_tree const & x, numeric_type dtype)
 //-----------------------------------
 
 isaac::expression_tree eye(int_t M, int_t N, isaac::numeric_type dtype, driver::Context const & ctx)
-{ return expression_tree(value_scalar(1, dtype), value_scalar(0, dtype), op_element(UNARY_ARITHMETIC, DIAG_VECTOR_TYPE), &ctx, dtype, {M, N}); }
+{ return expression_tree(scalar(1, dtype), scalar(0, dtype), op_element(UNARY_ARITHMETIC, DIAG_VECTOR_TYPE), &ctx, dtype, {M, N}); }
 
 array diag(array_base & x, int offset)
 {
@@ -657,7 +657,7 @@ array diag(array_base & x, int offset)
 
 
 isaac::expression_tree zeros(tuple const & shape, isaac::numeric_type dtype, driver::Context  const & ctx)
-{ return expression_tree(value_scalar(0, dtype), invalid_node(), op_element(UNARY_ARITHMETIC, ADD_TYPE), &ctx, dtype, shape); }
+{ return expression_tree(scalar(0, dtype), invalid_node(), op_element(UNARY_ARITHMETIC, ADD_TYPE), &ctx, dtype, shape); }
 
 inline tuple flip(tuple const & shape)
 {

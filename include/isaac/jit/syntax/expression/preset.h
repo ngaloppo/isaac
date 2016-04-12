@@ -41,10 +41,10 @@ public:
     struct args
     {
         args(): A(NULL), B(NULL), C(NULL), type(INVALID_EXPRESSION_TYPE){ }
-        value_scalar alpha;
+        scalar alpha;
         expression_tree::node const * A;
         expression_tree::node const * B;
-        value_scalar beta;
+        scalar beta;
         expression_tree::node const * C;
         expression_type type;
 

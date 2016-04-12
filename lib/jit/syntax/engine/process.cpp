@@ -116,7 +116,7 @@ void set_arguments(expression_tree const & tree, driver::Kernel & kernel, unsign
   {
     expression_tree::node const & node = tree.data()[index];
     if(node.type==VALUE_SCALAR_TYPE)
-      kernel.setArg(current_arg++,value_scalar(node.scalar,node.dtype));
+      kernel.setArg(current_arg++,scalar(node.value,node.dtype));
     else if(node.type==DENSE_ARRAY_TYPE)
     {
       array_holder const & array = node.array;

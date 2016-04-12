@@ -68,7 +68,7 @@ private:
   int is_invalid_impl(driver::Device const &, expression_tree const &) const;
   std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::symbols_table const &) const;
   void enqueue_block(driver::CommandQueue & queue, int_t M, int_t N, int_t K, const expression_tree::node &A, const expression_tree::node &B, const expression_tree::node &C,
-                     value_scalar const &alpha, value_scalar const &beta, driver::Program const & program, std::string const & suffix, runtime::execution_options_type const & options);
+                     scalar const &alpha, scalar const &beta, driver::Program const & program, std::string const & suffix, runtime::execution_options_type const & options);
   std::vector<int_t> infos(expression_tree const & expressions,  isaac::symbolic::preset::matrix_product::args &arguments) const;
 public:
   matrix_product(matrix_product::parameters_type const & parameters, char A_trans, char B_trans);

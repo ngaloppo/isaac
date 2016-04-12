@@ -121,7 +121,7 @@ extern "C"
     {\
         sc::array dx((sc::int_t)n, TYPE_ISAAC, sc::driver::Buffer((CUdeviceptr)x,false), 0, incx); \
         sc::array dy((sc::int_t)n, TYPE_ISAAC, sc::driver::Buffer((CUdeviceptr)y,false), 0, incy); \
-        return sc::value_scalar(sc::dot(dx,dy));\
+        return sc::scalar(sc::dot(dx,dy));\
     }\
     cublasStatus_t cublas ## TYPE_CHAR ## dot_v2 (cublasHandle_t, int n, const TYPE_CU *x, int incx, const TYPE_CU *y, int incy, TYPE_CU* result)\
     {\
@@ -137,7 +137,7 @@ extern "C"
     TYPE_CU cublas ## TYPE_CHAR ## asum (int n, const TYPE_CU *x, int incx)\
     {\
         sc::array dx((sc::int_t)n, TYPE_ISAAC, sc::driver::Buffer((CUdeviceptr)x,false), 0, incx); \
-        return sc::value_scalar(sum(abs(dx)));\
+        return sc::scalar(sum(abs(dx)));\
     }\
     cublasStatus_t cublas ## TYPE_CHAR ## asum_v2 (cublasHandle_t, int n, const TYPE_CU *x, int incx, TYPE_CU* result)\
     {\

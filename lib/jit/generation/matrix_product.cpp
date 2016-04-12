@@ -582,7 +582,7 @@ matrix_product_parameters::matrix_product_parameters(unsigned int simd_width
 
   void matrix_product::enqueue_block(driver::CommandQueue & queue, int_t M, int_t N, int_t K,
                      expression_tree::node const & A, expression_tree::node const & B, expression_tree::node const & C,
-                     value_scalar const & alpha, value_scalar const & beta,
+                     scalar const & alpha, scalar const & beta,
                      driver::Program const & program, std::string const & suffix, runtime::execution_options_type const & options)
   {
     using tools::align;

@@ -61,14 +61,14 @@ void matrix_product::handle_node(expression_tree::data_type const & tree, size_t
         if(left.type==VALUE_SCALAR_TYPE  && right.type==COMPOSITE_OPERATOR_TYPE
            && right.binary_operator.op.type_family==MATRIX_PRODUCT)
         {
-            a.alpha = cast(value_scalar(left.scalar, left.dtype), node.dtype);
+            a.alpha = cast(scalar(left.value, left.dtype), node.dtype);
             handle_node(tree, node.binary_operator.rhs, a);
         }
 
         //beta*C
         if(left.type==VALUE_SCALAR_TYPE  && right.type==DENSE_ARRAY_TYPE)
         {
-            a.beta = cast(value_scalar(left.scalar, left.dtype), node.dtype);
+            a.beta = cast(scalar(left.value, left.dtype), node.dtype);
             a.C = &right;
         }
     }
@@ -83,8 +83,8 @@ matrix_product::args matrix_product::check(expression_tree::data_type const & tr
     matrix_product::args result ;
     if(dtype==INVALID_NUMERIC_TYPE)
       return result;
-    result.alpha = value_scalar(1, dtype);
-    result.beta = value_scalar(0, dtype);
+    result.alpha = scalar(1, dtype);
+    result.beta = scalar(0, dtype);
     if(right.type==COMPOSITE_OPERATOR_TYPE)
     {
         bool is_add = right.binary_operator.op.type==ADD_TYPE;
@@ -100,8 +100,8 @@ matrix_product::args matrix_product::check(expression_tree::data_type const & tr
             else if(rleft.type==DENSE_ARRAY_TYPE)
             {
                 result.C = &rleft;
-                result.beta = value_scalar(1, dtype);
-                result.alpha = value_scalar(is_add?1:-1,  dtype);
+                result.beta = scalar(1, dtype);
+                result.alpha = scalar(is_add?1:-1,  dtype);
             }
 
             if(rright.type==COMPOSITE_OPERATOR_TYPE)
@@ -109,8 +109,8 @@ matrix_product::args matrix_product::check(expression_tree::data_type const & tr
             else if(rright.type==DENSE_ARRAY_TYPE)
             {
                 result.C = &rright;
-                result.alpha = value_scalar(1, dtype);
-                result.beta = value_scalar(is_add?1:-1, dtype);
+                result.alpha = scalar(1, dtype);
+                result.beta = scalar(is_add?1:-1, dtype);
             }
         }
         else{

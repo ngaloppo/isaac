@@ -22,7 +22,7 @@
 #include <cassert>
 #include <vector>
 #include "isaac/array.h"
-#include "isaac/value_scalar.h"
+#include "isaac/scalar.h"
 #include "isaac/exception/api.h"
 #include "isaac/jit/syntax/expression/expression.h"
 #include "isaac/jit/syntax/expression/preset.h"
@@ -38,7 +38,7 @@ expression_tree::node::node(){}
 expression_tree::node::node(invalid_node) : type(INVALID_SUBTYPE), dtype(INVALID_NUMERIC_TYPE)
 {}
 
-expression_tree::node::node(value_scalar const & x) : type(VALUE_SCALAR_TYPE), dtype(x.dtype()), shape{1}, scalar(x.values())
+expression_tree::node::node(scalar const & x) : type(VALUE_SCALAR_TYPE), dtype(x.dtype()), shape{1}, value(x.values())
 {}
 
 expression_tree::node::node(array_base const & x) : type(DENSE_ARRAY_TYPE), dtype(x.dtype()), shape(x.shape())

@@ -73,9 +73,9 @@ bp::tuple get_shape(sc::array_base const & x)
 }
 
 template<class T>
-struct datatype : public sc::value_scalar
+struct datatype : public sc::scalar
 {
-  datatype(T t) : sc::value_scalar(t){ }
+  datatype(T t) : sc::scalar(t){ }
 
 };
 
@@ -185,26 +185,26 @@ namespace detail
       return bp::extract<std::string>(obj.attr("__class__").attr("__name__"))();
   }
 
-  std::shared_ptr<sc::scalar> construct_scalar(bp::object obj, bp::object pycontext)
+  std::shared_ptr<sc::device_scalar> construct_scalar(bp::object obj, bp::object pycontext)
   {
-    typedef std::shared_ptr<sc::scalar> result_type;
+    typedef std::shared_ptr<sc::device_scalar> result_type;
     sc::driver::Context const & context = extract_context(pycontext);
     std::string name = type_name(obj);
-    if(name=="int") return result_type(new sc::scalar(bp::extract<int>(obj)(), context));
-    else if(name=="float") return result_type(new sc::scalar(bp::extract<double>(obj)(), context));
-    else if(name=="long") return result_type(new sc::scalar(bp::extract<long>(obj)(), context));
-    else if(name=="int") return result_type(new sc::scalar(bp::extract<int>(obj)(), context));
+    if(name=="int") return result_type(new sc::device_scalar(bp::extract<int>(obj)(), context));
+    else if(name=="float") return result_type(new sc::device_scalar(bp::extract<double>(obj)(), context));
+    else if(name=="long") return result_type(new sc::device_scalar(bp::extract<long>(obj)(), context));
+    else if(name=="int") return result_type(new sc::device_scalar(bp::extract<int>(obj)(), context));
 
-    else if(name=="int8") return result_type(new sc::scalar(sc::CHAR_TYPE, context));
-    else if(name=="uint8") return result_type(new sc::scalar(sc::UCHAR_TYPE, context));
-    else if(name=="int16") return result_type(new sc::scalar(sc::SHORT_TYPE, context));
-    else if(name=="uint16") return result_type(new sc::scalar(sc::USHORT_TYPE, context));
-    else if(name=="int32") return result_type(new sc::scalar(sc::INT_TYPE, context));
-    else if(name=="uint32") return result_type(new sc::scalar(sc::UINT_TYPE, context));
-    else if(name=="int64") return result_type(new sc::scalar(sc::LONG_TYPE, context));
-    else if(name=="uint64") return result_type(new sc::scalar(sc::ULONG_TYPE, context));
-    else if(name=="float32") return result_type(new sc::scalar(sc::FLOAT_TYPE, context));
-    else if(name=="float64") return result_type(new sc::scalar(sc::DOUBLE_TYPE, context));
+    else if(name=="int8") return result_type(new sc::device_scalar(sc::CHAR_TYPE, context));
+    else if(name=="uint8") return result_type(new sc::device_scalar(sc::UCHAR_TYPE, context));
+    else if(name=="int16") return result_type(new sc::device_scalar(sc::SHORT_TYPE, context));
+    else if(name=="uint16") return result_type(new sc::device_scalar(sc::USHORT_TYPE, context));
+    else if(name=="int32") return result_type(new sc::device_scalar(sc::INT_TYPE, context));
+    else if(name=="uint32") return result_type(new sc::device_scalar(sc::UINT_TYPE, context));
+    else if(name=="int64") return result_type(new sc::device_scalar(sc::LONG_TYPE, context));
+    else if(name=="uint64") return result_type(new sc::device_scalar(sc::ULONG_TYPE, context));
+    else if(name=="float32") return result_type(new sc::device_scalar(sc::FLOAT_TYPE, context));
+    else if(name=="float64") return result_type(new sc::device_scalar(sc::DOUBLE_TYPE, context));
     else{
         PyErr_SetString(PyExc_TypeError, "Data type not understood");
         bp::throw_error_already_set();
@@ -247,11 +247,11 @@ void export_core()
                     .def("__init__", bp::make_constructor(detail::construct_model))
                     .def("execute", &sc::profiles::value_type::execute);
 
-    bp::class_<sc::value_scalar>("value_scalar", bp::no_init)
-              .add_property("dtype", &sc::value_scalar::dtype);
+    bp::class_<sc::scalar>("scalar", bp::no_init)
+              .add_property("dtype", &sc::scalar::dtype);
 
   #define INSTANTIATE(name, clname) \
-    bp::class_<detail::datatype<clname>, bp::bases<sc::value_scalar> >(#name, bp::init<clname>());\
+    bp::class_<detail::datatype<clname>, bp::bases<sc::scalar> >(#name, bp::init<clname>());\
     bp::class_<detail::name, bp::bases<detail::datatype<clname> > >(#name, bp::init<clname>())\
       .add_property("size", &detail::size<clname>)\
       ;
@@ -284,11 +284,11 @@ void export_core()
   .def(bp::self                                    OP int())\
   .def(bp::self                                    OP long())\
   .def(bp::self                                    OP double())\
-  .def(bp::self                                    OP bp::other<sc::value_scalar>())\
+  .def(bp::self                                    OP bp::other<sc::scalar>())\
   .def(int()                                       OP bp::self)\
   .def(long()                                      OP bp::self)\
   .def(double()                                     OP bp::self)\
-  .def(bp::other<sc::value_scalar>()              OP bp::self)
+  .def(bp::other<sc::scalar>()              OP bp::self)
 
 #define ADD_ARRAY_OPERATOR(OP)\
   .def(bp::self OP bp::self)\
@@ -347,8 +347,8 @@ void export_core()
       ("view", bp::no_init)
   ;
 
-  bp::class_<sc::scalar, bp::bases<sc::array_base> >
-      ("scalar", bp::no_init)
+  bp::class_<sc::device_scalar, bp::bases<sc::array_base> >
+      ("device_scalar", bp::no_init)
       .def("__init__", bp::make_constructor(detail::construct_scalar, bp::default_call_policies(), (bp::arg(""), bp::arg("context")=bp::object())))
   ;
 

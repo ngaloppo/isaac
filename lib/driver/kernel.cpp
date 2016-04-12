@@ -21,7 +21,7 @@
 
 #include "isaac/driver/kernel.h"
 #include "isaac/driver/buffer.h"
-#include "isaac/value_scalar.h"
+#include "isaac/scalar.h"
 #include <iostream>
 #include <cstring>
 
@@ -50,7 +50,7 @@ Kernel::Kernel(Program const & program, const char * name) : backend_(program.ba
   }
 }
 
-void Kernel::setArg(unsigned int index, value_scalar const & scal)
+void Kernel::setArg(unsigned int index, scalar const & scal)
 {
   switch(scal.dtype())
   {

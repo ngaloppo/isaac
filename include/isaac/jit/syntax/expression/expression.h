@@ -37,7 +37,7 @@
 #include "isaac/tools/cpp/tuple.hpp"
 
 #include "isaac/types.h"
-#include "isaac/value_scalar.h"
+#include "isaac/scalar.h"
 #include <memory>
 #include <iostream>
 
@@ -78,7 +78,7 @@ public:
     //Constructors
     node();
     node(invalid_node);
-    node(value_scalar const & x);
+    node(scalar const & x);
     node(array_base const & x);
     node(int_t lhs, op_element op, int_t rhs, numeric_type dtype, tuple const & shape);
 
@@ -98,7 +98,7 @@ public:
         int_t rhs;
       }binary_operator;
       //Scalar
-      values_holder scalar;
+      values_holder value;
       //Array
       array_holder array;
     };
@@ -132,10 +132,10 @@ private:
 };
 
 template<class T> typename std::enable_if<!std::is_arithmetic<T>::value, T const &>::type wrap_generic(T const & x){ return x;}
-template<class T> typename std::enable_if<std::is_arithmetic<T>::value, value_scalar>::type wrap_generic(T x) { return value_scalar(x); }
+template<class T> typename std::enable_if<std::is_arithmetic<T>::value, scalar>::type wrap_generic(T x) { return scalar(x); }
 
 template<typename T>
-ISAACAPI typename std::conditional<std::is_arithmetic<T>::value, value_scalar, T const &>::type make_tuple(driver::Context const &, T const & x)
+ISAACAPI typename std::conditional<std::is_arithmetic<T>::value, scalar, T const &>::type make_tuple(driver::Context const &, T const & x)
 { return wrap_generic(x); }
 
 template<typename T, typename... Args>
