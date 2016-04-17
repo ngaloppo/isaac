@@ -27,7 +27,6 @@
 #include <string>
 #include "isaac/jit/syntax/engine/macro.h"
 #include "isaac/jit/syntax/expression/expression.h"
-#include "isaac/jit/generation/engine/stream.h"
 
 namespace isaac
 {

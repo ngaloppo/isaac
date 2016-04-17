@@ -34,6 +34,97 @@ namespace isaac
 namespace templates
 {
 
+/* stream */
+base::genstream::buf::buf(std::ostringstream& oss,unsigned int const & tab_count) :
+  oss_(oss), tab_count_(tab_count)
+{ }
+
+
+int base::genstream::buf::sync()
+{
+  for (unsigned int i=0; i<tab_count_;++i)
+    oss_ << "  ";
+  std::string next = str();
+  oss_ << next;
+  str("");
+  return !oss_;
+}
+
+base::genstream::buf:: ~buf()
+{  pubsync(); }
+
+void base::genstream::process(std::string& str)
+{
+
+#define ADD_KEYWORD(NAME, OPENCL_NAME, CUDA_NAME) tools::find_and_replace(str, "$" + std::string(NAME), (backend_==driver::CUDA)?CUDA_NAME:OPENCL_NAME);
+
+
+ADD_KEYWORD("GLOBAL_IDX_0", "get_global_id(0)", "(blockIdx.x*blockDim.x + threadIdx.x)")
+ADD_KEYWORD("GLOBAL_IDX_1", "get_global_id(1)", "(blockIdx.y*blockDim.y + threadIdx.y)")
+ADD_KEYWORD("GLOBAL_IDX_2", "get_global_id(2)", "(blockIdx.z*blockDim.z + threadIdx.z)")
+
+ADD_KEYWORD("GLOBAL_SIZE_0", "get_global_size(0)", "(blockDim.x*gridDim.x)")
+ADD_KEYWORD("GLOBAL_SIZE_1", "get_global_size(1)", "(blockDim.y*gridDim.y)")
+ADD_KEYWORD("GLOBAL_SIZE_2", "get_global_size(2)", "(blockDim.z*gridDim.z)")
+
+ADD_KEYWORD("LOCAL_IDX_0", "get_local_id(0)", "threadIdx.x")
+ADD_KEYWORD("LOCAL_IDX_1", "get_local_id(1)", "threadIdx.y")
+ADD_KEYWORD("LOCAL_IDX_2", "get_local_id(2)", "threadIdx.z")
+
+ADD_KEYWORD("LOCAL_SIZE_0", "get_local_size(0)", "blockDim.x")
+ADD_KEYWORD("LOCAL_SIZE_1", "get_local_size(1)", "blockDim.y")
+ADD_KEYWORD("LOCAL_SIZE_2", "get_local_size(2)", "blockDim.z")
+
+ADD_KEYWORD("GROUP_IDX_0", "get_group_id(0)", "blockIdx.x")
+ADD_KEYWORD("GROUP_IDX_1", "get_group_id(1)", "blockIdx.y")
+ADD_KEYWORD("GROUP_IDX_2", "get_group_id(2)", "blockIdx.z")
+
+ADD_KEYWORD("GROUP_SIZE_0", "get_num_groups(0)", "GridDim.x")
+ADD_KEYWORD("GROUP_SIZE_1", "get_num_groups(1)", "GridDim.y")
+ADD_KEYWORD("GROUP_SIZE_2", "get_num_groups(2)", "GridDim.z")
+
+ADD_KEYWORD("LOCAL_BARRIER", "barrier(CLK_LOCAL_MEM_FENCE)", "__syncthreads()")
+ADD_KEYWORD("LOCAL_PTR", "__local", "")
+
+ADD_KEYWORD("LOCAL", "__local", "__shared__")
+ADD_KEYWORD("GLOBAL", "__global", "")
+
+ADD_KEYWORD("SIZE_T", "int", "int")
+ADD_KEYWORD("KERNEL", "__kernel", "extern \"C\" __global__")
+
+ADD_KEYWORD("MAD", "mad", "fma")
+
+#undef ADD_KEYWORD
+}
+
+base::genstream::genstream(driver::backend_type backend) : std::ostream(new buf(oss,tab_count_)), tab_count_(0), backend_(backend)
+{
+
+}
+
+base::genstream::~genstream()
+{
+  delete rdbuf();
+}
+
+std::string base::genstream::str()
+{
+  std::string next = oss.str();
+  process(next);
+  return next;
+}
+
+void base::genstream::inc_tab()
+{
+  ++tab_count_;
+}
+
+void base::genstream::dec_tab()
+{
+  --tab_count_;
+}
+
+/* base */
 base::base(unsigned int s, unsigned int ls0, unsigned int ls1):
   simd_width(s), local_size_0(ls0), local_size_1(ls1)
 {}

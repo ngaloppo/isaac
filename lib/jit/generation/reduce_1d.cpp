@@ -23,8 +23,6 @@
 #include <iostream>
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/jit/generation/reduce_1d.h"
-#include "tools/loop.hpp"
-#include "tools/reductions.hpp"
 #include "tools/vector_types.hpp"
 #include "tools/arguments.hpp"
 #include <string>
@@ -54,7 +52,7 @@ unsigned int reduce_1d::temporary_workspace(expression_tree const &) const
     return 0;
 }
 
-inline void reduce_1d::reduce_1d_local_memory(kernel_generation_stream & stream, unsigned int size, std::vector<symbolic::reduce_1d*> exprs,
+inline void reduce_1d::reduce_1d_local_memory(genstream & stream, unsigned int size, std::vector<symbolic::reduce_1d*> exprs,
                                    std::string const & buf_str, std::string const & buf_value_str, driver::backend_type) const
 {
   stream << "#pragma unroll" << std::endl;
@@ -81,7 +79,7 @@ inline void reduce_1d::reduce_1d_local_memory(kernel_generation_stream & stream,
 
 std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree const  & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const
 {
-  kernel_generation_stream stream(device.backend());
+  genstream stream(device.backend());
 
   std::vector<symbolic::reduce_1d*> reductions = symbolic::extract<symbolic::reduce_1d>(tree, symbols);
   std::vector<std::size_t> assignments = symbolic::assignments(tree);

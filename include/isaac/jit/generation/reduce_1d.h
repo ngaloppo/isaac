@@ -35,7 +35,7 @@ private:
   unsigned int lmem_usage(expression_tree const  & expressions) const;
   int is_invalid_impl(driver::Device const &, expression_tree const  &) const;
   unsigned int temporary_workspace(expression_tree const & expressions) const;
-  inline void reduce_1d_local_memory(kernel_generation_stream & stream, unsigned int size, std::vector<symbolic::reduce_1d*> exprs,
+  inline void reduce_1d_local_memory(genstream & stream, unsigned int size, std::vector<symbolic::reduce_1d*> exprs,
                                      std::string const & buf_str, std::string const & buf_value_str, driver::backend_type backend) const;
   std::string generate_impl(std::string const & suffix,  expression_tree const  & expressions, driver::Device const & device, symbolic::symbols_table const & mapping) const;
 

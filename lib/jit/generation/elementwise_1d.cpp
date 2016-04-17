@@ -25,7 +25,6 @@
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/jit/generation/elementwise_1d.h"
 #include "isaac/driver/backend.h"
-#include "tools/loop.hpp"
 #include "tools/vector_types.hpp"
 #include "tools/arguments.hpp"
 
@@ -46,7 +45,7 @@ int elementwise_1d::is_invalid_impl(driver::Device const &, expression_tree cons
 std::string elementwise_1d::generate_impl(std::string const & suffix, expression_tree const & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const
 {
   driver::backend_type backend = device.backend();
-  kernel_generation_stream stream(backend);
+  genstream stream(backend);
 
   std::vector<std::size_t> assignments = symbolic::assignments(tree);
   std::vector<std::size_t> assignments_lhs = symbolic::lhs_of(tree, assignments);

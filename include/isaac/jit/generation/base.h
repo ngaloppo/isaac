@@ -27,9 +27,9 @@
 #include <set>
 #include <cmath>
 
-#include "isaac/jit/generation/engine/stream.h"
-#include "isaac/runtime/launcher.h"
 #include "isaac/jit/syntax/engine/object.h"
+#include "isaac/runtime/launcher.h"
+#include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
 {
@@ -70,6 +70,132 @@ static const int TEMPLATE_BLOCK_SIZE_TOO_LARGE = -20;
 
 class base
 {
+  public:
+    class genstream : public std::ostream
+    {
+    private:
+      class buf : public std::stringbuf
+      {
+      public:
+        buf(std::ostringstream& oss,unsigned int const & tab_count) ;
+        int sync();
+        ~buf();
+      private:
+        std::ostream& oss_;
+        unsigned int const & tab_count_;
+      };
+
+  private:
+    void process(std::string& str);
+
+  public:
+    genstream(driver::backend_type backend);
+    ~genstream();
+    std::string str();
+    void inc_tab();
+    void dec_tab();
+
+  private:
+    unsigned int tab_count_;
+    driver::backend_type backend_;
+    std::ostringstream oss;
+  };
+
+protected:
+    static inline void fetching_loop_info(fetching_policy_type policy, std::string const & bound, genstream & stream, std::string & init, std::string & upper_bound, std::string & inc, std::string const & domain_id, std::string const & domain_size, driver::Device const &)
+    {
+      if (policy==FETCH_FROM_GLOBAL_STRIDED)
+      {
+        init = domain_id;
+        upper_bound = bound;
+        inc = domain_size;
+      }
+      else if (policy==FETCH_FROM_GLOBAL_CONTIGUOUS)
+      {
+        std::string chunk_size = "chunk_size";
+        std::string chunk_start = "chunk_start";
+        std::string chunk_end = "chunk_end";
+
+        stream << "$SIZE_T " << chunk_size << " = (" << bound << "+" << domain_size << "-1)/" << domain_size << ";" << std::endl;
+        stream << "$SIZE_T " << chunk_start << " =" << domain_id << "*" << chunk_size << ";" << std::endl;
+        stream << "$SIZE_T " << chunk_end << " = min(" << chunk_start << "+" << chunk_size << ", " << bound << ");" << std::endl;
+        init = chunk_start;
+        upper_bound = chunk_end;
+        inc = "1";
+      }
+    }
+
+
+    template<class Fun>
+    static inline void element_wise_loop_1D(genstream & stream, fetching_policy_type fetch, unsigned int simd_width,
+                                     std::string const & i, std::string const & bound, std::string const & domain_id, std::string const & domain_size, driver::Device const & device, Fun const & generate_body)
+    {
+      std::string strwidth = tools::to_string(simd_width);
+
+      std::string init, upper_bound, inc;
+      fetching_loop_info(fetch, bound, stream, init, upper_bound, inc, domain_id, domain_size, device);
+      std::string boundround = upper_bound + "/" + strwidth + "*" + strwidth;
+      stream << "for(unsigned int " << i << " = " << init << "*" << strwidth << "; " << i << " < " << boundround << "; " << i << " += " << inc << "*" << strwidth << ")" << std::endl;
+      stream << "{" << std::endl;
+      stream.inc_tab();
+      generate_body(simd_width);
+      stream.dec_tab();
+      stream << "}" << std::endl;
+
+      if (simd_width>1)
+      {
+        stream << "for(unsigned int " << i << " = " << boundround << " + " << domain_id << "; " << i << " < " << bound << "; " << i << " += " + domain_size + ")" << std::endl;
+        stream << "{" << std::endl;
+        stream.inc_tab();
+        generate_body(1);
+        stream.dec_tab();
+        stream << "}" << std::endl;
+      }
+    }
+
+    static inline void compute_reduce_1d(genstream & os, std::string acc, std::string cur, token const & op)
+    {
+      if (is_function(op.type))
+        os << acc << "=" << to_string(op.type) << "(" << acc << "," << cur << ");" << std::endl;
+      else
+        os << acc << "= (" << acc << ")" << to_string(op.type)  << "(" << cur << ");" << std::endl;
+    }
+
+    static inline void compute_index_reduce_1d(genstream & os, std::string acc, std::string cur, std::string const & acc_value, std::string const & cur_value, token const & op)
+    {
+      //        os << acc << " = " << cur_value << ">" << acc_value  << "?" << cur << ":" << acc << ";" << std::endl;
+      os << acc << "= select(" << acc << "," << cur << "," << cur_value << ">" << acc_value << ");" << std::endl;
+      os << acc_value << "=";
+      if (op.type==ELEMENT_ARGFMAX_TYPE) os << "fmax";
+      if (op.type==ELEMENT_ARGMAX_TYPE) os << "max";
+      if (op.type==ELEMENT_ARGFMIN_TYPE) os << "fmin";
+      if (op.type==ELEMENT_ARGMIN_TYPE) os << "min";
+      os << "(" << acc_value << "," << cur_value << ");"<< std::endl;
+    }
+
+    static inline std::string neutral_element(token const & op, driver::backend_type backend, std::string const & dtype)
+    {
+      std::string INF = (backend==driver::OPENCL)?"INFINITY":"infinity<" + dtype + ">()";
+      std::string N_INF = "-" + INF;
+
+      switch (op.type)
+      {
+      case ADD_TYPE : return "0";
+      case MULT_TYPE : return "1";
+      case DIV_TYPE : return "1";
+      case ELEMENT_FMAX_TYPE : return N_INF;
+      case ELEMENT_ARGFMAX_TYPE : return N_INF;
+      case ELEMENT_MAX_TYPE : return N_INF;
+      case ELEMENT_ARGMAX_TYPE : return N_INF;
+      case ELEMENT_FMIN_TYPE : return INF;
+      case ELEMENT_ARGFMIN_TYPE : return INF;
+      case ELEMENT_MIN_TYPE : return INF;
+      case ELEMENT_ARGMIN_TYPE : return INF;
+
+      default: throw std::runtime_error("Unsupported reduce_1d operator : no neutral element known");
+      }
+    }
+
 private:
   virtual std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::symbols_table const & mapping) const = 0;
   virtual int is_invalid_impl(driver::Device const &, expression_tree const &) const;

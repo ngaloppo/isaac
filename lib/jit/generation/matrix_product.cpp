@@ -131,7 +131,7 @@ namespace templates
     //////////////////
     /// INIT
     /// //////////////
-    kernel_generation_stream stream(backend);
+    genstream stream(backend);
     numeric_type dtype = tree.dtype();
     std::string sdtype = to_string(dtype);
     std::string vdtype = append_width(sdtype, simd_width);

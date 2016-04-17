@@ -24,7 +24,6 @@
 #include "isaac/jit/generation/elementwise_2d.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "tools/arguments.hpp"
-#include "tools/loop.hpp"
 #include "tools/vector_types.hpp"
 
 
@@ -46,7 +45,7 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
 {
   std::string init0, upper_bound0, inc0, init1, upper_bound1, inc1;
   driver::backend_type backend = device.backend();
-  kernel_generation_stream stream(backend);
+  genstream stream(backend);
 
   std::vector<std::size_t> assigned = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
   std::vector<std::size_t> assigned_left;
