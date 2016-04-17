@@ -75,7 +75,7 @@ private:
   virtual int is_invalid_impl(driver::Device const &, expression_tree const &) const;
 
 public:
-  base(unsigned int s, unsigned int ls0, unsigned int ls1, unsigned int nk);
+  base(unsigned int s, unsigned int ls0, unsigned int ls1);
   virtual unsigned int temporary_workspace(expression_tree const &) const;
   virtual unsigned int lmem_usage(expression_tree const &) const;
   virtual unsigned int registers_usage(expression_tree const &) const;
@@ -88,7 +88,6 @@ protected:
   unsigned int simd_width;
   unsigned int local_size_0;
   unsigned int local_size_1;
-  unsigned int num_kernels;
 };
 
 }

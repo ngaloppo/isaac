@@ -24,12 +24,6 @@
 #include <string>
 
 #include "isaac/array.h"
-#include "isaac/jit/generation/engine/keywords.h"
-#include "isaac/jit/generation/elementwise_1d.h"
-#include "isaac/jit/generation/reduce_1d.h"
-#include "isaac/jit/generation/elementwise_2d.h"
-#include "isaac/jit/generation/reduce_2d.h"
-#include "isaac/jit/generation/matrix_product.h"
 #include "isaac/jit/generation/base.h"
 #include "isaac/exception/api.h"
 #include "isaac/jit/syntax/engine/process.h"
@@ -40,8 +34,8 @@ namespace isaac
 namespace templates
 {
 
-base::base(unsigned int s, unsigned int ls0, unsigned int ls1, unsigned int nk):
-  simd_width(s), local_size_0(ls0), local_size_1(ls1), num_kernels(nk)
+base::base(unsigned int s, unsigned int ls0, unsigned int ls1):
+  simd_width(s), local_size_0(ls0), local_size_1(ls1)
 {}
 
 unsigned int base::lmem_usage(expression_tree const  &) const

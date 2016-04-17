@@ -24,7 +24,6 @@
 
 
 #include "isaac/jit/syntax/engine/process.h"
-#include "isaac/jit/generation/engine/keywords.h"
 #include "isaac/jit/generation/engine/stream.h"
 #include "isaac/jit/generation/reduce_2d.h"
 #include "tools/arguments.hpp"
@@ -128,7 +127,8 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   //Accumulators
   for (symbolic::reduce_2d* rd : reductions){
     std::string data_type = append_width("#scalartype",col_simd_width);
-    stream << rd->process(data_type + " #name_acc = " + InitPrefix(backend, data_type).get()  + "(" + neutral_element((rd)->op(), backend, "#scalartype") + ");") << std::endl;
+    std::string make_prefix = (backend==driver::CUDA)?"make_"+data_type:"";
+    stream << rd->process(data_type + " #name_acc = " + make_prefix  + "(" + neutral_element((rd)->op(), backend, "#scalartype") + ");") << std::endl;
   }
   //Loop c
   stream << "if (r < M)" << std::endl;
@@ -237,7 +237,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   unroll_tmp();
   for (symbolic::reduce_2d* rd : reductions)
     stream << rd->process("$LOCAL #scalartype #name_buf[" + to_string(local_size_1*local_size_0_ld) + "];") << std::endl;
-  stream << "for($SIZE_T r = $GLOBAL_IDX_1; r < (M +" << local_size_1 - 1 << ")/" << local_size_1 << "*" << local_size_1 << "; r += " << GlobalSize1(backend) << "){" << std::endl;
+  stream << "for($SIZE_T r = $GLOBAL_IDX_1; r < (M +" << local_size_1 - 1 << ")/" << local_size_1 << "*" << local_size_1 << "; r += $GLOBAL_SIZE_1){" << std::endl;
   stream.inc_tab();
   stream << "$SIZE_T lidx = $LOCAL_IDX_0;" << std::endl;
   stream << "$SIZE_T lidy = $LOCAL_IDX_1;" << std::endl;
@@ -293,7 +293,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
 }
 
 reduce_2d::reduce_2d(unsigned int simd, unsigned int ls0, unsigned int ls1, unsigned int ng0, unsigned int ng1, fetching_policy_type fetch, token_family type):
-  base(simd, ls0, ls1, 2), num_groups_0(ng0), num_groups_1(ng1), fetch_policy(fetch), reduction_type_(type)
+  base(simd, ls0, ls1), num_groups_0(ng0), num_groups_1(ng1), fetch_policy(fetch), reduction_type_(type)
 { }
 
 std::vector<int_t> reduce_2d::input_sizes(expression_tree const & tree) const

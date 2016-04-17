@@ -106,7 +106,7 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
 
 elementwise_2d::elementwise_2d(unsigned int simd, unsigned int ls0, unsigned int ls1,
                                unsigned int ng0, unsigned int ng1, fetching_policy_type fetch):
-    base(simd, ls0, ls1, 1), num_groups_0(ng0), num_groups_1(ng1), fetching_policy(fetch)
+    base(simd, ls0, ls1), num_groups_0(ng0), num_groups_1(ng1), fetching_policy(fetch)
 {}
 
 std::vector<int_t> elementwise_2d::input_sizes(expression_tree const  & tree) const

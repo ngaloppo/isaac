@@ -21,7 +21,6 @@
 
 #include <string>
 #include "isaac/driver/common.h"
-#include "isaac/jit/generation/engine/keywords.h"
 #include "isaac/jit/generation/engine/stream.h"
 #include "isaac/jit/syntax/expression/expression.h"
 #include "isaac/jit/syntax/engine/object.h"
@@ -53,7 +52,7 @@ inline void compute_index_reduce_1d(kernel_generation_stream & os, std::string a
 
 inline std::string neutral_element(token const & op, driver::backend_type backend, std::string const & dtype)
 {
-  std::string INF = Infinity(backend, dtype).get();
+  std::string INF = (backend==driver::OPENCL)?"INFINITY":"infinity<" + dtype + ">()";
   std::string N_INF = "-" + INF;
 
   switch (op.type)

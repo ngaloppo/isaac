@@ -23,7 +23,6 @@
 #include <iostream>
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/jit/generation/reduce_1d.h"
-#include "isaac/jit/generation/engine/keywords.h"
 #include "tools/loop.hpp"
 #include "tools/reductions.hpp"
 #include "tools/vector_types.hpp"
@@ -250,7 +249,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
 }
 
 reduce_1d::reduce_1d(unsigned int simd, unsigned int ls, unsigned int ng, fetching_policy_type fetch):
-    base(simd, ls, 1, 2), num_groups(ng), fetching_policy(fetch)
+    base(simd, ls, 1), num_groups(ng), fetching_policy(fetch)
 {}
 
 std::vector<int_t> reduce_1d::input_sizes(expression_tree const  & x) const

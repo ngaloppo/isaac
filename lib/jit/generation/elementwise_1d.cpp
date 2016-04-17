@@ -111,7 +111,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
 }
 
 elementwise_1d::elementwise_1d(unsigned int simd, unsigned int ls, unsigned int ng,
-                               fetching_policy_type fetch): base(simd, ls, 1, 1), num_groups(ng), fetching_policy(fetch)
+                               fetching_policy_type fetch): base(simd, ls, 1), num_groups(ng), fetching_policy(fetch)
 {}
 
 

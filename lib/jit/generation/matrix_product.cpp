@@ -23,7 +23,6 @@
 #include "isaac/jit/syntax/expression/preset.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/jit/generation/matrix_product.h"
-#include "isaac/jit/generation/engine/keywords.h"
 #include "isaac/exception/api.h"
 #include "tools/arguments.hpp"
 #include "tools/vector_types.hpp"
@@ -277,17 +276,18 @@ namespace templates
     stream << "}" << std::endl;
     stream << std::endl;
 
+
     for(unsigned int i = 0 ; i < npA ; i++ )
         if (A_trans_=='N')
-          stream << "Ai[" << i << "] += " << Select(backend, to_string(i*local_fetch_0*simd_width) + " < M", "(int)((idT.x + " + to_string(i*local_fetch_0*simd_width) + ")" + ASTRIDE1 + ")", "0") << ";" << std::endl;
+          stream << "Ai[" << i << "] += (" << i*local_fetch_0*simd_width << " < M)? (int)((idT.x + " << i*local_fetch_0*simd_width << ")" + ASTRIDE1 + "):0;" << std::endl;
         else
-          stream << "Ai[" << i << "] += " << Select(backend, to_string(i*local_fetch_1) + " < M", "(int)((idT.y + " + to_string(i*local_fetch_1) + ")*lda)", "0") << ";" << std::endl;
+          stream << "Ai[" << i << "] += (" << i*local_fetch_1 << " < M)? (int)((idT.y + " << i*local_fetch_1 << ")*lda):0;" << std::endl;
 
     for(unsigned int i = 0 ; i < npB ; i++ )
         if (B_trans_=='T')
-            stream << "Bi[" << i << "] += " << Select(backend, to_string(i*local_fetch_0*simd_width) + " < N", "(int)((idT.x + " + to_string(i*local_fetch_0*simd_width) + ")" + BSTRIDE1 + ")", "0") << ";" << std::endl;
+            stream << "Bi[" << i << "] += (" << i*local_fetch_0*simd_width << " < N)?(int)((idT.x + " << i*local_fetch_0*simd_width << ")" + BSTRIDE1 + "):0;" << std::endl;
         else
-            stream << "Bi[" << i << "] += " << Select(backend, to_string(i*local_fetch_1) + " < N", "(int)((idT.y + " + to_string(i*local_fetch_1) + ")*ldb)", "0") << ";" << std::endl;
+            stream << "Bi[" << i << "] += (" << i*local_fetch_1 << " < N)?(int)((idT.y + " << i*local_fetch_1 << ")*ldb):0;" << std::endl;
 
     stream << std::endl;
     stream << "//Outer loop" << std::endl;
@@ -677,7 +677,7 @@ namespace templates
                                  ,unsigned int ms, unsigned int ks, unsigned int ns
                                  ,fetching_policy_type Afetch, fetching_policy_type Bfetch
                                  ,unsigned int fetch0, unsigned int fetch1
-                                 ,char A_trans, char B_trans) : base(s, ls0, ls1, 1),
+                                 ,char A_trans, char B_trans) : base(s, ls0, ls1),
     kL(KL), depth(D), mS(ms), kS(ks), nS(ns), A_fetching_policy(Afetch), B_fetching_policy(Bfetch),
     local_fetch_0(fetch0), local_fetch_1(fetch1),
     mL(ms*local_size_0), nL(ns*local_size_1), A_trans_(A_trans), B_trans_(B_trans)
