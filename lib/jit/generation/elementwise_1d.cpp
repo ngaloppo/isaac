@@ -74,7 +74,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
     stream.inc_tab();
   }
 
-  for_loop(stream, fetching_policy, simd_width, "i", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](size_t simd_width)
+  for_loop(stream, fetching_policy, simd_width, "i", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", [&](size_t simd_width)
   {
     std::string dtype = append_width("#scalartype",simd_width);
 

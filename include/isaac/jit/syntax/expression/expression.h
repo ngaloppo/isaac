@@ -32,7 +32,6 @@
 #include "isaac/driver/kernel.h"
 #include "isaac/driver/ndrange.h"
 #include "isaac/driver/buffer.h"
-#include "isaac/jit/syntax/expression/operations.h"
 #include "isaac/tools/cpp/tuple.hpp"
 #include "isaac/scalar.h"
 #include <memory>

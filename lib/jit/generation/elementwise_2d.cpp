@@ -66,9 +66,9 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   stream << "{" << std::endl;
   stream.inc_tab();
 
-  for_loop(stream, fetching_policy, 1, "i", "M",  "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](size_t)
+  for_loop(stream, fetching_policy, 1, "i", "M",  "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", [&](size_t)
   {
-    for_loop(stream, fetching_policy, 1, "j", "N",  "$GLOBAL_IDX_1", "$GLOBAL_SIZE_1", device, [&](size_t)
+    for_loop(stream, fetching_policy, 1, "j", "N",  "$GLOBAL_IDX_1", "$GLOBAL_SIZE_1", [&](size_t)
     {
       //Declares register to store results
       for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assigned_left, false))

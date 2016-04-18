@@ -143,7 +143,7 @@ std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree
       stream << rd->process("#scalartype #name_acc = " + neutral_element(rd->op(), backend, "#scalartype") + ";") << std::endl;
     }
   }
-  for_loop(stream, fetching_policy, simd_width, "i", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](size_t simd_width)
+  for_loop(stream, fetching_policy, simd_width, "i", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", [&](size_t simd_width)
   {
     std::string dtype = append_width("#scalartype",simd_width);
     //Fetch vector entry

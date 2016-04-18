@@ -105,7 +105,7 @@ protected:
 
   template<class Fun>
   static inline void for_loop(genstream & stream, fetching_policy_type policy, unsigned int simd_width,
-                              std::string const & idx, std::string const & bound, std::string const & domain_id, std::string const & domain_size, driver::Device const & device,
+                              std::string const & idx, std::string const & bound, std::string const & domain_id, std::string const & domain_size,
                               Fun const & generate_body)
   {
     std::string strwidth = tools::to_string(simd_width);
