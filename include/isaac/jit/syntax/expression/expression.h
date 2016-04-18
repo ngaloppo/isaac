@@ -45,6 +45,130 @@ class array_base;
 
 struct invalid_node{};
 
+/** @brief Optimization enum for grouping operations into unary or binary operations. Just for optimization of lookups. */
+enum token_family
+{
+  INVALID_ = 0,
+
+  // BLAS1-type
+  UNARY_ARITHMETIC,
+  BINARY_ARITHMETIC,
+  REDUCE,
+
+  // BLAS2-type
+  REDUCE_ROWS,
+  REDUCE_COLUMNS,
+
+  // BLAS3-type
+  MATRIX_PRODUCT
+};
+
+/** @brief Enumeration for identifying the possible operations */
+enum token_type
+{
+  INVALID_TYPE = 0,
+
+  // unary operator
+  MINUS_TYPE,
+  NEGATE_TYPE,
+
+  // unary expression
+  CAST_BOOL_TYPE,
+  CAST_CHAR_TYPE,
+  CAST_UCHAR_TYPE,
+  CAST_SHORT_TYPE,
+  CAST_USHORT_TYPE,
+  CAST_INT_TYPE,
+  CAST_UINT_TYPE,
+  CAST_LONG_TYPE,
+  CAST_ULONG_TYPE,
+  CAST_HALF_TYPE,
+  CAST_FLOAT_TYPE,
+  CAST_DOUBLE_TYPE,
+
+  ABS_TYPE,
+  ACOS_TYPE,
+  ASIN_TYPE,
+  ATAN_TYPE,
+  CEIL_TYPE,
+  COS_TYPE,
+  COSH_TYPE,
+  EXP_TYPE,
+  FABS_TYPE,
+  FLOOR_TYPE,
+  LOG_TYPE,
+  LOG10_TYPE,
+  SIN_TYPE,
+  SINH_TYPE,
+  SQRT_TYPE,
+  TAN_TYPE,
+  TANH_TYPE,
+  TRANS_TYPE,
+
+  // binary expression
+  ASSIGN_TYPE,
+  INPLACE_ADD_TYPE,
+  INPLACE_SUB_TYPE,
+  ADD_TYPE,
+  SUB_TYPE,
+  MULT_TYPE,
+  DIV_TYPE,
+  ELEMENT_ARGFMAX_TYPE,
+  ELEMENT_ARGFMIN_TYPE,
+  ELEMENT_ARGMAX_TYPE,
+  ELEMENT_ARGMIN_TYPE,
+  ELEMENT_PROD_TYPE,
+  ELEMENT_DIV_TYPE,
+  ELEMENT_EQ_TYPE,
+  ELEMENT_NEQ_TYPE,
+  ELEMENT_GREATER_TYPE,
+  ELEMENT_GEQ_TYPE,
+  ELEMENT_LESS_TYPE,
+  ELEMENT_LEQ_TYPE,
+  ELEMENT_POW_TYPE,
+  ELEMENT_FMAX_TYPE,
+  ELEMENT_FMIN_TYPE,
+  ELEMENT_MAX_TYPE,
+  ELEMENT_MIN_TYPE,
+
+  //Products
+  OUTER_PROD_TYPE,
+  MATRIX_PRODUCT_NN_TYPE,
+  MATRIX_PRODUCT_TN_TYPE,
+  MATRIX_PRODUCT_NT_TYPE,
+  MATRIX_PRODUCT_TT_TYPE,
+
+  //Access modifiers
+  RESHAPE_TYPE,
+  SHIFT_TYPE,
+  DIAG_MATRIX_TYPE,
+  DIAG_VECTOR_TYPE,
+  ACCESS_INDEX_TYPE,
+
+
+  PAIR_TYPE,
+
+  OPERATOR_FUSE,
+  SFOR_TYPE,
+};
+
+struct token
+{
+  token();
+  token(token_family const & _family, token_type const & _type);
+  token_family family;
+  token_type type;
+};
+
+//
+std::string to_string(token_type type);
+bool is_assignment(token_type op);
+bool is_operator(token_type op);
+bool is_function(token_type op);
+bool is_cast(token_type op);
+bool is_indexing(token_type op);
+//
+
 enum node_type
 {
   INVALID_SUBTYPE = 0,

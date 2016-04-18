@@ -131,7 +131,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree
   stream << "if (r < M)" << std::endl;
   stream << "{" << std::endl;
   stream.inc_tab();
-  element_wise_loop_1D(stream, fetch_policy, (reduction_type_==REDUCE_COLUMNS)?simd_width:1, "c", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](size_t row_simd_width)
+  for_loop(stream, fetch_policy, (reduction_type_==REDUCE_COLUMNS)?simd_width:1, "c", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](size_t row_simd_width)
   {
     std::string rdtype = append_width("#scalartype", row_simd_width);
     std::string cdtype = append_width("#scalartype", col_simd_width);

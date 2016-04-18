@@ -70,20 +70,20 @@ static const int TEMPLATE_BLOCK_SIZE_TOO_LARGE = -20;
 
 class base
 {
-  public:
-    class genstream : public std::ostream
+public:
+  class genstream : public std::ostream
+  {
+  private:
+    class buf : public std::stringbuf
     {
+    public:
+      buf(std::ostringstream& oss,size_t const & tab_count) ;
+      int sync();
+      ~buf();
     private:
-      class buf : public std::stringbuf
-      {
-      public:
-        buf(std::ostringstream& oss,size_t const & tab_count) ;
-        int sync();
-        ~buf();
-      private:
-        std::ostream& oss_;
-        size_t const & tab_count_;
-      };
+      std::ostream& oss_;
+      size_t const & tab_count_;
+    };
 
   private:
     void process(std::string& str);
@@ -103,81 +103,80 @@ class base
 
 protected:
 
-    template<class Fun>
-    static inline void element_wise_loop_1D(genstream & stream, fetching_policy_type policy, unsigned int simd_width,
-                                            std::string const & idx, std::string const & bound, std::string const & domain_id, std::string const & domain_size, driver::Device const & device,
-                                            Fun const & generate_body)
+  template<class Fun>
+  static inline void for_loop(genstream & stream, fetching_policy_type policy, unsigned int simd_width,
+                              std::string const & idx, std::string const & bound, std::string const & domain_id, std::string const & domain_size, driver::Device const & device,
+                              Fun const & generate_body)
+  {
+    std::string strwidth = tools::to_string(simd_width);
+
+    std::string init, upper_bound, inc;
+    //Loop infos
+    if (policy==FETCH_FROM_GLOBAL_STRIDED)
     {
-      std::string strwidth = tools::to_string(simd_width);
+      init = domain_id;
+      upper_bound = bound;
+      inc = domain_size;
+    }
+    else if (policy==FETCH_FROM_GLOBAL_CONTIGUOUS)
+    {
+      std::string chunk_size = "chunk_size";
+      std::string chunk_start = "chunk_start";
+      std::string chunk_end = "chunk_end";
 
-      std::string init, upper_bound, inc;
-      //Loop infos
-      if (policy==FETCH_FROM_GLOBAL_STRIDED)
-      {
-        init = domain_id;
-        upper_bound = bound;
-        inc = domain_size;
-      }
-      else if (policy==FETCH_FROM_GLOBAL_CONTIGUOUS)
-      {
-        std::string chunk_size = "chunk_size";
-        std::string chunk_start = "chunk_start";
-        std::string chunk_end = "chunk_end";
+      stream << "$SIZE_T " << chunk_size << " = (" << bound << "+" << domain_size << "-1)/" << domain_size << ";" << std::endl;
+      stream << "$SIZE_T " << chunk_start << " =" << domain_id << "*" << chunk_size << ";" << std::endl;
+      stream << "$SIZE_T " << chunk_end << " = min(" << chunk_start << "+" << chunk_size << ", " << bound << ");" << std::endl;
+      init = chunk_start;
+      upper_bound = chunk_end;
+      inc = "1";
+    }
 
-        stream << "$SIZE_T " << chunk_size << " = (" << bound << "+" << domain_size << "-1)/" << domain_size << ";" << std::endl;
-        stream << "$SIZE_T " << chunk_start << " =" << domain_id << "*" << chunk_size << ";" << std::endl;
-        stream << "$SIZE_T " << chunk_end << " = min(" << chunk_start << "+" << chunk_size << ", " << bound << ");" << std::endl;
-        init = chunk_start;
-        upper_bound = chunk_end;
-        inc = "1";
-      }
+    //Actual loop
+    std::string boundround = upper_bound + "/" + strwidth + "*" + strwidth;
+    stream << "for(unsigned int " << idx << " = " << init << "*" << strwidth << "; " << idx << " < " << boundround << "; " << idx << " += " << inc << "*" << strwidth << ")" << std::endl;
+    stream << "{" << std::endl;
+    stream.inc_tab();
+    generate_body(simd_width);
+    stream.dec_tab();
+    stream << "}" << std::endl;
 
-      //Actual loop
-      std::string boundround = upper_bound + "/" + strwidth + "*" + strwidth;
-      stream << "for(unsigned int " << idx << " = " << init << "*" << strwidth << "; " << idx << " < " << boundround << "; " << idx << " += " << inc << "*" << strwidth << ")" << std::endl;
+    if (simd_width>1)
+    {
+      stream << "for(unsigned int " << idx << " = " << boundround << " + " << domain_id << "; " << idx << " < " << bound << "; " << idx << " += " + domain_size + ")" << std::endl;
       stream << "{" << std::endl;
       stream.inc_tab();
-      generate_body(simd_width);
+      generate_body(1);
       stream.dec_tab();
       stream << "}" << std::endl;
-
-      if (simd_width>1)
-      {
-        stream << "for(unsigned int " << idx << " = " << boundround << " + " << domain_id << "; " << idx << " < " << bound << "; " << idx << " += " + domain_size + ")" << std::endl;
-        stream << "{" << std::endl;
-        stream.inc_tab();
-        generate_body(1);
-        stream.dec_tab();
-        stream << "}" << std::endl;
-      }
     }
+  }
 
-    static inline void compute_reduce_1d(genstream & os, std::string acc, std::string cur, token const & op)
+  static inline void compute_reduce_1d(genstream & os, std::string acc, std::string cur, token const & op)
+  {
+    if (is_function(op.type))
+      os << acc << "=" << to_string(op.type) << "(" << acc << "," << cur << ");" << std::endl;
+    else
+      os << acc << "= (" << acc << ")" << to_string(op.type)  << "(" << cur << ");" << std::endl;
+  }
+
+  static inline void compute_index_reduce_1d(genstream & os, std::string acc, std::string cur, std::string const & acc_value, std::string const & cur_value, token const & op)
+  {
+    os << acc << " = " << cur_value << ">" << acc_value  << "?" << cur << ":" << acc << ";" << std::endl;
+    os << acc_value << "=";
+    if (op.type==ELEMENT_ARGFMAX_TYPE) os << "fmax";
+    if (op.type==ELEMENT_ARGMAX_TYPE) os << "max";
+    if (op.type==ELEMENT_ARGFMIN_TYPE) os << "fmin";
+    if (op.type==ELEMENT_ARGMIN_TYPE) os << "min";
+    os << "(" << acc_value << "," << cur_value << ");"<< std::endl;
+  }
+
+  static inline std::string neutral_element(token const & op, driver::backend_type backend, std::string const & dtype)
+  {
+    std::string INF = (backend==driver::OPENCL)?"INFINITY":"infinity<" + dtype + ">()";
+    std::string N_INF = "-" + INF;
+    switch (op.type)
     {
-      if (is_function(op.type))
-        os << acc << "=" << to_string(op.type) << "(" << acc << "," << cur << ");" << std::endl;
-      else
-        os << acc << "= (" << acc << ")" << to_string(op.type)  << "(" << cur << ");" << std::endl;
-    }
-
-    static inline void compute_index_reduce_1d(genstream & os, std::string acc, std::string cur, std::string const & acc_value, std::string const & cur_value, token const & op)
-    {
-      os << acc << " = " << cur_value << ">" << acc_value  << "?" << cur << ":" << acc << ";" << std::endl;
-      os << acc_value << "=";
-      if (op.type==ELEMENT_ARGFMAX_TYPE) os << "fmax";
-      if (op.type==ELEMENT_ARGMAX_TYPE) os << "max";
-      if (op.type==ELEMENT_ARGFMIN_TYPE) os << "fmin";
-      if (op.type==ELEMENT_ARGMIN_TYPE) os << "min";
-      os << "(" << acc_value << "," << cur_value << ");"<< std::endl;
-    }
-
-    static inline std::string neutral_element(token const & op, driver::backend_type backend, std::string const & dtype)
-    {
-      std::string INF = (backend==driver::OPENCL)?"INFINITY":"infinity<" + dtype + ">()";
-      std::string N_INF = "-" + INF;
-
-      switch (op.type)
-      {
       case ADD_TYPE : return "0";
       case MULT_TYPE : return "1";
       case DIV_TYPE : return "1";
@@ -189,10 +188,9 @@ protected:
       case ELEMENT_ARGFMIN_TYPE : return INF;
       case ELEMENT_MIN_TYPE : return INF;
       case ELEMENT_ARGMIN_TYPE : return INF;
-
       default: throw std::runtime_error("Unsupported reduction : no neutral element known");
-      }
     }
+  }
 
 private:
   virtual std::string generate_impl(std::string const & suffix, expression_tree const & tree, driver::Device const & device, symbolic::symbols_table const & mapping) const = 0;
