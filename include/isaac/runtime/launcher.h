@@ -23,9 +23,15 @@
 #define _ISAAC_SYMBOLIC_HANDLER_H
 
 #include "isaac/jit/syntax/expression/expression.h"
-
+#include "isaac/driver/event.h"
+#include "isaac/driver/command_queue.h"
 namespace isaac
 {
+
+namespace driver
+{
+  class NDrange;
+}
 
 namespace runtime
 {
@@ -40,7 +46,7 @@ struct environment
       events(_events), dependencies(_dependencies), queue_id_(-1), queue_(new driver::CommandQueue(queue))
   {}
 
-  void enqueue(driver::Context const & context, driver::Kernel const & kernel, driver::NDRange global, driver::NDRange local) const
+  void enqueue(driver::Context const & context, driver::Kernel const & kernel, driver::NDRange const & global, driver::NDRange const & local) const
   {
     driver::CommandQueue & q = queue(context);
     if(events)

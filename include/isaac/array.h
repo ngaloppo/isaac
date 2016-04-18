@@ -25,13 +25,19 @@
 #include <iostream>
 #include <type_traits>
 #include "isaac/common.h"
-#include "isaac/driver/backend.h"
+#include "isaac/driver/context.h"
+#include "isaac/driver/buffer.h"
+#include "isaac/driver/command_queue.h"
 #include "isaac/jit/syntax/expression/expression.h"
-#include "isaac/runtime/execute.h"
 #include "isaac/tools/cpp/tuple.hpp"
 
 namespace isaac
 {
+
+namespace runtime
+{
+  class launcher;
+}
 
 class device_scalar;
 class view;

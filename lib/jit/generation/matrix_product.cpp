@@ -20,6 +20,8 @@
  */
 
 #include "isaac/array.h"
+#include "isaac/driver/kernel.h"
+#include "isaac/driver/ndrange.h"
 #include "isaac/jit/syntax/expression/preset.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/jit/generation/matrix_product.h"
@@ -635,7 +637,7 @@ namespace templates
     matrix_product.setSizeArg(current_arg++, B.ld[0]);
 
     matrix_product.setArg(current_arg++, beta);
-    options.enqueue(program.context(), matrix_product, global, local);
+    options.enqueue(queue.context(), matrix_product, global, local);
 
     if(depth > 1)
     {
@@ -656,7 +658,7 @@ namespace templates
       reduce.setSizeArg(current_arg++, C.array.start);
       reduce.setSizeArg(current_arg++, C.ld[0]);
       reduce.setArg(current_arg++, beta);
-      options.enqueue(program.context(), reduce, global, local);
+      options.enqueue(queue.context(), reduce, global, local);
     }
 
   }

@@ -21,6 +21,8 @@
 
 #include <cstring>
 #include <iostream>
+#include "isaac/driver/kernel.h"
+#include "isaac/driver/ndrange.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/jit/generation/reduce_1d.h"
 #include "tools/vector_types.hpp"
@@ -278,7 +280,7 @@ void reduce_1d::enqueue(driver::CommandQueue & queue, driver::Program const & pr
     symbolic::set_arguments(tree, kernel, n_arg);
   }
   for (size_t k = 0; k < 2; k++)
-    opt.enqueue(program.context(), kernels[k], global[k], local[k]);
+    opt.enqueue(queue.context(), kernels[k], global[k], local[k]);
 }
 
 }

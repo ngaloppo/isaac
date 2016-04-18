@@ -24,14 +24,16 @@
 
 #include "isaac/common.h"
 #include "isaac/driver/common.h"
-#include "isaac/driver/platform.h"
 #include "isaac/driver/handle.h"
+#include "isaac/driver/platform.h"
 
 namespace isaac
 {
 
 namespace driver
 {
+
+class Platform;
 
 // Device
 class ISAACAPI Device

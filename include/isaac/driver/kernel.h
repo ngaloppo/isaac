@@ -24,19 +24,20 @@
 
 #include "isaac/common.h"
 #include "isaac/driver/common.h"
-#include "isaac/driver/program.h"
 #include "isaac/driver/handle.h"
-#include "isaac/scalar.h"
 
 #include <memory>
 
 namespace isaac
 {
 
+class scalar;
+
 namespace driver
 {
 
 class Buffer;
+class Program;
 
 // Kernel
 class ISAACAPI Kernel

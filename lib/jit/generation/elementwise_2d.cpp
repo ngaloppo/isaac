@@ -21,6 +21,8 @@
 
 #include <cstring>
 #include <iostream>
+#include "isaac/driver/kernel.h"
+#include "isaac/driver/ndrange.h"
 #include "isaac/jit/generation/elementwise_2d.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "tools/arguments.hpp"
@@ -103,7 +105,7 @@ std::vector<int_t> elementwise_2d::input_sizes(expression_tree const  & tree) co
   return tree.shape();
 }
 
-void elementwise_2d::enqueue(driver::CommandQueue & /*queue*/, driver::Program const & program, std::string const & suffix,
+void elementwise_2d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix,
                              expression_tree const & tree, runtime::environment const & opt)
 {
   std::string name = "elementwise_2d";
@@ -116,7 +118,7 @@ void elementwise_2d::enqueue(driver::CommandQueue & /*queue*/, driver::Program c
   kernel.setSizeArg(current_arg++, MN[0]);
   kernel.setSizeArg(current_arg++, MN[1]);
   symbolic::set_arguments(tree, kernel, current_arg);
-  opt.enqueue(program.context(), kernel, global, local);
+  opt.enqueue(queue.context(), kernel, global, local);
 }
 
 }

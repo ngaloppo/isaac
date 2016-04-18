@@ -22,9 +22,10 @@
 #include <iostream>
 #include <cstring>
 #include <algorithm>
+#include "isaac/driver/kernel.h"
+#include "isaac/driver/ndrange.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/jit/generation/elementwise_1d.h"
-#include "isaac/driver/backend.h"
 #include "tools/vector_types.hpp"
 #include "tools/arguments.hpp"
 
@@ -119,7 +120,7 @@ std::vector<int_t> elementwise_1d::input_sizes(expression_tree const & expressio
   return {max(expressions.shape())};
 }
 
-void elementwise_1d::enqueue(driver::CommandQueue &, driver::Program const & program, std::string const & suffix,
+void elementwise_1d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix,
                              expression_tree const & tree, runtime::environment const & opt)
 {
   //Size
@@ -135,7 +136,7 @@ void elementwise_1d::enqueue(driver::CommandQueue &, driver::Program const & pro
   unsigned int current_arg = 0;
   kernel.setSizeArg(current_arg++, size);
   symbolic::set_arguments(tree, kernel, current_arg);
-  opt.enqueue(program.context(), kernel, global, local);
+  opt.enqueue(queue.context(), kernel, global, local);
 }
 
 

@@ -26,8 +26,9 @@
 #include <list>
 #include <vector>
 
-#include "isaac/driver/dispatch.h"
 #include "isaac/common.h"
+#include "isaac/driver/external/CUDA/cuda.h"
+#include "isaac/driver/external/CL/cl.h"
 
 namespace isaac
 {
@@ -41,6 +42,12 @@ class Platform;
 class Program;
 class Kernel;
 class ProgramCache;
+
+enum backend_type
+{
+  OPENCL,
+  CUDA
+};
 
 class ISAACAPI backend
 {

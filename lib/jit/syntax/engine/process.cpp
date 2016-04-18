@@ -19,6 +19,7 @@
  * MA 02110-1301  USA
  */
 
+#include "isaac/driver/kernel.h"
 #include "isaac/jit/syntax/engine/process.h"
 
 namespace isaac

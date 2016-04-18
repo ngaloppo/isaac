@@ -23,11 +23,13 @@
 #define ISAAC_BACKEND_TEMPLATES_MPRODUCT_H
 
 #include "isaac/jit/generation/base.h"
-#include "isaac/jit/syntax/expression/expression.h"
 #include "isaac/jit/syntax/expression/preset.h"
 
 namespace isaac
 {
+
+class expression_tree;
+
 namespace templates
 {
 

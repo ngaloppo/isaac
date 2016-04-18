@@ -32,12 +32,6 @@ namespace isaac
 namespace driver
 {
 
-enum backend_type
-{
-  OPENCL,
-  CUDA
-};
-
 void check(nvrtcResult err);
 
 void check(CUresult);

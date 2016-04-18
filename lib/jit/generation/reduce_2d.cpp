@@ -22,7 +22,8 @@
 #include <cstring>
 #include <iostream>
 
-
+#include "isaac/driver/kernel.h"
+#include "isaac/driver/ndrange.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/jit/generation/reduce_2d.h"
 #include "tools/arguments.hpp"
@@ -331,7 +332,7 @@ void reduce_2d::enqueue(driver::CommandQueue & queue, driver::Program const & pr
   driver::NDRange global[2] = { driver::NDRange(local_size_0*num_groups_0, local_size_1*num_groups_1), driver::NDRange(local_size_0, local_size_1*num_groups_1) };
   driver::NDRange local[2] = { driver::NDRange(local_size_0, local_size_1), driver::NDRange(local_size_0, local_size_1) };
   for(size_t i = 0 ; i < nk ; ++i)
-    opt.enqueue(program.context(), kernels[i], global[i], local[i]);
+    opt.enqueue(queue.context(), kernels[i], global[i], local[i]);
 }
 
 reduce_2d_rows::reduce_2d_rows(size_t simd, size_t ls1, size_t ls2,  size_t ng1, size_t ng2,

@@ -25,6 +25,7 @@
 #include <memory>
 
 #include "isaac/driver/device.h"
+#include "isaac/driver/platform.h"
 #include "helpers/ocl/infos.hpp"
 
 namespace isaac

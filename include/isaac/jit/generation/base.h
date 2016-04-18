@@ -34,6 +34,11 @@
 namespace isaac
 {
 
+namespace runtime
+{
+  class environment;
+}
+
 namespace templates
 {
 

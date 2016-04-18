@@ -92,7 +92,7 @@ void CommandQueue::synchronize()
   }
 }
 
-void CommandQueue::enqueue(Kernel const & kernel, NDRange global, driver::NDRange local, std::vector<Event> const *, Event* event)
+void CommandQueue::enqueue(Kernel const & kernel, NDRange const & global, driver::NDRange const & local, std::vector<Event> const *, Event* event)
 {
   switch(backend_)
   {

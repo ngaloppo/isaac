@@ -25,6 +25,7 @@
 #include "isaac/driver/command_queue.h"
 #include "isaac/driver/kernel.h"
 #include "isaac/driver/program_cache.h"
+#include "isaac/driver/platform.h"
 
 #include <assert.h>
 #include <stdexcept>
