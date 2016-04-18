@@ -35,14 +35,14 @@ namespace templates
 {
 
 /* stream */
-base::genstream::buf::buf(std::ostringstream& oss,unsigned int const & tab_count) :
+base::genstream::buf::buf(std::ostringstream& oss,size_t const & tab_count) :
   oss_(oss), tab_count_(tab_count)
 { }
 
 
 int base::genstream::buf::sync()
 {
-  for (unsigned int i=0; i<tab_count_;++i)
+  for (size_t i=0; i<tab_count_;++i)
     oss_ << "  ";
   std::string next = str();
   oss_ << next;
@@ -125,21 +125,21 @@ void base::genstream::dec_tab()
 }
 
 /* base */
-base::base(unsigned int s, unsigned int ls0, unsigned int ls1):
+base::base(size_t s, size_t ls0, size_t ls1):
   simd_width(s), local_size_0(ls0), local_size_1(ls1)
 {}
 
-unsigned int base::lmem_usage(expression_tree const  &) const
+size_t base::lmem_usage(expression_tree const  &) const
 {
   return 0;
 }
 
-unsigned int base::registers_usage(expression_tree const  &) const
+size_t base::registers_usage(expression_tree const  &) const
 {
   return 0;
 }
 
-unsigned int base::temporary_workspace(expression_tree const  &) const
+size_t base::temporary_workspace(expression_tree const  &) const
 {
   return 0;
 }

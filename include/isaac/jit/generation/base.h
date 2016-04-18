@@ -77,12 +77,12 @@ class base
       class buf : public std::stringbuf
       {
       public:
-        buf(std::ostringstream& oss,unsigned int const & tab_count) ;
+        buf(std::ostringstream& oss,size_t const & tab_count) ;
         int sync();
         ~buf();
       private:
         std::ostream& oss_;
-        unsigned int const & tab_count_;
+        size_t const & tab_count_;
       };
 
   private:
@@ -96,14 +96,22 @@ class base
     void dec_tab();
 
   private:
-    unsigned int tab_count_;
+    size_t tab_count_;
     driver::backend_type backend_;
     std::ostringstream oss;
   };
 
 protected:
-    static inline void fetching_loop_info(fetching_policy_type policy, std::string const & bound, genstream & stream, std::string & init, std::string & upper_bound, std::string & inc, std::string const & domain_id, std::string const & domain_size, driver::Device const &)
+
+    template<class Fun>
+    static inline void element_wise_loop_1D(genstream & stream, fetching_policy_type policy, unsigned int simd_width,
+                                            std::string const & idx, std::string const & bound, std::string const & domain_id, std::string const & domain_size, driver::Device const & device,
+                                            Fun const & generate_body)
     {
+      std::string strwidth = tools::to_string(simd_width);
+
+      std::string init, upper_bound, inc;
+      //Loop infos
       if (policy==FETCH_FROM_GLOBAL_STRIDED)
       {
         init = domain_id;
@@ -123,19 +131,10 @@ protected:
         upper_bound = chunk_end;
         inc = "1";
       }
-    }
 
-
-    template<class Fun>
-    static inline void element_wise_loop_1D(genstream & stream, fetching_policy_type fetch, unsigned int simd_width,
-                                     std::string const & i, std::string const & bound, std::string const & domain_id, std::string const & domain_size, driver::Device const & device, Fun const & generate_body)
-    {
-      std::string strwidth = tools::to_string(simd_width);
-
-      std::string init, upper_bound, inc;
-      fetching_loop_info(fetch, bound, stream, init, upper_bound, inc, domain_id, domain_size, device);
+      //Actual loop
       std::string boundround = upper_bound + "/" + strwidth + "*" + strwidth;
-      stream << "for(unsigned int " << i << " = " << init << "*" << strwidth << "; " << i << " < " << boundround << "; " << i << " += " << inc << "*" << strwidth << ")" << std::endl;
+      stream << "for(unsigned int " << idx << " = " << init << "*" << strwidth << "; " << idx << " < " << boundround << "; " << idx << " += " << inc << "*" << strwidth << ")" << std::endl;
       stream << "{" << std::endl;
       stream.inc_tab();
       generate_body(simd_width);
@@ -144,7 +143,7 @@ protected:
 
       if (simd_width>1)
       {
-        stream << "for(unsigned int " << i << " = " << boundround << " + " << domain_id << "; " << i << " < " << bound << "; " << i << " += " + domain_size + ")" << std::endl;
+        stream << "for(unsigned int " << idx << " = " << boundround << " + " << domain_id << "; " << idx << " < " << bound << "; " << idx << " += " + domain_size + ")" << std::endl;
         stream << "{" << std::endl;
         stream.inc_tab();
         generate_body(1);
@@ -163,8 +162,7 @@ protected:
 
     static inline void compute_index_reduce_1d(genstream & os, std::string acc, std::string cur, std::string const & acc_value, std::string const & cur_value, token const & op)
     {
-      //        os << acc << " = " << cur_value << ">" << acc_value  << "?" << cur << ":" << acc << ";" << std::endl;
-      os << acc << "= select(" << acc << "," << cur << "," << cur_value << ">" << acc_value << ");" << std::endl;
+      os << acc << " = " << cur_value << ">" << acc_value  << "?" << cur << ":" << acc << ";" << std::endl;
       os << acc_value << "=";
       if (op.type==ELEMENT_ARGFMAX_TYPE) os << "fmax";
       if (op.type==ELEMENT_ARGMAX_TYPE) os << "max";
@@ -192,28 +190,28 @@ protected:
       case ELEMENT_MIN_TYPE : return INF;
       case ELEMENT_ARGMIN_TYPE : return INF;
 
-      default: throw std::runtime_error("Unsupported reduce_1d operator : no neutral element known");
+      default: throw std::runtime_error("Unsupported reduction : no neutral element known");
       }
     }
 
 private:
-  virtual std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::symbols_table const & mapping) const = 0;
+  virtual std::string generate_impl(std::string const & suffix, expression_tree const & tree, driver::Device const & device, symbolic::symbols_table const & mapping) const = 0;
   virtual int is_invalid_impl(driver::Device const &, expression_tree const &) const;
 
 public:
-  base(unsigned int s, unsigned int ls0, unsigned int ls1);
-  virtual unsigned int temporary_workspace(expression_tree const &) const;
-  virtual unsigned int lmem_usage(expression_tree const &) const;
-  virtual unsigned int registers_usage(expression_tree const &) const;
-  virtual std::vector<int_t> input_sizes(expression_tree const & expressions) const = 0;
-  std::string generate(std::string const & suffix, expression_tree const & expressions, driver::Device const & device);
-  int is_invalid(expression_tree const & expressions, driver::Device const & device) const;
-  virtual void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, expression_tree const & tree, runtime::environment const & opt) = 0;
+  base(size_t s, size_t ls0, size_t ls1);
+  std::string generate(std::string const & suffix, expression_tree const & tree, driver::Device const & device);
+  int is_invalid(expression_tree const & tree, driver::Device const & device) const;
+  virtual size_t temporary_workspace(expression_tree const & tree) const;
+  virtual size_t lmem_usage(expression_tree const & tree) const;
+  virtual size_t registers_usage(expression_tree const & tree) const;
+  virtual std::vector<int_t> input_sizes(expression_tree const & tree) const = 0;
+  virtual void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix,expression_tree const & tree, runtime::environment const & opt) = 0;
 
 protected:
-  unsigned int simd_width;
-  unsigned int local_size_0;
-  unsigned int local_size_1;
+  size_t simd_width;
+  size_t local_size_0;
+  size_t local_size_1;
 };
 
 }

@@ -66,36 +66,26 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   stream << "{" << std::endl;
   stream.inc_tab();
 
+  element_wise_loop_1D(stream, fetching_policy, 1, "i", "M",  "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](size_t)
+  {
+    element_wise_loop_1D(stream, fetching_policy, 1, "j", "N",  "$GLOBAL_IDX_1", "$GLOBAL_SIZE_1", device, [&](size_t)
+    {
+      //Declares register to store results
+      for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assigned_left, false))
+        stream << sym->process("#scalartype #name;") << std::endl;
 
-  fetching_loop_info(fetching_policy, "M", stream, init0, upper_bound0, inc0,  "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device);
-  stream << "for($SIZE_T i = " << init0 << "; i < " << upper_bound0 << "; i += " << inc0 << ")" << std::endl;
-  stream << "{" << std::endl;
-  stream.inc_tab();
-  fetching_loop_info(fetching_policy, "N", stream, init1, upper_bound1, inc1, "$GLOBAL_IDX_1", "$GLOBAL_SIZE_1", device);
-  stream << "for($SIZE_T j = " << init1 << "; j < " << upper_bound1 << "; j += " << inc1 << ")" << std::endl;
-  stream << "{" << std::endl;
-  stream.inc_tab();
+      //Load to registers
+      for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assigned_right, false))
+        stream << sym->process("#scalartype #name = at(i, j);") << std::endl;
 
-  //Declares register to store results
-  for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assigned_left, false))
-    stream << sym->process("#scalartype #name;") << std::endl;
+      for(std::size_t idx: assigned)
+        stream << symbols.at(idx)->evaluate({{"leaf", "#name"}}) << ";" << std::endl;
 
-  //Load to registers
-  for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assigned_right, false))
-    stream << sym->process("#scalartype #name = at(i, j);") << std::endl;
-
-  for(std::size_t idx: assigned)
-    stream << symbols.at(idx)->evaluate({{"leaf", "#name"}}) << ";" << std::endl;
-
-  //Writes back
-  for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assigned_left, false))
-    stream << sym->process("at(i, j) = #name;") << std::endl;
-
-  stream.dec_tab();
-  stream << "}" << std::endl;
-  stream.dec_tab();
-  stream << "}" << std::endl;
-
+      //Writes back
+      for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assigned_left, false))
+        stream << sym->process("at(i, j) = #name;") << std::endl;
+    });
+  });
 
   stream.dec_tab();
   stream << "}" << std::endl;
@@ -103,8 +93,8 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   return stream.str();
 }
 
-elementwise_2d::elementwise_2d(unsigned int simd, unsigned int ls0, unsigned int ls1,
-                               unsigned int ng0, unsigned int ng1, fetching_policy_type fetch):
+elementwise_2d::elementwise_2d(size_t simd, size_t ls0, size_t ls1,
+                               size_t ng0, size_t ng1, fetching_policy_type fetch):
     base(simd, ls0, ls1), num_groups_0(ng0), num_groups_1(ng1), fetching_policy(fetch)
 {}
 

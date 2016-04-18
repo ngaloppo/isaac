@@ -38,21 +38,21 @@ namespace templates
 
 
 
-  unsigned int matrix_product::lmem_usage(expression_tree const & expression) const
+  size_t matrix_product::lmem_usage(expression_tree const & expression) const
   {
-    unsigned int N = 0;
+    size_t N = 0;
     N += kL * mL;
     N += nL * kL;
     return N*size_of(expression.dtype());
   }
 
-  unsigned int matrix_product::registers_usage(expression_tree const & expression) const
+  size_t matrix_product::registers_usage(expression_tree const & expression) const
   {
-    unsigned int N = mS * nS + mS * kS + kS * nS;
+    size_t N = mS * nS + mS * kS + kS * nS;
     return N*size_of(expression.dtype());
   }
 
-  unsigned int matrix_product::temporary_workspace(expression_tree const & expressions) const
+  size_t matrix_product::temporary_workspace(expression_tree const & expressions) const
   {
       std::vector<int_t> MNK = input_sizes(expressions);
       int_t M = MNK[0]; int_t N = MNK[1];
@@ -85,8 +85,8 @@ namespace templates
 
     if (A_fetching_policy==FETCH_FROM_LOCAL)
     {
-      unsigned int bound1 = (A_trans_=='N')?kL:mL;
-      unsigned int bound0 = (A_trans_=='N')?mL:kL;
+      size_t bound1 = (A_trans_=='N')?kL:mL;
+      size_t bound0 = (A_trans_=='N')?mL:kL;
 
       if (local_fetch_1>0 && (bound1 % local_fetch_1)> 0)
         return A_trans_=='N'?TEMPLATE_LOCAL_FETCH_1_MUST_BE_KL_MULTIPLE:TEMPLATE_LOCAL_FETCH_1_MUST_BE_ML_MULTIPLE;
@@ -97,8 +97,8 @@ namespace templates
     }
     if (B_fetching_policy==FETCH_FROM_LOCAL)
     {
-      unsigned int bound1 = (B_trans_=='T')?kL:nL;
-      unsigned int bound0 = (B_trans_=='T')?nL:kL;
+      size_t bound1 = (B_trans_=='T')?kL:nL;
+      size_t bound0 = (B_trans_=='T')?nL:kL;
 
       if (local_fetch_1>0 && (bound1 % local_fetch_1)> 0)
         return B_trans_=='T'?TEMPLATE_LOCAL_FETCH_1_MUST_BE_KL_MULTIPLE:TEMPLATE_LOCAL_FETCH_1_MUST_BE_ML_MULTIPLE;
@@ -592,7 +592,7 @@ namespace templates
     driver::NDRange local(local_size_0, local_size_1, 1);
     driver::NDRange global(align(align(M,mS)/mS, local_size_0), align(align(N,nS)/nS, local_size_1), depth);
 
-    unsigned int current_arg = 0;
+    size_t current_arg = 0;
 
     driver::Buffer& workspace = driver::backend::workspaces::get(options.queue(queue.context()));
     matrix_product.setSizeArg(current_arg++, M);
@@ -639,7 +639,7 @@ namespace templates
 
     if(depth > 1)
     {
-      unsigned int current_arg = 0;
+      size_t current_arg = 0;
       driver::Kernel reduce(program, reduce_name.c_str());
       driver::NDRange local(local_size_0, local_size_1);
       driver::NDRange global(align(M, local_size_0), align(N, local_size_1));
@@ -672,11 +672,11 @@ namespace templates
     return {M, N, K};
   }
 
-  matrix_product::matrix_product(unsigned int s
-                                 ,unsigned int ls0, unsigned int KL, unsigned int ls1, unsigned int D
-                                 ,unsigned int ms, unsigned int ks, unsigned int ns
+  matrix_product::matrix_product(size_t s
+                                 ,size_t ls0, size_t KL, size_t ls1, size_t D
+                                 ,size_t ms, size_t ks, size_t ns
                                  ,fetching_policy_type Afetch, fetching_policy_type Bfetch
-                                 ,unsigned int fetch0, unsigned int fetch1
+                                 ,size_t fetch0, size_t fetch1
                                  ,char A_trans, char B_trans) : base(s, ls0, ls1),
     kL(KL), depth(D), mS(ms), kS(ks), nS(ns), A_fetching_policy(Afetch), B_fetching_policy(Bfetch),
     local_fetch_0(fetch0), local_fetch_1(fetch1),
@@ -709,42 +709,41 @@ namespace templates
   }
 
   //
-  matrix_product_nn::matrix_product_nn(unsigned int simd
-                           , int_t ls0, int_t KL, int_t ls1, int_t D
-                           , int_t ms, int_t ks, int_t ns
+  matrix_product_nn::matrix_product_nn(size_t simd
+                           , size_t ls0, size_t KL, size_t ls1, size_t D
+                           , size_t ms, size_t ks, size_t ns
                            , fetching_policy_type Afetch , fetching_policy_type Bfetch
-                           , int_t lfetch0, int_t lfetch1) :
+                           , size_t lfetch0, size_t lfetch1) :
     matrix_product(simd, ls0, KL, ls1, D, ms, ks, ns, Afetch, Bfetch, lfetch0, lfetch1, 'N', 'N')
   {
   }
 
   //
-  matrix_product_tn::matrix_product_tn(unsigned int simd
-                           , int_t ls0, int_t KL, int_t ls1, int_t D
-                           , int_t ms, int_t ks, int_t ns
+  matrix_product_tn::matrix_product_tn(size_t simd
+                           , size_t ls0, size_t KL, size_t ls1, size_t D
+                           , size_t ms, size_t ks, size_t ns
                            , fetching_policy_type Afetch , fetching_policy_type Bfetch
-                           , int_t lfetch0, int_t lfetch1) :
+                           , size_t lfetch0, size_t lfetch1) :
     matrix_product(simd, ls0, KL, ls1, D, ms, ks, ns, Afetch, Bfetch, lfetch0, lfetch1, 'T', 'N')
   { }
 
   //
-  matrix_product_nt::matrix_product_nt(unsigned int simd
-                           , int_t ls0, int_t KL, int_t ls1, int_t D
-                           , int_t ms, int_t ks, int_t ns
+  matrix_product_nt::matrix_product_nt(size_t simd
+                           , size_t ls0, size_t KL, size_t ls1, size_t D
+                           , size_t ms, size_t ks, size_t ns
                            , fetching_policy_type Afetch , fetching_policy_type Bfetch
-                           , int_t lfetch0, int_t lfetch1) :
+                           , size_t lfetch0, size_t lfetch1) :
     matrix_product(simd, ls0, KL, ls1, D, ms, ks, ns, Afetch, Bfetch, lfetch0, lfetch1, 'N', 'T')
   { }
 
   //
-  matrix_product_tt::matrix_product_tt(unsigned int simd
-                           , int_t ls0, int_t KL, int_t ls1, int_t D
-                           , int_t ms, int_t ks, int_t ns
+  matrix_product_tt::matrix_product_tt(size_t simd
+                           , size_t ls0, size_t KL, size_t ls1, size_t D
+                           , size_t ms, size_t ks, size_t ns
                            , fetching_policy_type Afetch , fetching_policy_type Bfetch
-                           , int_t lfetch0, int_t lfetch1) :
+                           , size_t lfetch0, size_t lfetch1):
     matrix_product(simd, ls0, KL, ls1, D, ms, ks, ns, Afetch, Bfetch, lfetch0, lfetch1, 'T', 'T')
   { }
 
 }
 }
-

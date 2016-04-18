@@ -74,7 +74,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
     stream.inc_tab();
   }
 
-  element_wise_loop_1D(stream, fetching_policy, simd_width, "i", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](unsigned int simd_width)
+  element_wise_loop_1D(stream, fetching_policy, simd_width, "i", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", device, [&](size_t simd_width)
   {
     std::string dtype = append_width("#scalartype",simd_width);
 
@@ -88,12 +88,12 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
 
     //Compute
     for(size_t idx: assignments)
-      for(unsigned int s = 0 ; s < simd_width ; ++s)
+      for(size_t s = 0 ; s < simd_width ; ++s)
          stream << symbols.at(idx)->evaluate({{"leaf", access_vector_type("#name", s, simd_width)}}) << ";" << std::endl;
 
     //Writes back
     for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assignments_lhs, false))
-      for(unsigned int s = 0 ; s < simd_width ; ++s)
+      for(size_t s = 0 ; s < simd_width ; ++s)
           stream << sym->process("at(i+" + tools::to_string(s)+") = " + access_vector_type("#name", s, simd_width) + ";") << std::endl;
   });
   //Close user-provided for-loops
@@ -109,7 +109,7 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   return stream.str();
 }
 
-elementwise_1d::elementwise_1d(unsigned int simd, unsigned int ls, unsigned int ng,
+elementwise_1d::elementwise_1d(size_t simd, size_t ls, size_t ng,
                                fetching_policy_type fetch): base(simd, ls, 1), num_groups(ng), fetching_policy(fetch)
 {}
 

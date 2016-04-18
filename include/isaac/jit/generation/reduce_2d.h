@@ -35,18 +35,18 @@ namespace templates
 class reduce_2d : public base
 {
 protected:
-  reduce_2d(unsigned int simd, unsigned int ls1, unsigned int ls2, unsigned int ng1, unsigned int ng2, fetching_policy_type fetch, token_family type);
+  reduce_2d(size_t simd, size_t ls1, size_t ls2, size_t ng1, size_t ng2, fetching_policy_type fetch, token_family type);
 private:
   int is_invalid_impl(driver::Device const &, expression_tree const &) const;
-  unsigned int lmem_usage(expression_tree const &) const;
-  unsigned int temporary_workspace(expression_tree const & expressions) const;
+  size_t lmem_usage(expression_tree const &) const;
+  size_t temporary_workspace(expression_tree const & expressions) const;
   std::string generate_impl(std::string const & suffix, expression_tree const &, driver::Device const & device, symbolic::symbols_table const &) const;
 public:
   virtual std::vector<int_t> input_sizes(expression_tree const & expressions) const;
   void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, expression_tree const & tree, runtime::environment const & opt);
 private:
-  unsigned int num_groups_0;
-  unsigned int num_groups_1;
+  size_t num_groups_0;
+  size_t num_groups_1;
   fetching_policy_type fetch_policy;
 
   token_family reduction_type_;
@@ -55,13 +55,13 @@ private:
 class reduce_2d_rows : public reduce_2d
 {
 public:
-  reduce_2d_rows(unsigned int simd, unsigned int ls1, unsigned int ls2, unsigned int ng1, unsigned int ng2, fetching_policy_type fetch);
+  reduce_2d_rows(size_t simd, size_t ls1, size_t ls2, size_t ng1, size_t ng2, fetching_policy_type fetch);
 };
 
 class reduce_2d_cols : public reduce_2d
 {
 public:
-  reduce_2d_cols(unsigned int simd, unsigned int ls1, unsigned int ls2, unsigned int ng1, unsigned int ng2, fetching_policy_type fetch);
+  reduce_2d_cols(size_t simd, size_t ls1, size_t ls2, size_t ng1, size_t ng2, fetching_policy_type fetch);
 };
 
 }

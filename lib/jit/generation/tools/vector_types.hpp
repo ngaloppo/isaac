@@ -43,7 +43,7 @@ inline std::string access_vector_type(std::string const & v, int i)
     }
 }
 
-inline std::string access_vector_type(std::string const & v, int i, unsigned int simd_width)
+inline std::string access_vector_type(std::string const & v, int i, size_t simd_width)
 {
     if(simd_width==1)
       return v;
@@ -51,7 +51,7 @@ inline std::string access_vector_type(std::string const & v, int i, unsigned int
       return access_vector_type(v, i);
 }
 
-inline std::string append_width(std::string const & str, unsigned int width)
+inline std::string append_width(std::string const & str, size_t width)
 {
   if (width==1)
     return str;
@@ -59,7 +59,7 @@ inline std::string append_width(std::string const & str, unsigned int width)
 }
 
 
-inline std::string vstore(unsigned int simd_width, std::string const & dtype, std::string const & value, std::string const & offset, std::string const & ptr, std::string const & stride, driver::backend_type backend, bool aligned = true)
+inline std::string vstore(size_t simd_width, std::string const & dtype, std::string const & value, std::string const & offset, std::string const & ptr, std::string const & stride, driver::backend_type backend, bool aligned = true)
 {
     std::string vdtype = append_width(dtype,simd_width);
     if (simd_width==1)
@@ -74,7 +74,7 @@ inline std::string vstore(unsigned int simd_width, std::string const & dtype, st
         {
           std::string stridestr = (stride=="1")?"":("*" + stride);
           std::string res;
-          for(unsigned int s = 0 ; s < simd_width ; ++s)
+          for(size_t s = 0 ; s < simd_width ; ++s)
               res +=  (s>0?";(":"(") + ptr + ")[" + offset + "*" + tools::to_string(simd_width) + " + " + tools::to_string(s) + stridestr + "] = " + access_vector_type(value, s);
           return res;
         }
@@ -82,7 +82,7 @@ inline std::string vstore(unsigned int simd_width, std::string const & dtype, st
 }
 
 
-inline std::string vload(unsigned int simd_width, std::string const & dtype, std::string const & offset, std::string const & ptr, std::string const & stride, driver::backend_type backend, bool aligned = true)
+inline std::string vload(size_t simd_width, std::string const & dtype, std::string const & offset, std::string const & ptr, std::string const & stride, driver::backend_type backend, bool aligned = true)
 {
     std::string vdtype = append_width(dtype,simd_width);
     if (simd_width==1)
@@ -101,7 +101,7 @@ inline std::string vload(unsigned int simd_width, std::string const & dtype, std
           res = "make_" + vdtype + "(";
         else
           res = "(" + vdtype + ")(";
-        for(unsigned int s = 0 ; s < simd_width ; ++s)
+        for(size_t s = 0 ; s < simd_width ; ++s)
             res += ((s>0)?",(":"(") + ptr + ")[" + offset + "*" + tools::to_string(simd_width) + " + " + tools::to_string(s) + stridestr  + "]";
         res += ")";
         return res;
