@@ -36,7 +36,7 @@ namespace isaac
 namespace templates
 {
 
-void elementwise_2d::check_valid_impl(driver::Device const &, expression_tree const  &) const
+void elementwise_2d::check_valid_impl(driver::Device const &, expression const  &) const
 {
   if (simd_width>1)
     throw jit::code_generation_error("generated code uses invalid simd width");
@@ -44,13 +44,13 @@ void elementwise_2d::check_valid_impl(driver::Device const &, expression_tree co
     throw jit::code_generation_error("generated code uses unsupported fetching policy");
 }
 
-std::string elementwise_2d::generate_impl(std::string const & suffix, expression_tree const  & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const
+std::string elementwise_2d::generate_impl(std::string const & suffix, expression const  & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const
 {
   std::string init0, upper_bound0, inc0, init1, upper_bound1, inc1;
   driver::backend_type backend = device.backend();
   genstream stream(backend);
 
-  std::vector<std::size_t> assigned = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
+  std::vector<std::size_t> assigned = symbolic::find(tree, [&](expression::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
   std::vector<std::size_t> assigned_left;
   std::vector<std::size_t> assigned_right;
   for(std::size_t idx: assigned){
@@ -101,13 +101,13 @@ elementwise_2d::elementwise_2d(size_t simd, size_t ls0, size_t ls1,
     base(simd, ls0, ls1), num_groups_0(ng0), num_groups_1(ng1), fetching_policy(fetch)
 {}
 
-std::vector<int_t> elementwise_2d::input_sizes(expression_tree const  & tree) const
+std::vector<int_t> elementwise_2d::input_sizes(expression const  & tree) const
 {
   return tree.shape();
 }
 
 void elementwise_2d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix,
-                             expression_tree const & tree, runtime::environment const & opt)
+                             expression const & tree, runtime::environment const & opt)
 {
   std::string name = "elementwise_2d";
   name +=suffix;

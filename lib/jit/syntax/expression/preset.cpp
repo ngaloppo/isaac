@@ -30,14 +30,14 @@ namespace symbolic
 namespace preset
 {
 
-void matrix_product::handle_node(expression_tree::data_type const & tree, size_t root, args & a)
+void matrix_product::handle_node(expression::data_type const & tree, size_t root, args & a)
 {
-    expression_tree::node const & node = tree[root];
+    expression::node const & node = tree[root];
     if(node.type != COMPOSITE_OPERATOR_TYPE)
       return;
 
-    expression_tree::node const & left = tree[node.binary_operator.lhs];
-    expression_tree::node const & right = tree[node.binary_operator.rhs];
+    expression::node const & left = tree[node.binary_operator.lhs];
+    expression::node const & right = tree[node.binary_operator.rhs];
 
     //Matrix-Matrix product node
     if(node.binary_operator.op.family==MATRIX_PRODUCT)
@@ -74,11 +74,11 @@ void matrix_product::handle_node(expression_tree::data_type const & tree, size_t
     }
 }
 
-matrix_product::args matrix_product::check(expression_tree::data_type const & tree, size_t root)
+matrix_product::args matrix_product::check(expression::data_type const & tree, size_t root)
 {
-    expression_tree::node const & node = tree[root];
-    expression_tree::node const & left = tree[node.binary_operator.lhs];
-    expression_tree::node const & right = tree[node.binary_operator.rhs];
+    expression::node const & node = tree[root];
+    expression::node const & left = tree[node.binary_operator.lhs];
+    expression::node const & right = tree[node.binary_operator.rhs];
     numeric_type dtype = node.dtype;
     matrix_product::args result ;
     if(dtype==INVALID_NUMERIC_TYPE)
@@ -92,8 +92,8 @@ matrix_product::args matrix_product::check(expression_tree::data_type const & tr
         //Form X +- Y"
         if(is_add || is_sub)
         {
-            expression_tree::node const & rleft = tree[right.binary_operator.lhs];
-            expression_tree::node const & rright = tree[right.binary_operator.rhs];
+            expression::node const & rleft = tree[right.binary_operator.lhs];
+            expression::node const & rright = tree[right.binary_operator.rhs];
 
             if(rleft.type==COMPOSITE_OPERATOR_TYPE)
                 handle_node(tree, right.binary_operator.lhs, result);

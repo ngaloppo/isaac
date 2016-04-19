@@ -44,7 +44,7 @@ namespace runtime
       /** @brief Optimizes the given expression tree */
 //      expression_type optimize(expression_type & tree, size_t idx)
 //      {
-//        expression_tree::node & node = tree[idx];
+//        expression::node & node = tree[idx];
 //        if(node.type==COMPOSITE_OPERATOR_TYPE)
 //        {
 //          //Remove useless reshape
@@ -52,14 +52,14 @@ namespace runtime
 //        }
 //      }
 
-      expression_type parse(expression_tree const & tree, breakpoints_t & bp){
+      expression_type parse(expression const & tree, breakpoints_t & bp){
         return parse(tree, tree.root(), bp);
       }
 
       /** @brief Parses the breakpoints for a given expression tree */
-      expression_type parse(expression_tree const & tree, size_t idx, breakpoints_t & bp)
+      expression_type parse(expression const & tree, size_t idx, breakpoints_t & bp)
       {
-        expression_tree::node const & node = tree[idx];
+        expression::node const & node = tree[idx];
         if(node.type==COMPOSITE_OPERATOR_TYPE)
         {
           size_t lidx = node.binary_operator.lhs;
@@ -126,11 +126,11 @@ namespace runtime
     }
   }
 
-  /** @brief Executes a expression_tree on the given models map*/
+  /** @brief Executes a expression on the given models map*/
   void execute(launcher const & c, implementation & impl)
   {
     typedef isaac::array array;
-    expression_tree tree = c.tree();
+    expression tree = c.tree();
     /*----Optimize----*/
 //    detail::optimize(tree);
     /*----Process-----*/
@@ -145,9 +145,9 @@ namespace runtime
     /*----Default-----*/
     else
     {
-        expression_tree::node & root = tree[rootidx];
-        expression_tree::node & lhs = tree[root.binary_operator.lhs], &rhs = tree[root.binary_operator.rhs];
-        expression_tree::node root_save = root, lhs_save = lhs, rhs_save = rhs;
+        expression::node & root = tree[rootidx];
+        expression::node & lhs = tree[root.binary_operator.lhs], &rhs = tree[root.binary_operator.rhs];
+        expression::node root_save = root, lhs_save = lhs, rhs_save = rhs;
 
         detail::breakpoints_t breakpoints;
         breakpoints.reserve(16);
@@ -158,7 +158,7 @@ namespace runtime
         /*----Compute required temporaries----*/
         for(auto current: breakpoints)
         {
-          expression_tree::node const & node = tree[current.first];
+          expression::node const & node = tree[current.first];
           expression_type op = current.second;
           std::shared_ptr<instruction> const & instr =  impl[{op, node.dtype}];
 
@@ -170,14 +170,14 @@ namespace runtime
           root.binary_operator.op.type = ASSIGN_TYPE;
           root.shape = node.shape;
           root.dtype = node.dtype;
-          lhs = expression_tree::node(*tmp);
+          lhs = expression::node(*tmp);
           rhs = node;
           instr->execute(tree, c.env(), c.opt());
           //Update the expression tree
           root = root_save;
           lhs = lhs_save;
           rhs = rhs_save;
-          tree[current.first] = expression_tree::node(*tmp);
+          tree[current.first] = expression::node(*tmp);
         }
     }
 

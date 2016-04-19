@@ -13,10 +13,10 @@ namespace symbolic
 
 //Traverse
 template<class FUN>
-inline void traverse(expression_tree const & tree, size_t root, FUN const & fun,
+inline void traverse(expression const & tree, size_t root, FUN const & fun,
                      std::function<bool(size_t)> const & recurse)
 {
-  expression_tree::node const & node = tree[root];
+  expression::node const & node = tree[root];
   if (node.type==COMPOSITE_OPERATOR_TYPE && recurse(root)){
     traverse(tree, node.binary_operator.lhs, fun, recurse);
     traverse(tree, node.binary_operator.rhs, fun, recurse);
@@ -26,17 +26,17 @@ inline void traverse(expression_tree const & tree, size_t root, FUN const & fun,
 }
 
 template<class FUN>
-inline void traverse(expression_tree const & tree, size_t root, FUN const & fun)
+inline void traverse(expression const & tree, size_t root, FUN const & fun)
 { return traverse(tree, root, fun,  [](size_t){return true;}); }
 
 template<class FUN>
-inline void traverse(expression_tree const & tree, FUN const & fun)
+inline void traverse(expression const & tree, FUN const & fun)
 { return traverse(tree, tree.root(), fun); }
 
 
 //Extract symbolic types
 template<class T>
-inline void extract(expression_tree const & tree, symbols_table const & table,
+inline void extract(expression const & tree, symbols_table const & table,
                     size_t root, std::set<std::string>& processed, std::vector<T*>& result, bool array_recurse = true)
 {
   auto extract_impl = [&](size_t index)
@@ -54,7 +54,7 @@ inline void extract(expression_tree const & tree, symbols_table const & table,
 }
 
 template<class T>
-inline std::vector<T*> extract(expression_tree const & tree, symbols_table const & table, std::vector<size_t> roots, bool array_recurse = true)
+inline std::vector<T*> extract(expression const & tree, symbols_table const & table, std::vector<size_t> roots, bool array_recurse = true)
 {
   std::vector<T*> result;
   std::set<std::string> processed;
@@ -64,33 +64,33 @@ inline std::vector<T*> extract(expression_tree const & tree, symbols_table const
 }
 
 template<class T>
-inline std::vector<T*> extract(expression_tree const & tree, symbols_table const & table, size_t root, bool array_recurse = true)
+inline std::vector<T*> extract(expression const & tree, symbols_table const & table, size_t root, bool array_recurse = true)
 {
   return extract<T>(tree, table, std::vector<size_t>{root}, array_recurse);
 }
 
 template<class T>
-inline std::vector<T*> extract(expression_tree const & tree, symbols_table const & table)
+inline std::vector<T*> extract(expression const & tree, symbols_table const & table)
 {
   return extract<T>(tree, table, tree.root());
 }
 
 // Filter nodes
-std::vector<size_t> find(expression_tree const & tree, size_t root, std::function<bool (expression_tree::node const &)> const & pred);
-std::vector<size_t> find(expression_tree const & tree, std::function<bool (expression_tree::node const &)> const & pred);
+std::vector<size_t> find(expression const & tree, size_t root, std::function<bool (expression::node const &)> const & pred);
+std::vector<size_t> find(expression const & tree, std::function<bool (expression::node const &)> const & pred);
 
-std::vector<size_t> assignments(expression_tree const & tree);
-std::vector<size_t> lhs_of(expression_tree const & tree, std::vector<size_t> const & in);
-std::vector<size_t> rhs_of(expression_tree const & tree, std::vector<size_t> const & in);
+std::vector<size_t> assignments(expression const & tree);
+std::vector<size_t> lhs_of(expression const & tree, std::vector<size_t> const & in);
+std::vector<size_t> rhs_of(expression const & tree, std::vector<size_t> const & in);
 
 // Hash
-std::string hash(expression_tree const & tree);
+std::string hash(expression const & tree);
 
 //Set arguments
-void set_arguments(expression_tree const & tree, driver::Kernel & kernel, unsigned int & current_arg);
+void set_arguments(expression const & tree, driver::Kernel & kernel, unsigned int & current_arg);
 
 //Symbolize
-symbols_table symbolize(expression_tree const & expression);
+symbols_table symbolize(expression const & expression);
 
 }
 }

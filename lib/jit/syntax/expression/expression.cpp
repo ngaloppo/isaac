@@ -195,16 +195,16 @@ bool is_indexing(token_type op)
 
 
 //
-expression_tree::node::node(){}
+expression::node::node(){}
 
 //Constructors
-expression_tree::node::node(invalid_node) : type(INVALID_SUBTYPE), dtype(INVALID_NUMERIC_TYPE)
+expression::node::node(invalid_node) : type(INVALID_SUBTYPE), dtype(INVALID_NUMERIC_TYPE)
 {}
 
-expression_tree::node::node(scalar const & x) : type(VALUE_SCALAR_TYPE), dtype(x.dtype()), shape{1}, value(x.values())
+expression::node::node(scalar const & x) : type(VALUE_SCALAR_TYPE), dtype(x.dtype()), shape{1}, value(x.values())
 {}
 
-expression_tree::node::node(array_base const & x) : type(DENSE_ARRAY_TYPE), dtype(x.dtype()), shape(x.shape())
+expression::node::node(array_base const & x) : type(DENSE_ARRAY_TYPE), dtype(x.dtype()), shape(x.shape())
 {
   array.start = x.start();
   driver::Buffer::handle_type const & h = x.data().handle();
@@ -215,7 +215,7 @@ expression_tree::node::node(array_base const & x) : type(DENSE_ARRAY_TYPE), dtyp
   ld = x.stride();
 }
 
-expression_tree::node::node(int_t lhs, token op, int_t rhs, numeric_type dt, tuple const & sh)
+expression::node::node(int_t lhs, token op, int_t rhs, numeric_type dt, tuple const & sh)
 {
   type = COMPOSITE_OPERATOR_TYPE;
   dtype = dt;
@@ -226,7 +226,7 @@ expression_tree::node::node(int_t lhs, token op, int_t rhs, numeric_type dt, tup
 }
 
 //
-expression_tree::expression_tree(node const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
+expression::expression(node const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
   root_(2), context_(context)
 {
   tree_.reserve(3);
@@ -235,7 +235,7 @@ expression_tree::expression_tree(node const & lhs, node const & rhs, token const
   tree_.emplace_back(node(0, op, 1, dtype, shape));
 }
 
-expression_tree::expression_tree(expression_tree const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
+expression::expression(expression const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
  tree_(lhs.tree_.size() + 2), root_(tree_.size() - 1), context_(context)
 {
   std::move(lhs.tree_.begin(), lhs.tree_.end(), tree_.begin());
@@ -243,7 +243,7 @@ expression_tree::expression_tree(expression_tree const & lhs, node const & rhs, 
   tree_[root_] = node(lhs.root_, op, root_ - 1, dtype, shape);
 }
 
-expression_tree::expression_tree(node const & lhs, expression_tree const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
+expression::expression(node const & lhs, expression const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape) :
   tree_(rhs.tree_.size() + 2), root_(tree_.size() - 1), context_(context)
 {
   std::move(rhs.tree_.begin(), rhs.tree_.end(), tree_.begin());
@@ -251,7 +251,7 @@ expression_tree::expression_tree(node const & lhs, expression_tree const & rhs, 
   tree_[root_] = node(root_ - 1, op, rhs.root_, dtype, shape);
 }
 
-expression_tree::expression_tree(expression_tree const & lhs, expression_tree const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape):
+expression::expression(expression const & lhs, expression const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape):
   tree_(lhs.tree_.size() + rhs.tree_.size() + 1), root_(tree_.size()-1), context_(context)
 {  
   std::size_t lsize = lhs.tree_.size();
@@ -266,34 +266,34 @@ expression_tree::expression_tree(expression_tree const & lhs, expression_tree co
   }
 }
 
-expression_tree::data_type const & expression_tree::data() const
+expression::data_type const & expression::data() const
 { return tree_; }
 
-std::size_t expression_tree::root() const
+std::size_t expression::root() const
 { return root_; }
 
-driver::Context const & expression_tree::context() const
+driver::Context const & expression::context() const
 { return *context_; }
 
-numeric_type const & expression_tree::dtype() const
+numeric_type const & expression::dtype() const
 { return tree_[root_].dtype; }
 
-tuple expression_tree::shape() const
+tuple expression::shape() const
 { return tree_[root_].shape; }
 
-int_t expression_tree::dim() const
+int_t expression::dim() const
 { return (int_t)shape().size(); }
 
-expression_tree expression_tree::operator-()
-{ return expression_tree(*this,  invalid_node(), token(UNARY_ARITHMETIC, SUB_TYPE), context_, dtype(), shape()); }
+expression expression::operator-()
+{ return expression(*this,  invalid_node(), token(UNARY_ARITHMETIC, SUB_TYPE), context_, dtype(), shape()); }
 
-expression_tree expression_tree::operator!()
-{ return expression_tree(*this, invalid_node(), token(UNARY_ARITHMETIC, NEGATE_TYPE), context_, INT_TYPE, shape()); }
+expression expression::operator!()
+{ return expression(*this, invalid_node(), token(UNARY_ARITHMETIC, NEGATE_TYPE), context_, INT_TYPE, shape()); }
 
-expression_tree::node const & expression_tree::operator[](size_t idx) const
+expression::node const & expression::operator[](size_t idx) const
 { return tree_[idx]; }
 
-expression_tree::node & expression_tree::operator[](size_t idx)
+expression::node & expression::operator[](size_t idx)
 { return tree_[idx]; }
 
 //io
@@ -308,7 +308,7 @@ inline std::string to_string(const token& op)
   return res;
 }
 
-inline std::string to_string(const expression_tree::node &node)
+inline std::string to_string(const expression::node &node)
 {
   if(node.type==COMPOSITE_OPERATOR_TYPE)
   {
@@ -332,11 +332,11 @@ inline std::string to_string(const expression_tree::node &node)
 
 namespace detail
 {
-  /** @brief Recursive worker routine for printing a whole expression_tree */
-  inline void print_node(std::ostream & os, isaac::expression_tree const & s, size_t index, size_t indent = 0)
+  /** @brief Recursive worker routine for printing a whole expression */
+  inline void print_node(std::ostream & os, isaac::expression const & s, size_t index, size_t indent = 0)
   {
-    expression_tree::data_type const & data = s.data();
-    expression_tree::node const & node = data[index];
+    expression::data_type const & data = s.data();
+    expression::node const & node = data[index];
 
     for (size_t i=0; i<indent; ++i)
       os << " ";
@@ -351,7 +351,7 @@ namespace detail
   }
 }
 
-std::string to_string(isaac::expression_tree const & s)
+std::string to_string(isaac::expression const & s)
 {
   std::ostringstream os;
   detail::print_node(os, s, s.root());

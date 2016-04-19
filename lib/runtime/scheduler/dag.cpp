@@ -98,7 +98,7 @@ tuple dag::repack(int_t start, const tuple &ld)
   return result;
 }
 
-bool dag::overlap(expression_tree::node const & x, expression_tree::node const & y)
+bool dag::overlap(expression::node const & x, expression::node const & y)
 {
   if(x.array.handle.cl != y.array.handle.cl ||
      x.array.handle.cu != y.array.handle.cu ||
@@ -125,7 +125,7 @@ array_base& dag::create_temporary(array_base* tmp)
   return *tmp;
 }
 
-void dag::append(expression_tree const & job, std::string const & name)
+void dag::append(expression const & job, std::string const & name)
 {
   //Add new job
   jobs_.push_back(job);
@@ -133,14 +133,14 @@ void dag::append(expression_tree const & job, std::string const & name)
   adjacency_.insert({newid, {}});
   names_.push_back(name.empty()?tools::to_string(newid):name);
   //Add dependencies;
-  std::vector<expression_tree::node const *> nread;
+  std::vector<expression::node const *> nread;
   auto extractor = [&](size_t idx) { if(job[idx].type==DENSE_ARRAY_TYPE) nread.push_back(&job[idx]);};
   symbolic::traverse(job, job[job.root()].binary_operator.rhs, extractor);
   for(job_t previd = 0 ; previd < jobs_.size() ; ++previd){
-    expression_tree const & current = jobs_[previd];
-    expression_tree::node const & assignment = current[current.root()];
-    expression_tree::node const & pwritten = current[assignment.binary_operator.lhs];
-    auto pred = [&](expression_tree::node const * x){ return overlap(*x, pwritten);};
+    expression const & current = jobs_[previd];
+    expression::node const & assignment = current[current.root()];
+    expression::node const & pwritten = current[assignment.binary_operator.lhs];
+    auto pred = [&](expression::node const * x){ return overlap(*x, pwritten);};
     bool has_raw = std::find_if(nread.begin(), nread.end(), pred) != nread.end();
     if(has_raw)
       adjacency_[previd].push_back(newid);

@@ -33,12 +33,12 @@ namespace templates
 class elementwise_1d : public base
 {
 private:
-  void check_valid_impl(driver::Device const &, expression_tree const &) const;
-  std::string generate_impl(std::string const & suffix, expression_tree const  & expressions, driver::Device const & device, symbolic::symbols_table const & symbols) const;
+  void check_valid_impl(driver::Device const &, expression const &) const;
+  std::string generate_impl(std::string const & suffix, expression const  & expressions, driver::Device const & device, symbolic::symbols_table const & symbols) const;
 public:
   elementwise_1d(size_t s, size_t ls0, size_t ng0, fetching_policy_type fetch);
-  std::vector<int_t> input_sizes(expression_tree const  & expressions) const;
-  void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, expression_tree const & tree, runtime::environment const & opt);
+  std::vector<int_t> input_sizes(expression const  & expressions) const;
+  void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, expression const & tree, runtime::environment const & opt);
 private:
   size_t num_groups;
   fetching_policy_type fetching_policy;

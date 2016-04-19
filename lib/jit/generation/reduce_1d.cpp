@@ -37,18 +37,18 @@ namespace isaac
 namespace templates
 {
 
-size_t reduce_1d::lmem_usage(expression_tree const  & x) const
+size_t reduce_1d::lmem_usage(expression const  & x) const
 {
   return local_size_0*size_of(x.dtype());
 }
 
-void reduce_1d::check_valid_impl(driver::Device const &, expression_tree const  &) const
+void reduce_1d::check_valid_impl(driver::Device const &, expression const  &) const
 {
   if (fetching_policy==FETCH_FROM_LOCAL)
     throw jit::code_generation_error("generated code uses unsupported fetching policy");
 }
 
-size_t reduce_1d::temporary_workspace(expression_tree const &) const
+size_t reduce_1d::temporary_workspace(expression const &) const
 {
     if(num_groups > 1)
       return num_groups;
@@ -80,7 +80,7 @@ inline void reduce_1d::reduce_1d_local_memory(genstream & stream, size_t size, s
   stream << "}" << std::endl;
 }
 
-std::string reduce_1d::generate_impl(std::string const & suffix, expression_tree const  & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const
+std::string reduce_1d::generate_impl(std::string const & suffix, expression const  & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const
 {
   genstream stream(device.backend());
 
@@ -253,15 +253,15 @@ reduce_1d::reduce_1d(size_t simd, size_t ls, size_t ng, fetching_policy_type fet
     base(simd, ls, 1), num_groups(ng), fetching_policy(fetch)
 {}
 
-std::vector<int_t> reduce_1d::input_sizes(expression_tree const  & x) const
+std::vector<int_t> reduce_1d::input_sizes(expression const  & x) const
 {
-  std::vector<size_t> idx = symbolic::find(x, [](expression_tree::node const & x){return x.type==COMPOSITE_OPERATOR_TYPE && x.binary_operator.op.family==REDUCE;});
+  std::vector<size_t> idx = symbolic::find(x, [](expression::node const & x){return x.type==COMPOSITE_OPERATOR_TYPE && x.binary_operator.op.family==REDUCE;});
   size_t lhs = x[idx[0]].binary_operator.lhs;
   return {max(x[lhs].shape)};
 }
 
 void reduce_1d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix,
-                        expression_tree const & tree, runtime::environment const & opt)
+                        expression const & tree, runtime::environment const & opt)
 {
   int_t size = input_sizes(tree)[0];
   //Kernel

@@ -37,18 +37,18 @@ namespace isaac
 namespace templates
 {
 
-void reduce_2d::check_valid_impl(driver::Device const &, expression_tree const &) const
+void reduce_2d::check_valid_impl(driver::Device const &, expression const &) const
 {
   if (fetch_policy==FETCH_FROM_LOCAL)
     throw jit::code_generation_error("generated code uses unsupported fetching policy");
 }
 
-size_t reduce_2d::lmem_usage(const expression_tree&) const
+size_t reduce_2d::lmem_usage(const expression&) const
 {
   return (local_size_0+1)*local_size_1;
 }
 
-size_t reduce_2d::temporary_workspace(expression_tree const & expressions) const
+size_t reduce_2d::temporary_workspace(expression const & expressions) const
 {
     std::vector<int_t> MN = input_sizes(expressions);
     int_t M = MN[0];
@@ -57,7 +57,7 @@ size_t reduce_2d::temporary_workspace(expression_tree const & expressions) const
     return 0;
 }
 
-std::string reduce_2d::generate_impl(std::string const & suffix, expression_tree const & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const
+std::string reduce_2d::generate_impl(std::string const & suffix, expression const & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const
 {
   using tools::to_string;
 
@@ -294,9 +294,9 @@ reduce_2d::reduce_2d(size_t simd, size_t ls0, size_t ls1, size_t ng0, size_t ng1
   base(simd, ls0, ls1), num_groups_0(ng0), num_groups_1(ng1), fetch_policy(fetch), reduction_type_(type)
 { }
 
-std::vector<int_t> reduce_2d::input_sizes(expression_tree const & tree) const
+std::vector<int_t> reduce_2d::input_sizes(expression const & tree) const
 {
-  std::vector<size_t> idx = symbolic::find(tree, [this](expression_tree::node const & x){return x.binary_operator.op.family==reduction_type_;});
+  std::vector<size_t> idx = symbolic::find(tree, [this](expression::node const & x){return x.binary_operator.op.family==reduction_type_;});
   std::vector<int_t> shape = tree[tree[idx[0]].binary_operator.lhs].shape;
   if(reduction_type_==REDUCE_COLUMNS)
     return {shape[1], shape[0]};
@@ -304,7 +304,7 @@ std::vector<int_t> reduce_2d::input_sizes(expression_tree const & tree) const
 }
 
 void reduce_2d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix,
-                        expression_tree const & tree, runtime::environment const & opt)
+                        expression const & tree, runtime::environment const & opt)
 {
   std::vector<int_t> MN = input_sizes(tree);
 

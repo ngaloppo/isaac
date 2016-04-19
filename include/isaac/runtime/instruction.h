@@ -31,7 +31,7 @@
 namespace isaac
 {
 
-class expression_tree;
+class expression;
 
 namespace runtime
 {
@@ -46,12 +46,12 @@ class instruction
   typedef std::vector<template_pointer> templates_container;
 
 private:
-  driver::Program const & init(expression_tree const & tree);
+  driver::Program const & init(expression const & tree);
 
 public:
   instruction(inference::random_forest const &, std::vector< std::shared_ptr<templates::base> > const &, driver::CommandQueue const &);
   instruction(std::shared_ptr<templates::base> const &, driver::CommandQueue const &);
-  void execute(expression_tree const & tree, environment const & env, optimize const & opt);
+  void execute(expression const & tree, environment const & env, optimize const & opt);
 
 private:
   templates_container templates_;

@@ -38,13 +38,13 @@ namespace isaac
 namespace templates
 {
 
-void elementwise_1d::check_valid_impl(driver::Device const &, expression_tree const &) const
+void elementwise_1d::check_valid_impl(driver::Device const &, expression const &) const
 {
   if (fetching_policy==FETCH_FROM_LOCAL)
     throw jit::code_generation_error("generated code uses unsupported fetching policy");
 }
 
-std::string elementwise_1d::generate_impl(std::string const & suffix, expression_tree const & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const
+std::string elementwise_1d::generate_impl(std::string const & suffix, expression const & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const
 {
   driver::backend_type backend = device.backend();
   genstream stream(backend);
@@ -116,13 +116,13 @@ elementwise_1d::elementwise_1d(size_t simd, size_t ls, size_t ng,
 {}
 
 
-std::vector<int_t> elementwise_1d::input_sizes(expression_tree const & expressions) const
+std::vector<int_t> elementwise_1d::input_sizes(expression const & expressions) const
 {
   return {max(expressions.shape())};
 }
 
 void elementwise_1d::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix,
-                             expression_tree const & tree, runtime::environment const & opt)
+                             expression const & tree, runtime::environment const & opt)
 {
   //Size
   int_t size = input_sizes(tree)[0];

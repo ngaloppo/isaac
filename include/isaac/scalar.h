@@ -29,7 +29,7 @@ namespace isaac
 {
 
 class device_scalar;
-class expression_tree;
+class expression;
 
 union ISAACAPI values_holder
 {
@@ -66,7 +66,7 @@ public:
 #undef ISAAC_INSTANTIATE
   scalar(values_holder values, numeric_type dtype);
   explicit scalar(device_scalar const &);
-  explicit scalar(expression_tree const &);
+  explicit scalar(expression const &);
   explicit scalar(numeric_type dtype = INVALID_NUMERIC_TYPE);
 
   values_holder values() const;

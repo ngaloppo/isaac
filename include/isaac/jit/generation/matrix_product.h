@@ -28,7 +28,7 @@
 namespace isaac
 {
 
-class expression_tree;
+class expression;
 
 namespace templates
 {
@@ -36,14 +36,14 @@ namespace templates
 class matrix_product : public base
 {
 private:
-  size_t temporary_workspace(expression_tree const & expressions) const;
-  size_t lmem_usage(expression_tree const & expressions) const;
-  size_t registers_usage(expression_tree const & expressions) const;
-  void check_valid_impl(driver::Device const &, expression_tree const &) const;
-  std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::symbols_table const &) const;
-  void enqueue_block(driver::CommandQueue & queue, int_t M, int_t N, int_t K, const expression_tree::node &A, const expression_tree::node &B, const expression_tree::node &C,
+  size_t temporary_workspace(expression const & expressions) const;
+  size_t lmem_usage(expression const & expressions) const;
+  size_t registers_usage(expression const & expressions) const;
+  void check_valid_impl(driver::Device const &, expression const &) const;
+  std::string generate_impl(std::string const & suffix, expression const & expressions, driver::Device const & device, symbolic::symbols_table const &) const;
+  void enqueue_block(driver::CommandQueue & queue, int_t M, int_t N, int_t K, const expression::node &A, const expression::node &B, const expression::node &C,
                      scalar const &alpha, scalar const &beta, driver::Program const & program, std::string const & suffix, runtime::environment const & options);
-  std::vector<int_t> infos(expression_tree const & expressions,  isaac::symbolic::preset::matrix_product::args &arguments) const;
+  std::vector<int_t> infos(expression const & expressions,  isaac::symbolic::preset::matrix_product::args &arguments) const;
 public:
   matrix_product(size_t s,
                  size_t ls0, size_t KL, size_t ls1, size_t D,
@@ -51,8 +51,8 @@ public:
                  fetching_policy_type Afetch, fetching_policy_type Bfetch,
                  size_t fetch0, size_t fetch1,
                  char A_trans, char B_trans);
-  std::vector<int_t> input_sizes(expression_tree const & expressions) const;
-  void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, expression_tree const & tree, runtime::environment const & opt);
+  std::vector<int_t> input_sizes(expression const & expressions) const;
+  void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, expression const & tree, runtime::environment const & opt);
 private:
   size_t kL;
   size_t depth;

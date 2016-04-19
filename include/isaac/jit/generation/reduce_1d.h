@@ -32,17 +32,17 @@ namespace templates
 class reduce_1d : public base
 {
 private:
-  size_t lmem_usage(expression_tree const  & expressions) const;
-  void check_valid_impl(driver::Device const &, expression_tree const &) const;
-  size_t temporary_workspace(expression_tree const & expressions) const;
+  size_t lmem_usage(expression const  & expressions) const;
+  void check_valid_impl(driver::Device const &, expression const &) const;
+  size_t temporary_workspace(expression const & expressions) const;
   inline void reduce_1d_local_memory(genstream & stream, size_t size, std::vector<symbolic::reduce_1d*> exprs,
                                      std::string const & buf_str, std::string const & buf_value_str, driver::backend_type backend) const;
-  std::string generate_impl(std::string const & suffix,  expression_tree const  & expressions, driver::Device const & device, symbolic::symbols_table const & mapping) const;
+  std::string generate_impl(std::string const & suffix,  expression const  & expressions, driver::Device const & device, symbolic::symbols_table const & mapping) const;
 
 public:
   reduce_1d(size_t simd, size_t ls, size_t ng, fetching_policy_type fetch);
-  std::vector<int_t> input_sizes(expression_tree const  & expressions) const;
-  void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, expression_tree const & tree, runtime::environment const & opt);
+  std::vector<int_t> input_sizes(expression const  & expressions) const;
+  void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, expression const & tree, runtime::environment const & opt);
 private:
   size_t num_groups;
   fetching_policy_type fetching_policy;

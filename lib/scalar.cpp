@@ -70,7 +70,7 @@ INSTANTIATE(double)
 
 scalar::scalar(numeric_type dtype) : dtype_(dtype) {}
 scalar::scalar(device_scalar const & s) : dtype_(s.dtype()) { s.inject(values_); }
-scalar::scalar(expression_tree const &expr) : dtype_(expr.dtype()) { device_scalar(expr).inject(values_); }
+scalar::scalar(expression const &expr) : dtype_(expr.dtype()) { device_scalar(expr).inject(values_); }
 scalar::scalar(values_holder values, numeric_type dtype) : values_(values), dtype_(dtype) {}
 values_holder scalar::values() const
 { return values_; }

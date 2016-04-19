@@ -294,7 +294,7 @@ void export_core()
   .def(bp::self OP bp::self)\
   ADD_SCALAR_HANDLING(OP)
 
-  bp::class_<sc::expression_tree >("expression_tree", bp::no_init)
+  bp::class_<sc::expression >("expression", bp::no_init)
       ADD_ARRAY_OPERATOR(+)
       ADD_ARRAY_OPERATOR(-)
       ADD_ARRAY_OPERATOR(*)
@@ -305,7 +305,7 @@ void export_core()
       ADD_ARRAY_OPERATOR(<=)
       ADD_ARRAY_OPERATOR(==)
       ADD_ARRAY_OPERATOR(!=)
-      .add_property("context", bp::make_function(&sc::expression_tree::context, bp::return_internal_reference<>()))
+      .add_property("context", bp::make_function(&sc::expression::context, bp::return_internal_reference<>()))
       .def(bp::self_ns::abs(bp::self))
 //      .def(bp::self_ns::pow(bp::self))
   ;
@@ -313,8 +313,8 @@ void export_core()
 
 #define ADD_ARRAY_OPERATOR(OP) \
   .def(bp::self                            OP bp::self)\
-  .def(bp::self                            OP bp::other<sc::expression_tree>())\
-  .def(bp::other<sc::expression_tree>() OP bp::self) \
+  .def(bp::self                            OP bp::other<sc::expression>())\
+  .def(bp::other<sc::expression>() OP bp::self) \
   ADD_SCALAR_HANDLING(OP)
 
   bp::class_<sc::array_base, boost::noncopyable>("array_base", bp::no_init)
@@ -340,7 +340,7 @@ void export_core()
   bp::class_<sc::array,std::shared_ptr<sc::array>, bp::bases<sc::array_base> >
           ( "array", bp::no_init)
           .def("__init__", bp::make_constructor(detail::create_array, bp::default_call_policies(), (bp::arg("obj"), bp::arg("dtype") = bp::scope().attr("float32"), bp::arg("context")= bp::object())))
-          .def(bp::init<sc::expression_tree>())
+          .def(bp::init<sc::expression>())
   ;
 
   bp::class_<sc::view, bp::bases<sc::array_base> >
@@ -356,15 +356,15 @@ void export_core()
   bp::def("empty", &detail::create_empty_array, (bp::arg("shape"), bp::arg("dtype") = bp::scope().attr("float32"), bp::arg("context")=bp::object()));
 
 //Assign
-    bp::def("assign", static_cast<sc::expression_tree (*)(sc::array_base const &, sc::array_base const &)>(&sc::assign));\
-    bp::def("assign", static_cast<sc::expression_tree (*)(sc::array_base const &, sc::expression_tree const &)>(&sc::assign));\
+    bp::def("assign", static_cast<sc::expression (*)(sc::array_base const &, sc::array_base const &)>(&sc::assign));\
+    bp::def("assign", static_cast<sc::expression (*)(sc::array_base const &, sc::expression const &)>(&sc::assign));\
 
 //Binary
 #define MAP_FUNCTION(name) \
-      bp::def(#name, static_cast<sc::expression_tree (*)(sc::array_base const &, sc::array_base const &)>(&sc::name));\
-      bp::def(#name, static_cast<sc::expression_tree (*)(sc::expression_tree const &, sc::array_base const &)>(&sc::name));\
-      bp::def(#name, static_cast<sc::expression_tree (*)(sc::array_base const &, sc::expression_tree const &)>(&sc::name));\
-      bp::def(#name, static_cast<sc::expression_tree (*)(sc::expression_tree const &, sc::expression_tree const &)>(&sc::name));
+      bp::def(#name, static_cast<sc::expression (*)(sc::array_base const &, sc::array_base const &)>(&sc::name));\
+      bp::def(#name, static_cast<sc::expression (*)(sc::expression const &, sc::array_base const &)>(&sc::name));\
+      bp::def(#name, static_cast<sc::expression (*)(sc::array_base const &, sc::expression const &)>(&sc::name));\
+      bp::def(#name, static_cast<sc::expression (*)(sc::expression const &, sc::expression const &)>(&sc::name));
 
   MAP_FUNCTION(maximum)
   MAP_FUNCTION(minimum)
@@ -374,8 +374,8 @@ void export_core()
 
 //Unary
 #define MAP_FUNCTION(name) \
-      bp::def(#name, static_cast<sc::expression_tree (*)(sc::array_base const &)>(&sc::name));\
-      bp::def(#name, static_cast<sc::expression_tree (*)(sc::expression_tree const &)>(&sc::name));
+      bp::def(#name, static_cast<sc::expression (*)(sc::array_base const &)>(&sc::name));\
+      bp::def(#name, static_cast<sc::expression (*)(sc::expression const &)>(&sc::name));
 
       bp::def("zeros", &detail::create_zeros_array, (bp::arg("shape"), bp::arg("dtype") = bp::scope().attr("float32"), bp::arg("context")=bp::object()));
 
@@ -400,8 +400,8 @@ void export_core()
   /*--- Reduction operators----*/
   //---------------------------------------
 #define MAP_FUNCTION(name) \
-      bp::def(#name, static_cast<sc::expression_tree (*)(sc::array_base const &, sc::int_t)>(&sc::name));\
-      bp::def(#name, static_cast<sc::expression_tree (*)(sc::expression_tree const &, sc::int_t)>(&sc::name));
+      bp::def(#name, static_cast<sc::expression (*)(sc::array_base const &, sc::int_t)>(&sc::name));\
+      bp::def(#name, static_cast<sc::expression (*)(sc::expression const &, sc::int_t)>(&sc::name));
 
   MAP_FUNCTION(sum)
   MAP_FUNCTION(max)

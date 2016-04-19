@@ -41,7 +41,7 @@ namespace templates
 
 
 
-  size_t matrix_product::lmem_usage(expression_tree const & expression) const
+  size_t matrix_product::lmem_usage(expression const & expression) const
   {
     size_t N = 0;
     N += kL * mL;
@@ -49,13 +49,13 @@ namespace templates
     return N*size_of(expression.dtype());
   }
 
-  size_t matrix_product::registers_usage(expression_tree const & expression) const
+  size_t matrix_product::registers_usage(expression const & expression) const
   {
     size_t N = mS * nS + mS * kS + kS * nS;
     return N*size_of(expression.dtype());
   }
 
-  size_t matrix_product::temporary_workspace(expression_tree const & expressions) const
+  size_t matrix_product::temporary_workspace(expression const & expressions) const
   {
       std::vector<int_t> MNK = input_sizes(expressions);
       int_t M = MNK[0]; int_t N = MNK[1];
@@ -64,7 +64,7 @@ namespace templates
       return 0;
   }
 
-  void matrix_product::check_valid_impl(driver::Device const &, expression_tree const &) const
+  void matrix_product::check_valid_impl(driver::Device const &, expression const &) const
   {
     if(A_fetching_policy!=FETCH_FROM_LOCAL || B_fetching_policy!=FETCH_FROM_LOCAL)
       throw jit::code_generation_error("generated code uses unsupported fetching policy");
@@ -132,7 +132,7 @@ namespace templates
     }
   }
 
-  std::string matrix_product::generate_impl(std::string const & suffix, expression_tree const & tree, driver::Device const & device, symbolic::symbols_table const &) const
+  std::string matrix_product::generate_impl(std::string const & suffix, expression const & tree, driver::Device const & device, symbolic::symbols_table const &) const
   {
     using std::string;
     using tools::to_string;
@@ -592,7 +592,7 @@ namespace templates
   }
 
   void matrix_product::enqueue_block(driver::CommandQueue & queue, int_t M, int_t N, int_t K,
-                     expression_tree::node const & A, expression_tree::node const & B, expression_tree::node const & C,
+                     expression::node const & A, expression::node const & B, expression::node const & C,
                      scalar const & alpha, scalar const & beta,
                      driver::Program const & program, std::string const & suffix, runtime::environment const & options)
   {
@@ -682,9 +682,9 @@ namespace templates
 
   }
 
-  std::vector<int_t> matrix_product::infos(expression_tree const & tree, symbolic::preset::matrix_product::args& arguments) const
+  std::vector<int_t> matrix_product::infos(expression const & tree, symbolic::preset::matrix_product::args& arguments) const
   {
-    expression_tree::data_type const & array = tree.data();
+    expression::data_type const & array = tree.data();
     std::size_t root = tree.root();
     arguments = symbolic::preset::matrix_product::check(array, root);
     int_t M = arguments.C->shape[0];
@@ -710,14 +710,14 @@ namespace templates
     else throw;
   }
 
-  std::vector<int_t> matrix_product::input_sizes(expression_tree const & expressions) const
+  std::vector<int_t> matrix_product::input_sizes(expression const & expressions) const
   {
     symbolic::preset::matrix_product::args dummy;
-    return infos((expression_tree&)expressions, dummy);
+    return infos((expression&)expressions, dummy);
   }
 
   void matrix_product::enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix,
-                               expression_tree const & tree, runtime::environment const & options)
+                               expression const & tree, runtime::environment const & options)
   {
     symbolic::preset::matrix_product::args args;
     std::vector<int_t> MNK = infos(tree, args);

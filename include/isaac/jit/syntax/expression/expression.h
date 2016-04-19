@@ -184,7 +184,7 @@ union handle_t
   CUdeviceptr cu;
 };
 
-class expression_tree
+class expression
 {
 public:
   struct node
@@ -224,10 +224,10 @@ public:
   typedef std::vector<node>     data_type;
 
 public:
-  expression_tree(node const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
-  expression_tree(expression_tree const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
-  expression_tree(node const & lhs, expression_tree const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
-  expression_tree(expression_tree const & lhs, expression_tree const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
+  expression(node const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
+  expression(expression const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
+  expression(node const & lhs, expression const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
+  expression(expression const & lhs, expression const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
 
   tuple shape() const;
   int_t dim() const;
@@ -239,8 +239,8 @@ public:
   node const & operator[](size_t) const;
   node & operator[](size_t);
 
-  expression_tree operator-();
-  expression_tree operator!();
+  expression operator-();
+  expression operator!();
 
 private:
   data_type tree_;
@@ -250,9 +250,9 @@ private:
 
 //io
 std::string to_string(node_type const & f);
-std::string to_string(expression_tree::node const & e);
-std::ostream & operator<<(std::ostream & os, expression_tree::node const & s_node);
-std::string to_string(isaac::expression_tree const & s);
+std::string to_string(expression::node const & e);
+std::ostream & operator<<(std::ostream & os, expression::node const & s_node);
+std::string to_string(isaac::expression const & s);
 
 }
 

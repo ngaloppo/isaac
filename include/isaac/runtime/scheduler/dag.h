@@ -39,19 +39,19 @@ class dag
 {
 private:
   static int_t last_index(array_base* x);
-  static bool overlap(expression_tree::node const & x, expression_tree::node const & y);
+  static bool overlap(expression::node const & x, expression::node const & y);
   static tuple repack(int_t start, const tuple &ld);
 
 public:
   dag();
-  void append(expression_tree const & job, std::string const & name = "");
+  void append(expression const & job, std::string const & name = "");
   array_base& create_temporary(array_base* tmp);
   void export_graphviz(std::string const & path);
   adjacency_t const & adjacency() const;
 
 private:
   adjacency_t adjacency_;
-  std::vector<expression_tree> jobs_;
+  std::vector<expression> jobs_;
   std::vector<std::string> names_;
   std::vector<std::shared_ptr<array_base> > tmp_;
 };

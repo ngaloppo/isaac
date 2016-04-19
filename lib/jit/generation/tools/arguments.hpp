@@ -34,7 +34,7 @@ namespace templates
 {
 
 //Generate
-inline std::vector<std::string> kernel_arguments(driver::Device const &, symbolic::symbols_table const & symbols, expression_tree const & expressions)
+inline std::vector<std::string> kernel_arguments(driver::Device const &, symbolic::symbols_table const & symbols, expression const & expressions)
 {
     std::vector<std::string> result;
     for(symbolic::object* obj: symbolic::extract<symbolic::object>(expressions, symbols))

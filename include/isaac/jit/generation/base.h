@@ -174,18 +174,18 @@ protected:
   }
 
 private:
-  virtual std::string generate_impl(std::string const & suffix, expression_tree const & tree, driver::Device const & device, symbolic::symbols_table const & mapping) const = 0;
-  virtual void check_valid_impl(driver::Device const &, expression_tree const &) const;
+  virtual std::string generate_impl(std::string const & suffix, expression const & tree, driver::Device const & device, symbolic::symbols_table const & mapping) const = 0;
+  virtual void check_valid_impl(driver::Device const &, expression const &) const;
 
 public:
   base(size_t s, size_t ls0, size_t ls1);
-  std::string generate(std::string const & suffix, expression_tree const & tree, driver::Device const & device);
-  void check_valid(expression_tree const & tree, driver::Device const & device) const;
-  virtual size_t temporary_workspace(expression_tree const & tree) const;
-  virtual size_t lmem_usage(expression_tree const & tree) const;
-  virtual size_t registers_usage(expression_tree const & tree) const;
-  virtual std::vector<int_t> input_sizes(expression_tree const & tree) const = 0;
-  virtual void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix,expression_tree const & tree, runtime::environment const & opt) = 0;
+  std::string generate(std::string const & suffix, expression const & tree, driver::Device const & device);
+  void check_valid(expression const & tree, driver::Device const & device) const;
+  virtual size_t temporary_workspace(expression const & tree) const;
+  virtual size_t lmem_usage(expression const & tree) const;
+  virtual size_t registers_usage(expression const & tree) const;
+  virtual std::vector<int_t> input_sizes(expression const & tree) const = 0;
+  virtual void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix,expression const & tree, runtime::environment const & opt) = 0;
 
 protected:
   size_t simd_width;

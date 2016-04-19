@@ -85,13 +85,13 @@ struct optimize
 class launcher
 {
 public:
-  launcher(expression_tree const & tree, environment const& env = environment(), optimize const & opt = optimize()) : tree_(tree), env_(env), opt_(opt){}
-  launcher(expression_tree const & tree, launcher const & other) : tree_(tree), env_(other.env_), opt_(other.opt_){}
-  expression_tree const & tree() const { return tree_; }
+  launcher(expression const & tree, environment const& env = environment(), optimize const & opt = optimize()) : tree_(tree), env_(env), opt_(opt){}
+  launcher(expression const & tree, launcher const & other) : tree_(tree), env_(other.env_), opt_(other.opt_){}
+  expression const & tree() const { return tree_; }
   environment const & env() const { return env_; }
   optimize const & opt() const { return opt_; }
 private:
-  expression_tree tree_;
+  expression tree_;
   environment env_;
   optimize opt_;
 };

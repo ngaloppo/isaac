@@ -43,10 +43,10 @@ public:
     {
         args(): A(NULL), B(NULL), C(NULL), type(INVALID_EXPRESSION_TYPE){ }
         scalar alpha;
-        expression_tree::node const * A;
-        expression_tree::node const * B;
+        expression::node const * A;
+        expression::node const * B;
         scalar beta;
-        expression_tree::node const * C;
+        expression::node const * C;
         expression_type type;
 
         operator bool() const
@@ -55,10 +55,10 @@ public:
         }
     };
 private:
-    static void handle_node( expression_tree::data_type const &tree, size_t rootidx, args & a);
+    static void handle_node( expression::data_type const &tree, size_t rootidx, args & a);
 
 public:
-    static args check(expression_tree::data_type const &tree, size_t rootidx);
+    static args check(expression::data_type const &tree, size_t rootidx);
 };
 
 }

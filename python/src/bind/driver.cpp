@@ -83,7 +83,7 @@ namespace detail
   std::shared_ptr<sc::driver::Context> make_context(sc::driver::Device const & dev)
   { return std::shared_ptr<sc::driver::Context>(new sc::driver::Context(dev)); }
 
-  bp::object enqueue(sc::expression_tree const & tree, unsigned int queue_id, bp::list dependencies, bool tune, int label, std::string const & program_name, bool force_recompile)
+  bp::object enqueue(sc::expression const & tree, unsigned int queue_id, bp::list dependencies, bool tune, int label, std::string const & program_name, bool force_recompile)
   {
       std::list<sc::driver::Event> events;
       std::vector<sc::driver::Event> cdependencies = tools::to_vector<sc::driver::Event>(dependencies);
@@ -91,11 +91,11 @@ namespace detail
       sc::environment execution_options(queue_id, &events, &cdependencies);
       sc::optimize dispatcher_options(tune, label);
       sc::compilation_options_type compilation_options(program_name, force_recompile);
-      sc::expression_tree::node const & root = tree[tree.root()];
+      sc::expression::node const & root = tree[tree.root()];
       if(sc::is_assignment(root.binary_operator.op.type))
       {
           sc::symbolic::execute(sc::launcher(tree, execution_options, dispatcher_options, compilation_options), isaac::profiles::get(execution_options.queue(tree.context())));
-          sc::expression_tree::node const & lhs = tree[root.binary_operator.lhs];
+          sc::expression::node const & lhs = tree[root.binary_operator.lhs];
           sc::driver::Buffer const & data = sc::driver::make_buffer(tree.context().backend(), lhs.array.handle.cl, lhs.array.handle.cu, false);
           std::shared_ptr<sc::array> parray(new sc::array(lhs.shape, lhs.dtype, lhs.array.start, lhs.ld, data));
           return bp::make_tuple(parray, tools::to_list(events.begin(), events.end()));

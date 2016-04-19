@@ -129,25 +129,25 @@ base::base(size_t s, size_t ls0, size_t ls1):
   simd_width(s), local_size_0(ls0), local_size_1(ls1)
 {}
 
-size_t base::lmem_usage(expression_tree const  &) const
+size_t base::lmem_usage(expression const  &) const
 {
   return 0;
 }
 
-size_t base::registers_usage(expression_tree const  &) const
+size_t base::registers_usage(expression const  &) const
 {
   return 0;
 }
 
-size_t base::temporary_workspace(expression_tree const  &) const
+size_t base::temporary_workspace(expression const  &) const
 {
   return 0;
 }
 
-void base::check_valid_impl(driver::Device const &, expression_tree const  &) const
+void base::check_valid_impl(driver::Device const &, expression const  &) const
 { }
 
-void base::check_valid(expression_tree const  & tree, driver::Device const & device) const
+void base::check_valid(expression const  & tree, driver::Device const & device) const
 {
   //Query device informations
   size_t lmem_available = device.local_mem_size();
@@ -172,7 +172,7 @@ void base::check_valid(expression_tree const  & tree, driver::Device const & dev
   check_valid_impl(device, tree);
 }
 
-std::string base::generate(std::string const & suffix, expression_tree const  & expression, driver::Device const & device)
+std::string base::generate(std::string const & suffix, expression const  & expression, driver::Device const & device)
 {
   check_valid(expression, device);
 

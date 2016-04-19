@@ -69,7 +69,7 @@ protected:
 };
 
 // Filter nodes
-std::vector<size_t> find(expression_tree const & tree, size_t root, std::function<bool (expression_tree::node const &)> const & pred)
+std::vector<size_t> find(expression const & tree, size_t root, std::function<bool (expression::node const &)> const & pred)
 {
   std::vector<size_t> result;
   auto fun = [&](size_t index) { if(pred(tree[index])) result.push_back(index); };
@@ -77,19 +77,19 @@ std::vector<size_t> find(expression_tree const & tree, size_t root, std::functio
   return result;
 }
 
-std::vector<size_t> find(expression_tree const & tree, std::function<bool (expression_tree::node const &)> const & pred)
+std::vector<size_t> find(expression const & tree, std::function<bool (expression::node const &)> const & pred)
 {
   return find(tree, tree.root(), pred);
 }
 
-std::vector<size_t> assignments(expression_tree const & tree)
+std::vector<size_t> assignments(expression const & tree)
 {
-  return find(tree, [&](expression_tree::node const & node)
+  return find(tree, [&](expression::node const & node)
             {return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);}
           );
 }
 
-std::vector<size_t> lhs_of(expression_tree const & tree, std::vector<size_t> const & in)
+std::vector<size_t> lhs_of(expression const & tree, std::vector<size_t> const & in)
 {
   std::vector<size_t> result;
   for(size_t idx: in)
@@ -97,7 +97,7 @@ std::vector<size_t> lhs_of(expression_tree const & tree, std::vector<size_t> con
   return result;
 }
 
-std::vector<size_t> rhs_of(expression_tree const & tree, std::vector<size_t> const & in)
+std::vector<size_t> rhs_of(expression const & tree, std::vector<size_t> const & in)
 {
   std::vector<size_t> result;
   for(size_t idx: in)
@@ -107,7 +107,7 @@ std::vector<size_t> rhs_of(expression_tree const & tree, std::vector<size_t> con
 
 
 // Hash
-std::string hash(expression_tree const & tree)
+std::string hash(expression const & tree)
 {
   driver::backend_type backend = tree.context().backend();
 
@@ -117,7 +117,7 @@ std::string hash(expression_tree const & tree)
 
   auto hash_impl = [&](size_t idx)
   {
-    expression_tree::node const & node = tree.data()[idx];
+    expression::node const & node = tree.data()[idx];
     if(node.type==DENSE_ARRAY_TYPE)
     {
       for(size_t i = 0 ; i < node.shape.size() ; ++i)
@@ -140,7 +140,7 @@ std::string hash(expression_tree const & tree)
 }
 
 //Set arguments
-void set_arguments(expression_tree const & tree, driver::Kernel & kernel, unsigned int & current_arg)
+void set_arguments(expression const & tree, driver::Kernel & kernel, unsigned int & current_arg)
 {
   driver::backend_type backend = tree.context().backend();
 
@@ -148,13 +148,13 @@ void set_arguments(expression_tree const & tree, driver::Kernel & kernel, unsign
   symbolic_binder binder(backend);
 
   //assigned
-  std::vector<size_t> assignee = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
+  std::vector<size_t> assignee = symbolic::find(tree, [&](expression::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
   for(size_t& x: assignee) x = tree[x].binary_operator.lhs;
 
   //set_arguments_impl
   auto set_arguments_impl = [&](size_t index)
   {
-    expression_tree::node const & node = tree.data()[index];
+    expression::node const & node = tree.data()[index];
     if(node.type==VALUE_SCALAR_TYPE)
       kernel.setArg(current_arg++,scalar(node.value,node.dtype));
     else if(node.type==DENSE_ARRAY_TYPE)
@@ -207,7 +207,7 @@ std::shared_ptr<object> make_symbolic(Args&&... args)
   return std::shared_ptr<object>(new T(std::forward<Args>(args)...));
 }
 
-symbols_table symbolize(isaac::expression_tree const & tree)
+symbols_table symbolize(isaac::expression const & tree)
 {
   driver::Context const & context = tree.context();
 
@@ -216,13 +216,13 @@ symbols_table symbolize(isaac::expression_tree const & tree)
   symbolic_binder binder(context.backend());
 
   //assigned
-  std::vector<size_t> assignee = symbolic::find(tree, [&](expression_tree::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
+  std::vector<size_t> assignee = symbolic::find(tree, [&](expression::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
   for(size_t& x: assignee) x = tree[x].binary_operator.lhs;
 
   //symbolize_impl
   auto symbolize_impl = [&](size_t root)
   {
-    expression_tree::node const & node = tree.data()[root];
+    expression::node const & node = tree.data()[root];
     std::string dtype = to_string(node.dtype);
     if(node.type==VALUE_SCALAR_TYPE)
       table.insert({root, make_symbolic<host_scalar>(context, dtype, binder.get())});

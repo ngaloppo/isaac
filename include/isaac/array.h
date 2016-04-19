@@ -111,27 +111,27 @@ public:
 
   //Numeric operators
   array_base& operator=(array_base const &);
-  array_base& operator=(expression_tree const &);
+  array_base& operator=(expression const &);
   array_base& operator=(runtime::launcher const &);
   template<class T>
   array_base & operator=(std::vector<T> const & rhs);
   array_base & operator=(scalar const & rhs);
 
-  expression_tree operator-();
-  expression_tree operator!();
+  expression operator-();
+  expression operator!();
 
   array_base& operator+=(scalar const &);
   array_base& operator+=(array_base const &);
-  array_base& operator+=(expression_tree const &);
+  array_base& operator+=(expression const &);
   array_base& operator-=(scalar const &);
   array_base& operator-=(array_base const &);
-  array_base& operator-=(expression_tree const &);
+  array_base& operator-=(expression const &);
   array_base& operator*=(scalar const &);
   array_base& operator*=(array_base const &);
-  array_base& operator*=(expression_tree const &);
+  array_base& operator*=(expression const &);
   array_base& operator/=(scalar const &);
   array_base& operator/=(array_base const &);
-  array_base& operator/=(expression_tree const &);
+  array_base& operator/=(expression const &);
 
   //Indexing (1D)
   const device_scalar operator[](int_t) const;
@@ -160,7 +160,7 @@ protected:
   driver::Buffer data_;
 
 public:
-  const expression_tree T;
+  const expression T;
 };
 
 class ISAACAPI array : public array_base
@@ -170,7 +170,7 @@ public:
   //Copy Constructor
   array(array_base const &);
   array(array const &);
-  array(expression_tree const & proxy);
+  array(expression const & proxy);
   using array_base::operator=;
 };
 
@@ -187,7 +187,7 @@ public:
 class ISAACAPI device_scalar : public array_base
 {
   friend scalar::scalar(const device_scalar &);
-  friend scalar::scalar(const expression_tree &);
+  friend scalar::scalar(const expression &);
 private:
   void inject(values_holder&) const;
   template<class T> T cast() const;
@@ -195,7 +195,7 @@ public:
   explicit device_scalar(numeric_type dtype, const driver::Buffer &data, int_t offset);
   explicit device_scalar(scalar value, driver::Context const & context = driver::backend::contexts::get_default());
   explicit device_scalar(numeric_type dtype, driver::Context const & context = driver::backend::contexts::get_default());
-  device_scalar(expression_tree const & proxy);
+  device_scalar(expression const & proxy);
   device_scalar& operator=(scalar const &);
 //  scalar& operator=(scalar const & s);
   using array_base::operator =;
@@ -233,16 +233,16 @@ template<class T> ISAACAPI void copy(array_base const & gA, std::vector<T> & cA,
 //Binary operators
 
 #define ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR(OPNAME) \
-ISAACAPI expression_tree OPNAME (array_base const & x, expression_tree const & y);\
-ISAACAPI expression_tree OPNAME (array_base const & x, scalar const & y);\
-ISAACAPI expression_tree OPNAME (array_base const & x, array_base const & y);\
+ISAACAPI expression OPNAME (array_base const & x, expression const & y);\
+ISAACAPI expression OPNAME (array_base const & x, scalar const & y);\
+ISAACAPI expression OPNAME (array_base const & x, array_base const & y);\
 \
-ISAACAPI expression_tree OPNAME (expression_tree const & x, expression_tree const & y);\
-ISAACAPI expression_tree OPNAME (expression_tree const & x, scalar const & y);\
-ISAACAPI expression_tree OPNAME (expression_tree const & x, array_base const & y);\
+ISAACAPI expression OPNAME (expression const & x, expression const & y);\
+ISAACAPI expression OPNAME (expression const & x, scalar const & y);\
+ISAACAPI expression OPNAME (expression const & x, array_base const & y);\
 \
-ISAACAPI expression_tree OPNAME (scalar const & y, expression_tree const & x);\
-ISAACAPI expression_tree OPNAME (scalar const & y, array_base const & x);\
+ISAACAPI expression OPNAME (scalar const & y, expression const & x);\
+ISAACAPI expression OPNAME (scalar const & y, array_base const & x);\
 
 ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR(operator +)
 ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR(operator -)
@@ -270,8 +270,8 @@ ISAAC_DECLARE_ELEMENT_BINARY_OPERATOR(assign)
 
 //Unary operators
 #define ISAAC_DECLARE_UNARY_OPERATOR(OPNAME) \
-  ISAACAPI expression_tree OPNAME (array_base const & x);\
-  ISAACAPI expression_tree OPNAME (expression_tree const & x);
+  ISAACAPI expression OPNAME (array_base const & x);\
+  ISAACAPI expression OPNAME (expression const & x);
 
 ISAAC_DECLARE_UNARY_OPERATOR(abs)
 ISAAC_DECLARE_UNARY_OPERATOR(acos)
@@ -292,14 +292,14 @@ ISAAC_DECLARE_UNARY_OPERATOR(tanh)
 ISAAC_DECLARE_UNARY_OPERATOR(trans)
 #undef ISAAC_DECLARE_UNARY_OPERATOR
 
-ISAACAPI expression_tree cast(array_base const &, numeric_type dtype);
-ISAACAPI expression_tree cast(expression_tree const &, numeric_type dtype);
+ISAACAPI expression cast(array_base const &, numeric_type dtype);
+ISAACAPI expression cast(expression const &, numeric_type dtype);
 
 //Matrix reduction
 
 #define ISAAC_DECLARE_REDUCTION(OPNAME) \
-ISAACAPI expression_tree OPNAME(array_base const & M, int_t axis = -1);\
-ISAACAPI expression_tree OPNAME(expression_tree const & M, int_t axis = -1);
+ISAACAPI expression OPNAME(array_base const & M, int_t axis = -1);\
+ISAACAPI expression OPNAME(expression const & M, int_t axis = -1);
 
 ISAAC_DECLARE_REDUCTION(sum)
 ISAAC_DECLARE_REDUCTION(argmax)
@@ -309,34 +309,34 @@ ISAAC_DECLARE_REDUCTION(argmin)
 
 //Shortcuts
 
-ISAACAPI expression_tree norm(array_base const &, unsigned int order = 2, int_t axis = -1);
-ISAACAPI expression_tree norm(expression_tree const &, unsigned int order = 2, int_t axis = -1);
+ISAACAPI expression norm(array_base const &, unsigned int order = 2, int_t axis = -1);
+ISAACAPI expression norm(expression const &, unsigned int order = 2, int_t axis = -1);
 
-ISAACAPI expression_tree mean(array_base const &, int_t axis = -1);
-ISAACAPI expression_tree mean(expression_tree const &, int_t axis = -1);
+ISAACAPI expression mean(array_base const &, int_t axis = -1);
+ISAACAPI expression mean(expression const &, int_t axis = -1);
 
-//ISAACAPI expression_tree var(array_base const &, int_t axis = -1);
-//ISAACAPI expression_tree var(expression_tree const &, int_t axis = -1);
+//ISAACAPI expression var(array_base const &, int_t axis = -1);
+//ISAACAPI expression var(expression const &, int_t axis = -1);
 
 //Initializers
-ISAACAPI expression_tree eye(int_t, int_t, isaac::numeric_type, driver::Context const & context = driver::backend::contexts::get_default());
-ISAACAPI expression_tree zeros(tuple const & shape, numeric_type dtype, driver::Context const & context = driver::backend::contexts::get_default());
+ISAACAPI expression eye(int_t, int_t, isaac::numeric_type, driver::Context const & context = driver::backend::contexts::get_default());
+ISAACAPI expression zeros(tuple const & shape, numeric_type dtype, driver::Context const & context = driver::backend::contexts::get_default());
 
 //Swap
 ISAACAPI void swap(view x, view y);
 
 //Reshape
-ISAACAPI expression_tree reshape(array_base const &, tuple const &);
-ISAACAPI expression_tree reshape(expression_tree const &, tuple const &);
+ISAACAPI expression reshape(array_base const &, tuple const &);
+ISAACAPI expression reshape(expression const &, tuple const &);
 
-ISAACAPI expression_tree ravel(array_base const &);
-ISAACAPI expression_tree ravel(expression_tree const & x);
+ISAACAPI expression ravel(array_base const &);
+ISAACAPI expression ravel(expression const & x);
 
 //Diag
 array diag(array_base & x, int offset = 0);
 
 //
 ISAACAPI std::ostream& operator<<(std::ostream &, array_base const &);
-ISAACAPI std::ostream& operator<<(std::ostream &, expression_tree const &);
+ISAACAPI std::ostream& operator<<(std::ostream &, expression const &);
 }
 #endif

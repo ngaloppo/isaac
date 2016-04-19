@@ -31,7 +31,7 @@ namespace runtime
 {
 
 
-driver::Program const & instruction::init(expression_tree const & tree)
+driver::Program const & instruction::init(expression const & tree)
 {
   driver::Context & context = (driver::Context&)tree.context();
   std::string pname = symbolic::hash(tree);
@@ -56,7 +56,7 @@ instruction::instruction(std::shared_ptr<templates::base> const & tp, driver::Co
   cache_.clear();
 }
 
-void instruction::execute(expression_tree const & tree, environment const & env, optimize const & opt)
+void instruction::execute(expression const & tree, environment const & env, optimize const & opt)
 {
   driver::Program const & program = init(tree);
   std::vector<int_t> x = templates_[0]->input_sizes(tree);

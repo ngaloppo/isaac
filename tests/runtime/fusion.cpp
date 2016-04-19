@@ -13,7 +13,7 @@ int main()
   #define ADD_TMP_TEST(NAME, RESULT_TYPE, NTMP, SCEXPR) \
   {\
     std::cout << NAME << "...";\
-    sc::expression_tree tree = SCEXPR;\
+    sc::expression tree = SCEXPR;\
     sc::runtime::detail::breakpoints_t breakpoints;\
     sc::expression_type type = sc::runtime::detail::parse(tree, breakpoints);\
     if(!(type == RESULT_TYPE && breakpoints.size()==NTMP)){\
