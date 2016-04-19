@@ -23,10 +23,10 @@
 #define ISAAC_DRIVER_BUFFER_H
 
 #include "isaac/common.h"
-#include "isaac/driver/common.h"
 #include "isaac/driver/context.h"
-#include "isaac/driver/handle.h"
 #include "isaac/driver/dispatch.h"
+#include "isaac/driver/handle.h"
+
 namespace isaac
 {
 
@@ -43,12 +43,7 @@ private:
   friend class CommandQueue;
   friend class Kernel;
 
-  static CUcontext context(CUdeviceptr h)
-  {
-      CUcontext res;
-      check(dispatch::cuPointerGetAttribute((void*)&res, CU_POINTER_ATTRIBUTE_CONTEXT, h));
-      return res;
-  }
+  static CUcontext context(CUdeviceptr h);
 
 public:
   Buffer(CUdeviceptr h = 0, bool take_ownership = true);

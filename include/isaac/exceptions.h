@@ -19,27 +19,30 @@
  * MA 02110-1301  USA
  */
 
-#ifndef ISAAC_DRIVER_COMMON_H
-#define ISAAC_DRIVER_COMMON_H
-#include <exception>
 
-#include "isaac/driver/dispatch.h"
+#ifndef ISAAC_EXCEPTIONS_H
+#define ISAAC_EXCEPTIONS_H
+
+#include <stdexcept>
 #include "isaac/common.h"
-
 
 namespace isaac
 {
-namespace driver
+
+/** @brief Exception for the case the generator is unable to deal with the operation */
+DISABLE_MSVC_WARNING_C4275
+class ISAACAPI unknown_datatype : public std::exception
 {
+public:
+  unknown_datatype(int);
+  virtual const char* what() const throw();
+private:
+DISABLE_MSVC_WARNING_C4251
+  std::string message_;
+RESTORE_MSVC_WARNING_C4251
+};
+RESTORE_MSVC_WARNING_C4275
 
-void check(nvrtcResult err);
-
-void check(CUresult);
-void check_destruction(CUresult);
-
-void check(cl_int err);
-
-}
 }
 
 #endif

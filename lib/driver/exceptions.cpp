@@ -19,8 +19,7 @@
  * MA 02110-1301  USA
  */
 
-#include "isaac/driver/common.h"
-#include "isaac/exception/driver.h"
+#include "isaac/driver/exceptions.h"
 
 namespace isaac
 {
@@ -29,7 +28,7 @@ namespace driver
 
 void check(nvrtcResult err)
 {
-  using namespace isaac::exception::nvrtc;
+  using namespace exception::nvrtc;
 
   switch(err)
   {
@@ -47,7 +46,7 @@ void check(nvrtcResult err)
 
 void check(CUresult err)
 {
-  using namespace isaac::exception::cuda;
+  using namespace exception::cuda;
   switch(err)
   {
     case CUDA_SUCCESS                              : break;
@@ -121,7 +120,7 @@ void check_destruction(CUresult result)
 
 void check(cl_int err)
 {
-    using namespace isaac::exception::ocl;
+    using namespace exception::ocl;
     switch(err)
     {
         case CL_SUCCESS:                        break;

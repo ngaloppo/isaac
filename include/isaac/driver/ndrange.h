@@ -23,7 +23,6 @@
 #define ISAAC_DRIVER_NDRANGE_H
 
 #include "isaac/common.h"
-#include "isaac/driver/common.h"
 
 namespace isaac
 {

@@ -25,7 +25,7 @@
 
 #include "isaac/array.h"
 #include "isaac/jit/generation/base.h"
-#include "isaac/exception/api.h"
+#include "isaac/jit/exceptions.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/tools/cpp/string.hpp"
 
@@ -144,42 +144,37 @@ size_t base::temporary_workspace(expression_tree const  &) const
   return 0;
 }
 
-int base::is_invalid_impl(driver::Device const &, expression_tree const  &) const
-{
-  return TEMPLATE_VALID;
-}
+void base::check_valid_impl(driver::Device const &, expression_tree const  &) const
+{ }
 
-int base::is_invalid(expression_tree const  & tree, driver::Device const & device) const
+void base::check_valid(expression_tree const  & tree, driver::Device const & device) const
 {
   //Query device informations
   size_t lmem_available = device.local_mem_size();
   size_t lmem_used = lmem_usage(tree);
   if (lmem_used>lmem_available)
-    return TEMPLATE_LOCAL_MEMORY_OVERFLOW;
+    throw jit::code_generation_error("generated code uses too much local memory");
 
   //Invalid work group size
   size_t max_workgroup_size = device.max_work_group_size();
   std::vector<size_t> max_work_item_sizes = device.max_work_item_sizes();
   if (local_size_0*local_size_1 > max_workgroup_size)
-    return TEMPLATE_WORK_GROUP_SIZE_OVERFLOW;
+    throw jit::code_generation_error("generated code uses too many work goups");
   if (local_size_0 > max_work_item_sizes[0])
-    return TEMPLATE_LOCAL_SIZE_0_OVERFLOW;
-
+    throw jit::code_generation_error("generated code uses too threads [0]");
   if (local_size_1 > max_work_item_sizes[1])
-    return TEMPLATE_LOCAL_SIZE_1_OVERFLOW;
+    throw jit::code_generation_error("generated code uses too threads [1]");
 
   //Invalid SIMD Width
   if (simd_width!=1 && simd_width!=2 && simd_width!=3 && simd_width!=4)
-    return TEMPLATE_INVALID_SIMD_WIDTH;
+    throw jit::code_generation_error("generated code uses invalid simd width");
 
-  return is_invalid_impl(device, tree);
+  check_valid_impl(device, tree);
 }
 
 std::string base::generate(std::string const & suffix, expression_tree const  & expression, driver::Device const & device)
 {
-  int err = is_invalid(expression, device);
-  if(err != 0)
-    throw operation_not_supported_exception("The supplied parameters for this template are invalid : err " + tools::to_string(err));
+  check_valid(expression, device);
 
   //Create mapping
   symbolic::symbols_table mapping = symbolic::symbolize(expression);

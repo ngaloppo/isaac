@@ -22,8 +22,7 @@
 #include <string>
 #include <cassert>
 
-#include "isaac/driver/common.h"
-
+#include "isaac/driver/backend.h"
 #include "isaac/tools/cpp/string.hpp"
 
 namespace isaac

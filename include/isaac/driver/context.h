@@ -25,7 +25,7 @@
 #include <map>
 #include <memory>
 #include "isaac/common.h"
-#include "isaac/driver/common.h"
+#include "isaac/driver/dispatch.h"
 #include "isaac/driver/device.h"
 #include "isaac/driver/handle.h"
 
@@ -46,13 +46,7 @@ public:
 
 private:
   static std::string cache_path();
-
-  static CUdevice device(CUcontext)
-  {
-      CUdevice res;
-      check(dispatch::cuCtxGetDevice(&res));
-      return res;
-  }
+  static CUdevice device(CUcontext);
 
 public:
   explicit Context(CUcontext const & context, bool take_ownership = true);

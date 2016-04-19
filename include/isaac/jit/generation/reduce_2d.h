@@ -37,7 +37,7 @@ class reduce_2d : public base
 protected:
   reduce_2d(size_t simd, size_t ls1, size_t ls2, size_t ng1, size_t ng2, fetching_policy_type fetch, token_family type);
 private:
-  int is_invalid_impl(driver::Device const &, expression_tree const &) const;
+  void check_valid_impl(driver::Device const &, expression_tree const &) const;
   size_t lmem_usage(expression_tree const &) const;
   size_t temporary_workspace(expression_tree const & expressions) const;
   std::string generate_impl(std::string const & suffix, expression_tree const &, driver::Device const & device, symbolic::symbols_table const &) const;

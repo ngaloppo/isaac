@@ -23,6 +23,7 @@
 #include <memory>
 
 #include "isaac/driver/handle.h"
+#include "isaac/driver/exceptions.h"
 
 namespace isaac
 {

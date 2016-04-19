@@ -19,27 +19,19 @@
  * MA 02110-1301  USA
  */
 
-#include "isaac/exception/api.h"
-#include "isaac/tools/cpp/string.hpp"
+#include "isaac/jit/exceptions.h"
 
 namespace isaac
 {
 
-//
-operation_not_supported_exception::operation_not_supported_exception() : message_()
-{}
-
-operation_not_supported_exception::operation_not_supported_exception(std::string message) :
-  message_("ISAAC: Internal error: The internal generator cannot handle the operation provided: " + message) {}
-
-const char* operation_not_supported_exception::what() const throw()
-{ return message_.c_str(); }
+namespace jit
+{
 
 //
-unknown_datatype::unknown_datatype(int v) :
-  message_("ISAAC: The data-type provided was not recognized. The datatype code provided is " + tools::to_string(v)) {}
+code_generation_error::code_generation_error(std::string message) :
+  message_("Code generation error: " + message) {}
 
-const char* unknown_datatype::what() const throw()
+const char* code_generation_error::what() const throw()
 { return message_.c_str(); }
 
 //
@@ -49,6 +41,6 @@ semantic_error::semantic_error(std::string const & str) :
 const char* semantic_error::what() const throw()
 { return message_.c_str(); }
 
-
+}
 
 }

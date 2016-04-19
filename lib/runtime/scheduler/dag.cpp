@@ -4,6 +4,7 @@
 #include "isaac/array.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/runtime/scheduler/dag.h"
+#include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
 {

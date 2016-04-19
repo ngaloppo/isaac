@@ -39,7 +39,7 @@ private:
   size_t temporary_workspace(expression_tree const & expressions) const;
   size_t lmem_usage(expression_tree const & expressions) const;
   size_t registers_usage(expression_tree const & expressions) const;
-  int is_invalid_impl(driver::Device const &, expression_tree const &) const;
+  void check_valid_impl(driver::Device const &, expression_tree const &) const;
   std::string generate_impl(std::string const & suffix, expression_tree const & expressions, driver::Device const & device, symbolic::symbols_table const &) const;
   void enqueue_block(driver::CommandQueue & queue, int_t M, int_t N, int_t K, const expression_tree::node &A, const expression_tree::node &B, const expression_tree::node &C,
                      scalar const &alpha, scalar const &beta, driver::Program const & program, std::string const & suffix, runtime::environment const & options);

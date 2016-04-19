@@ -27,8 +27,7 @@
 #include <vector>
 
 #include "isaac/common.h"
-#include "isaac/driver/external/CUDA/cuda.h"
-#include "isaac/driver/external/CL/cl.h"
+#include "isaac/driver/dispatch.h"
 
 namespace isaac
 {

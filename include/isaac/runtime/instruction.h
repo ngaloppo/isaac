@@ -25,17 +25,20 @@
 #include <map>
 #include <memory>
 #include "isaac/common.h"
-#include "isaac/common/expression_type.h"
 #include "isaac/driver/command_queue.h"
-#include "isaac/driver/device.h"
 #include "isaac/jit/generation/base.h"
-#include "isaac/jit/syntax/expression/expression.h"
-#include "isaac/runtime/inference/random_forest.h"
 
 namespace isaac
 {
+
+class expression_tree;
+
 namespace runtime
 {
+namespace inference
+{
+  class random_forest;
+}
 
 class instruction
 {

@@ -24,6 +24,8 @@
 #include <algorithm>
 #include "isaac/driver/kernel.h"
 #include "isaac/driver/ndrange.h"
+#include "isaac/driver/command_queue.h"
+#include "isaac/jit/exceptions.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/jit/generation/elementwise_1d.h"
 #include "tools/vector_types.hpp"
@@ -36,11 +38,10 @@ namespace isaac
 namespace templates
 {
 
-int elementwise_1d::is_invalid_impl(driver::Device const &, expression_tree const &) const
+void elementwise_1d::check_valid_impl(driver::Device const &, expression_tree const &) const
 {
   if (fetching_policy==FETCH_FROM_LOCAL)
-    return TEMPLATE_INVALID_FETCHING_POLICY_TYPE;
-  return TEMPLATE_VALID;
+    throw jit::code_generation_error("generated code uses unsupported fetching policy");
 }
 
 std::string elementwise_1d::generate_impl(std::string const & suffix, expression_tree const & tree, driver::Device const & device, symbolic::symbols_table const & symbols) const

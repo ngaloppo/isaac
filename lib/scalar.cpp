@@ -26,7 +26,6 @@
 #include <algorithm>
 #include "isaac/array.h"
 #include "isaac/scalar.h"
-#include "isaac/exception/api.h"
 
 namespace isaac
 {

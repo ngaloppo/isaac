@@ -3,10 +3,8 @@
 
 #include <functional>
 #include <typeinfo>
-#include "isaac/tools/cpp/string.hpp"
 #include "isaac/jit/syntax/expression/expression.h"
 #include "isaac/jit/syntax/engine/object.h"
-#include "isaac/array.h"
 
 namespace isaac
 {

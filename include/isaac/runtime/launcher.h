@@ -24,13 +24,14 @@
 
 #include "isaac/jit/syntax/expression/expression.h"
 #include "isaac/driver/event.h"
-#include "isaac/driver/command_queue.h"
+
 namespace isaac
 {
 
 namespace driver
 {
   class NDrange;
+  class CommandQueue;
 }
 
 namespace runtime

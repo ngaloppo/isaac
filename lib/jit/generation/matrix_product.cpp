@@ -20,12 +20,13 @@
  */
 
 #include "isaac/array.h"
+#include "isaac/driver/command_queue.h"
 #include "isaac/driver/kernel.h"
 #include "isaac/driver/ndrange.h"
 #include "isaac/jit/syntax/expression/preset.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/jit/generation/matrix_product.h"
-#include "isaac/exception/api.h"
+#include "isaac/jit/exceptions.h"
 #include "tools/arguments.hpp"
 #include "tools/vector_types.hpp"
 
@@ -63,26 +64,29 @@ namespace templates
       return 0;
   }
 
-  int matrix_product::is_invalid_impl(driver::Device const &, expression_tree const &) const
+  void matrix_product::check_valid_impl(driver::Device const &, expression_tree const &) const
   {
-//    if(device.vendor()==driver::Device::Vendor::NVIDIA && simd_width > 1)
-//      return TEMPLATE_INVALID_SIMD_WIDTH;
-
     if(A_fetching_policy!=FETCH_FROM_LOCAL || B_fetching_policy!=FETCH_FROM_LOCAL)
-      return TEMPLATE_INVALID_FETCHING_POLICY_TYPE;
+      throw jit::code_generation_error("generated code uses unsupported fetching policy");
 
-    if ((mS % simd_width) > 0 || (nS % simd_width) > 0)
-      return TEMPLATE_MS_NS_MUST_BE_SIMD_WIDTH_MULTIPLE;
+    if ((mS % simd_width) > 0)
+      throw jit::code_generation_error("GEMM - MS must be a multiple of simd_width");
 
-    if(mL > 256 || nL > 256)
-       return TEMPLATE_BLOCK_SIZE_TOO_LARGE;
+    if ((nS % simd_width) > 0)
+      throw jit::code_generation_error("GEMM - NS must be a multiple of simd_width");
+
+    if(mL > 256)
+      throw jit::code_generation_error("GEMM - ML too large (> 256)");
+
+    if(nL > 256)
+      throw jit::code_generation_error("GEMM - NL too large (> 256)");
 
     if ( kS % kL == 0)
-      return TEMPLATE_KS_MUST_BE_SMALLER_THAN_KL;
+      throw jit::code_generation_error("GEMM - KS must be smaller than KL");
 
     if (A_fetching_policy==FETCH_FROM_LOCAL || B_fetching_policy==FETCH_FROM_LOCAL){
       if ((local_fetch_0*local_fetch_1) !=(local_size_0*local_size_1))
-        return TEMPLATE_LOCAL_FETCH_PRODUCT_MUST_MATCH_LOCAL_SIZE_PRODUCT;
+        throw jit::code_generation_error("GEMM - fetch_0*fetch_1 must equal local_size_0*local_size_1");
     }
 
     if (A_fetching_policy==FETCH_FROM_LOCAL)
@@ -90,27 +94,42 @@ namespace templates
       size_t bound1 = (A_trans_=='N')?kL:mL;
       size_t bound0 = (A_trans_=='N')?mL:kL;
 
-      if (local_fetch_1>0 && (bound1 % local_fetch_1)> 0)
-        return A_trans_=='N'?TEMPLATE_LOCAL_FETCH_1_MUST_BE_KL_MULTIPLE:TEMPLATE_LOCAL_FETCH_1_MUST_BE_ML_MULTIPLE;
+      if (local_fetch_1>0 && (bound1 % local_fetch_1)> 0){
+        if(A_trans_=='N')
+          throw jit::code_generation_error("GEMM - fetch_1 must be a multiple of KL");
+        else
+          throw jit::code_generation_error("GEMM - fetch_1 must be a multiple of ML");
+      }
 
-      if (local_fetch_0>0 && (bound0 % (local_fetch_0*simd_width)) > 0)
-        return A_trans_=='N'?TEMPLATE_LOCAL_FETCH_0_MUST_BE_NL_MULTIPLE:TEMPLATE_LOCAL_FETCH_0_MUST_BE_KL_MULTIPLE;
-
+      if (local_fetch_0>0 && (bound0 % (local_fetch_0*simd_width)) > 0){
+        if(A_trans_=='N')
+          throw jit::code_generation_error("GEMM - fetch_0 must be a multiple of NL");
+        else
+          throw jit::code_generation_error("GEMM - fetch_0 must be a multiple of KL");
+      }
     }
+
     if (B_fetching_policy==FETCH_FROM_LOCAL)
     {
       size_t bound1 = (B_trans_=='T')?kL:nL;
       size_t bound0 = (B_trans_=='T')?nL:kL;
 
-      if (local_fetch_1>0 && (bound1 % local_fetch_1)> 0)
-        return B_trans_=='T'?TEMPLATE_LOCAL_FETCH_1_MUST_BE_KL_MULTIPLE:TEMPLATE_LOCAL_FETCH_1_MUST_BE_ML_MULTIPLE;
+      if (local_fetch_1>0 && (bound1 % local_fetch_1)> 0){
+        if(B_trans_=='T')
+          throw jit::code_generation_error("GEMM - fetch_1 must be a multiple of KL");
+        else
+          throw jit::code_generation_error("GEMM - fetch_1 must be a multiple of ML");
 
-      if (local_fetch_0>0 && (bound0 % (local_fetch_0*simd_width)) > 0)
-        return B_trans_=='T'?TEMPLATE_LOCAL_FETCH_1_MUST_BE_KL_MULTIPLE:TEMPLATE_LOCAL_FETCH_1_MUST_BE_ML_MULTIPLE;
+      }
 
+      if (local_fetch_0>0 && (bound0 % (local_fetch_0*simd_width)) > 0){
+        if(B_trans_=='T')
+          throw jit::code_generation_error("GEMM - fetch_0 must be a multiple of NL");
+        else
+          throw jit::code_generation_error("GEMM - fetch_0 must be a multiple of KL");
+
+      }
     }
-
-    return TEMPLATE_VALID;
   }
 
   std::string matrix_product::generate_impl(std::string const & suffix, expression_tree const & tree, driver::Device const & device, symbolic::symbols_table const &) const

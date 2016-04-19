@@ -23,7 +23,7 @@
 #define ISAAC_DRIVER_KERNEL_H
 
 #include "isaac/common.h"
-#include "isaac/driver/common.h"
+#include "isaac/driver/dispatch.h"
 #include "isaac/driver/handle.h"
 
 #include <memory>

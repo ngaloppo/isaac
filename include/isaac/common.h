@@ -47,29 +47,15 @@
 #endif
 
 #include <stdexcept>
+#include "isaac/exceptions.h"
 
 namespace isaac
 {
 
-/* Isaac's INT type */
+/* Isaac's int type */
 typedef long long int_t;
 
-/* Data-types */
-/** @brief Exception for the case the generator is unable to deal with the operation */
-DISABLE_MSVC_WARNING_C4275
-class ISAACAPI unknown_datatype : public std::exception
-{
-public:
-  unknown_datatype(int);
-  virtual const char* what() const throw();
-private:
-DISABLE_MSVC_WARNING_C4251
-  std::string message_;
-RESTORE_MSVC_WARNING_C4251
-};
-RESTORE_MSVC_WARNING_C4275
-
-
+/* Isaac's numeric type */
 enum numeric_type
 {
   INVALID_NUMERIC_TYPE = 0,
@@ -87,65 +73,16 @@ enum numeric_type
   DOUBLE_TYPE
 };
 
-inline std::string to_string(numeric_type const & type)
-{
-  switch (type)
-  {
-  //  case BOOL_TYPE: return "bool";
-    case CHAR_TYPE: return "char";
-    case UCHAR_TYPE: return "uchar";
-    case SHORT_TYPE: return "short";
-    case USHORT_TYPE: return "ushort";
-    case INT_TYPE:  return "int";
-    case UINT_TYPE: return "uint";
-    case LONG_TYPE:  return "long";
-    case ULONG_TYPE: return "ulong";
-  //  case HALF_TYPE : return "half";
-    case FLOAT_TYPE : return "float";
-    case DOUBLE_TYPE : return "double";
-    default : throw unknown_datatype(type);
-  }
-}
+/* Size of numeric type */
+size_t size_of(numeric_type type);
 
-inline numeric_type numeric_type_from_string(std::string const & name)
-{
-  if(name=="int8") return CHAR_TYPE;
-  else if(name=="uint8") return UCHAR_TYPE;
-  else if(name=="int16") return SHORT_TYPE;
-  else if(name=="uint16") return USHORT_TYPE;
-  else if(name=="int32") return INT_TYPE;
-  else if(name=="uint32") return UINT_TYPE;
-  else if(name=="int64") return LONG_TYPE;
-  else if(name=="uint64") return ULONG_TYPE;
-  else if(name=="float32") return FLOAT_TYPE;
-  else if(name=="float64") return DOUBLE_TYPE;
-  throw std::invalid_argument("Invalid datatype: " + name);
-}
+/* Numeric type to string */
+std::string to_string(numeric_type const & type);
 
-inline unsigned int size_of(numeric_type type)
-{
-  switch (type)
-  {
-//  case BOOL_TYPE:
-  case UCHAR_TYPE:
-  case CHAR_TYPE: return 1;
+/* String to numeric type */
+numeric_type numeric_type_from_string(std::string const & name);
 
-//  case HALF_TYPE:
-  case USHORT_TYPE:
-  case SHORT_TYPE: return 2;
-
-  case UINT_TYPE:
-  case INT_TYPE:
-  case FLOAT_TYPE: return 4;
-
-  case ULONG_TYPE:
-  case LONG_TYPE:
-  case DOUBLE_TYPE: return 8;
-
-  default: throw unknown_datatype(type);
-  }
-}
-
+/* Standardized int to numeric_type */
 template<size_t size, bool is_unsigned>
 struct to_int_numeric_type_impl;
 
@@ -167,6 +104,8 @@ struct to_int_numeric_type
     static const numeric_type value = to_int_numeric_type_impl<sizeof(T), std::is_unsigned<T>::value>::value;
 };
 
+
+/* C++ type to numeric type */
 template<class T> struct to_numeric_type { static const numeric_type value = to_int_numeric_type<T>::value; };
 
 template<> struct to_numeric_type<char> { static const numeric_type value = CHAR_TYPE; };
@@ -179,7 +118,6 @@ template<> struct to_numeric_type<long> { static const numeric_type value = LONG
 template<> struct to_numeric_type<unsigned long> { static const numeric_type value = ULONG_TYPE ; };
 template<> struct to_numeric_type<float> { static const numeric_type value = FLOAT_TYPE; };
 template<> struct to_numeric_type<double> { static const numeric_type value = DOUBLE_TYPE; };
-
 template<class T> typename std::enable_if<std::is_arithmetic<T>::value, numeric_type>::type numeric_type_of(T)
 { return to_numeric_type<T>::value; }
 

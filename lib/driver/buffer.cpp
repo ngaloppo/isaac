@@ -30,6 +30,13 @@ namespace isaac
 namespace driver
 {
 
+CUcontext Buffer::context(CUdeviceptr h)
+{
+    CUcontext res;
+    check(dispatch::cuPointerGetAttribute((void*)&res, CU_POINTER_ATTRIBUTE_CONTEXT, h));
+    return res;
+}
+
 Buffer::Buffer(CUdeviceptr h, bool take_ownership) : backend_(CUDA), context_(backend::contexts::import(Buffer::context(h))), h_(backend_, take_ownership)
 {
   h_.cu() = h;

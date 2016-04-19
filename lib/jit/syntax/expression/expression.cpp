@@ -23,7 +23,6 @@
 #include <vector>
 #include "isaac/array.h"
 #include "isaac/scalar.h"
-#include "isaac/exception/api.h"
 #include "isaac/jit/syntax/expression/expression.h"
 #include "isaac/jit/syntax/expression/preset.h"
 #include "isaac/tools/cpp/string.hpp"
@@ -113,7 +112,7 @@ std::string to_string(token_type type)
     case RESHAPE_TYPE: return "reshape";
     case TRANS_TYPE: return "trans";
 
-    default : throw operation_not_supported_exception("Unsupported operator");
+    default : throw "Unsupported operator";
   }
 }
 

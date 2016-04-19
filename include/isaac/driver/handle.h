@@ -25,7 +25,7 @@
 #include <memory>
 
 #include "isaac/driver/backend.h"
-#include "isaac/driver/common.h"
+#include "isaac/driver/dispatch.h"
 #include <iostream>
 namespace isaac
 {

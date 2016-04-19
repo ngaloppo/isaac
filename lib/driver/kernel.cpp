@@ -19,6 +19,7 @@
  * MA 02110-1301  USA
  */
 
+#include "isaac/driver/exceptions.h"
 #include "isaac/driver/kernel.h"
 #include "isaac/driver/buffer.h"
 #include "isaac/driver/program.h"

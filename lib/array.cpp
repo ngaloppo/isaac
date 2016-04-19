@@ -26,7 +26,7 @@
 #include <stdexcept>
 
 #include "isaac/array.h"
-#include "isaac/exception/api.h"
+#include "isaac/jit/exceptions.h"
 #include "isaac/runtime/execute.h"
 
 namespace isaac
@@ -34,7 +34,7 @@ namespace isaac
 
 /*--- Constructors ---*/
 int_t array_base::dsize()
-{ return std::max((int_t)1, prod(shape_)*size_of(dtype_)); }
+{ return std::max((size_t)1, (size_t)prod(shape_)*size_of(dtype_)); }
 
 #define INSTANTIATE_ALL \
 INSTANTIATE(char); \
@@ -496,7 +496,7 @@ tuple max(tuple const & a, tuple const & b)
   std::vector<int_t> result;
   for(size_t i = 0 ; i < std::max(a.size(), b.size()) ; ++i){
       if(!(a[i] == b[i] || a[i]==1 || b[i]==1))
-        throw semantic_error("operands could not be broadcast together with shapes " + to_string(a) + " " + to_string(b));
+        throw jit::semantic_error("operands could not be broadcast together with shapes " + to_string(a) + " " + to_string(b));
       result.push_back(std::max(a[i], b[i]));
   }
   return tuple(result);
@@ -831,7 +831,7 @@ expression_tree dot(LTYPE const & x, RTYPE const & y)\
   tuple const & xs = x.shape();\
   tuple const & ys = y.shape();\
   if(xs.back()!=ys.front())\
-    throw semantic_error("matrices are not aligned");\
+    throw jit::semantic_error("matrices are not aligned");\
   std::vector<int_t> shapedata(std::max<size_t>(1,xs.size()-1 + ys.size()-1));\
   for(size_t i = 0 ; i < shapedata.size() ; ++i){\
     if(i < xs.size() - 1) shapedata[i] = xs[i];\

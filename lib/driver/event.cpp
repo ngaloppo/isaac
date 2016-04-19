@@ -19,8 +19,9 @@
  * MA 02110-1301  USA
  */
 
-#include "isaac/driver/event.h"
 #include "helpers/ocl/infos.hpp"
+#include "isaac/driver/event.h"
+#include "isaac/driver/exceptions.h"
 
 namespace isaac
 {

@@ -20,9 +20,10 @@
  */
 
 #include "isaac/driver/program_cache.h"
-#include "isaac/exception/api.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/runtime/instruction.h"
+#include "isaac/runtime/exceptions.h"
+#include "isaac/runtime/inference/random_forest.h"
 
 namespace isaac
 {
@@ -103,7 +104,7 @@ void instruction::execute(expression_tree const & tree, environment const & env,
 
   //Execution
   if(templates_[label]->temporary_workspace(tree) > MAX_TEMPORARY_WORKSPACE)
-    throw operation_not_supported_exception("Running this operation would require an overly large temporary.");
+    throw runtime_error("Running this operation would require an overly large temporary.");
 
   return templates_[label]->enqueue(queue_, program, tools::to_string(label), tree, env);
 }

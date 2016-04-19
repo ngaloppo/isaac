@@ -33,7 +33,7 @@ namespace templates
 class elementwise_2d : public base
 {
 private:
-  int is_invalid_impl(driver::Device const &, expression_tree const  &) const;
+  void check_valid_impl(driver::Device const &, expression_tree const &) const;
   std::string generate_impl(std::string const & suffix, expression_tree const  & expressions, driver::Device const & device, symbolic::symbols_table const & mapping) const;
 
 public:

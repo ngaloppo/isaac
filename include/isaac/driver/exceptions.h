@@ -31,6 +31,9 @@ DISABLE_MSVC_WARNING_C4275
 namespace isaac
 {
 
+namespace driver
+{
+
 namespace exception
 {
 
@@ -50,7 +53,6 @@ namespace nvrtc
 
   #undef ISAAC_CREATE_NVRTC_EXCEPTION
 
-void check(nvrtcResult err);
 }
 
 
@@ -120,9 +122,6 @@ namespace cuda
     ISAAC_CREATE_CUDA_EXCEPTION(unknown                         ,"unknown");
 
     #undef ISAAC_CREATE_CUDA_EXCEPTION
-
-void check(CUresult);
-void check_destruction(CUresult);
 }
 
 
@@ -184,12 +183,18 @@ namespace ocl
    ISAAC_CREATE_CL_EXCEPTION(invalid_property,                  "invalid property");
 #endif
 
+
+}
+
+}
+
+ISAACAPI void check(nvrtcResult err);
+ISAACAPI void check(CUresult);
+ISAACAPI void check_destruction(CUresult);
 ISAACAPI void check(cl_int err);
 
 }
 
-
-}
 }
 
 RESTORE_MSVC_WARNING_C4275

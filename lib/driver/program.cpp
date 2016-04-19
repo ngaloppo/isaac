@@ -24,9 +24,7 @@
 
 #include "isaac/driver/program.h"
 #include "isaac/driver/context.h"
-
-#include "isaac/exception/driver.h"
-
+#include "isaac/driver/exceptions.h"
 #include "helpers/cuda/vector.hpp"
 #include "helpers/ocl/infos.hpp"
 

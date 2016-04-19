@@ -25,6 +25,7 @@
 #include <stdexcept>
 #include "isaac/array.h"
 #include "isaac/runtime/execute.h"
+#include "isaac/runtime/instruction.h"
 #include "isaac/jit/syntax/expression/expression.h"
 #include "isaac/jit/syntax/expression/preset.h"
 

@@ -25,17 +25,14 @@
 #include <utility>
 #include <vector>
 #include <list>
-#include "isaac/driver/backend.h"
-//#include "isaac/driver/context.h"
-//#include "isaac/driver/command_queue.h"
-//#include "isaac/driver/event.h"
-//#include "isaac/driver/kernel.h"
-//#include "isaac/driver/ndrange.h"
-//#include "isaac/driver/buffer.h"
-#include "isaac/tools/cpp/tuple.hpp"
-#include "isaac/scalar.h"
 #include <memory>
 #include <iostream>
+
+#include "isaac/driver/external/CUDA/cuda.h"
+#include "isaac/driver/external/CL/cl.h"
+#include "isaac/tools/cpp/tuple.hpp"
+#include "isaac/scalar.h"
+
 
 namespace isaac
 {

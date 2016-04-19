@@ -22,7 +22,6 @@
 #include <string>
 
 #include "isaac/array.h"
-#include "isaac/exception/api.h"
 #include "isaac/jit/syntax/engine/object.h"
 #include "isaac/jit/syntax/expression/expression.h"
 #include "isaac/tools/cpp/string.hpp"

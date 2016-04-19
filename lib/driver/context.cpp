@@ -35,6 +35,13 @@ namespace isaac
 namespace driver
 {
 
+CUdevice Context::device(CUcontext)
+{
+    CUdevice res;
+    check(dispatch::cuCtxGetDevice(&res));
+    return res;
+}
+
 std::string Context::cache_path()
 {
     //user-specified cache path

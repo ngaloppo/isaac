@@ -21,9 +21,10 @@
 
 #include <cstring>
 #include <iostream>
-
+#include "isaac/driver/command_queue.h"
 #include "isaac/driver/kernel.h"
 #include "isaac/driver/ndrange.h"
+#include "isaac/jit/exceptions.h"
 #include "isaac/jit/syntax/engine/process.h"
 #include "isaac/jit/generation/reduce_2d.h"
 #include "tools/arguments.hpp"
@@ -36,11 +37,10 @@ namespace isaac
 namespace templates
 {
 
-int reduce_2d::is_invalid_impl(driver::Device const &, expression_tree const &) const
+void reduce_2d::check_valid_impl(driver::Device const &, expression_tree const &) const
 {
   if (fetch_policy==FETCH_FROM_LOCAL)
-    return TEMPLATE_INVALID_FETCHING_POLICY_TYPE;
-  return TEMPLATE_VALID;
+    throw jit::code_generation_error("generated code uses unsupported fetching policy");
 }
 
 size_t reduce_2d::lmem_usage(const expression_tree&) const

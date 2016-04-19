@@ -29,14 +29,19 @@
 #include "isaac/driver/command_queue.h"
 #include "isaac/driver/device.h"
 #include "isaac/jit/generation/base.h"
-#include "isaac/jit/syntax/expression/expression.h"
-#include "isaac/runtime/instruction.h"
 
 namespace isaac
 {
+
+namespace templates
+{
+class base;
+}
+
 namespace runtime
 {
 
+class instruction;
 typedef std::map<std::pair<expression_type, numeric_type>, std::shared_ptr<instruction> > implementation;
 
 class ISAACAPI backend

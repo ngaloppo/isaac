@@ -23,9 +23,9 @@
 
 #include "isaac/driver/backend.h"
 #include "isaac/driver/command_queue.h"
-#include "isaac/driver/common.h"
 #include "isaac/driver/context.h"
 #include "isaac/driver/device.h"
+#include "isaac/driver/exceptions.h"
 #include "isaac/driver/event.h"
 #include "isaac/driver/kernel.h"
 #include "isaac/driver/ndrange.h"

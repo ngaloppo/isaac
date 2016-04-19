@@ -27,15 +27,14 @@
 #include "rapidjson/document.h"
 #include "rapidjson/to_array.hpp"
 
-#include "isaac/driver/program_cache.h"
 #include "isaac/runtime/backend.h"
+#include "isaac/runtime/instruction.h"
+#include "isaac/runtime/inference/random_forest.h"
 #include "isaac/jit/generation/elementwise_1d.h"
 #include "isaac/jit/generation/reduce_1d.h"
 #include "isaac/jit/generation/elementwise_2d.h"
 #include "isaac/jit/generation/reduce_2d.h"
 #include "isaac/jit/generation/matrix_product.h"
-#include "isaac/exception/api.h"
-#include "isaac/jit/syntax/engine/process.h"
 #include "isaac/tools/sys/getenv.hpp"
 #include "isaac/tools/cpp/string.hpp"
 

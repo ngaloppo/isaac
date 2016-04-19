@@ -23,6 +23,7 @@
 #include "isaac/driver/buffer.h"
 #include "isaac/driver/context.h"
 #include "isaac/driver/command_queue.h"
+#include "isaac/driver/exceptions.h"
 #include "isaac/driver/kernel.h"
 #include "isaac/driver/program_cache.h"
 #include "isaac/driver/platform.h"
@@ -238,7 +239,6 @@ void backend::synchronize(Context const & context)
         queue->synchronize();
 }
 
-
 void backend::release()
 {
     backend::kernels::release();
@@ -247,7 +247,6 @@ void backend::release()
     backend::queues::release();
     backend::contexts::release();
 }
-
 
 void backend::init()
 {

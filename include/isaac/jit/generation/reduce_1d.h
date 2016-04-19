@@ -33,7 +33,7 @@ class reduce_1d : public base
 {
 private:
   size_t lmem_usage(expression_tree const  & expressions) const;
-  int is_invalid_impl(driver::Device const &, expression_tree const  &) const;
+  void check_valid_impl(driver::Device const &, expression_tree const &) const;
   size_t temporary_workspace(expression_tree const & expressions) const;
   inline void reduce_1d_local_memory(genstream & stream, size_t size, std::vector<symbolic::reduce_1d*> exprs,
                                      std::string const & buf_str, std::string const & buf_value_str, driver::backend_type backend) const;

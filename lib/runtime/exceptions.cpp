@@ -19,32 +19,20 @@
  * MA 02110-1301  USA
  */
 
-#ifndef ISAAC_BACKEND_TEMPLATES_VAXPY_H
-#define ISAAC_BACKEND_TEMPLATES_VAXPY_H
-
-#include "isaac/jit/generation/base.h"
+#include "isaac/runtime/exceptions.h"
 
 namespace isaac
 {
-namespace templates
+
+namespace runtime
 {
 
+runtime_error::runtime_error(std::string const & str) :
+  message_("runtime error: " + str) {}
 
-class elementwise_1d : public base
-{
-private:
-  void check_valid_impl(driver::Device const &, expression_tree const &) const;
-  std::string generate_impl(std::string const & suffix, expression_tree const  & expressions, driver::Device const & device, symbolic::symbols_table const & symbols) const;
-public:
-  elementwise_1d(size_t s, size_t ls0, size_t ng0, fetching_policy_type fetch);
-  std::vector<int_t> input_sizes(expression_tree const  & expressions) const;
-  void enqueue(driver::CommandQueue & queue, driver::Program const & program, std::string const & suffix, expression_tree const & tree, runtime::environment const & opt);
-private:
-  size_t num_groups;
-  fetching_policy_type fetching_policy;
-};
+const char* runtime_error::what() const throw()
+{ return message_.c_str(); }
 
 }
-}
 
-#endif
+}

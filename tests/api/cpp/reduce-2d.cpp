@@ -3,7 +3,6 @@
 #include <type_traits>
 #include "api.hpp"
 #include "isaac/array.h"
-#include "isaac/driver/common.h"
 #include "clBLAS.h"
 #include "cublas.h"
 
