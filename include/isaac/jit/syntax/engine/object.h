@@ -26,7 +26,7 @@
 #include <map>
 #include <string>
 #include "isaac/jit/syntax/engine/macro.h"
-#include "isaac/jit/syntax/expression/expression.h"
+#include "isaac/expression.h"
 
 namespace isaac
 {
@@ -106,13 +106,6 @@ class unary_arithmetic_node: public arithmetic_node
 public:
   unary_arithmetic_node(unsigned int id, size_t root, token op, expression const & tree, symbols_table const & table);
   std::string evaluate(std::map<std::string, std::string> const & table) const;
-};
-
-//Sfor
-class sfor: public object, public node
-{
-public:
-  sfor(unsigned int id, size_t root, token op, expression const & tree, symbols_table const & table);
 };
 
 //Reductions

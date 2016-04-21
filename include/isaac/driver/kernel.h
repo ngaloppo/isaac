@@ -49,9 +49,9 @@ public:
 public:
   Kernel(Program const & program, const char * name);
   void setArg(unsigned int index, scalar const & scal);
-  void setArg(unsigned int index, std::size_t size, void* ptr);
+  void setArg(unsigned int index, size_t size, void* ptr);
   void setArg(unsigned int index, Buffer const &);
-  void setSizeArg(unsigned int index, std::size_t N);
+  void setSizeArg(unsigned int index, size_t N);
   template<class T> void setArg(unsigned int index, T value) { setArg(index, sizeof(T), (void*)&value); }
 
 private:

@@ -63,7 +63,7 @@ std::string reduce_2d::generate_impl(std::string const & suffix, expression cons
 
 
   std::vector<symbolic::reduce_2d*> reductions = symbolic::extract<symbolic::reduce_2d>(tree, symbols);
-  std::vector<std::size_t> assignments = symbolic::assignments(tree);
+  std::vector<size_t> assignments = symbolic::assignments(tree);
   driver::backend_type backend = device.backend();
   genstream stream(backend);
 

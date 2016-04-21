@@ -51,9 +51,9 @@ namespace tools
     {
       if(bp::extract<T>(iterable).check())
         return {bp::extract<T>(iterable)};
-      std::size_t len = bp::len(iterable);
+      size_t len = bp::len(iterable);
       std::vector<T> res; res.reserve(len);
-      for(std::size_t i = 0 ; i < len ; ++i)
+      for(size_t i = 0 ; i < len ; ++i)
         res.push_back(boost::python::extract<T>(iterable[i]));
       return res;
     }

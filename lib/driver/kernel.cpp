@@ -72,7 +72,7 @@ void Kernel::setArg(unsigned int index, scalar const & scal)
   }
 }
 
-void Kernel::setArg(unsigned int index, std::size_t size, void* ptr)
+void Kernel::setArg(unsigned int index, size_t size, void* ptr)
 {
   switch(backend_)
   {

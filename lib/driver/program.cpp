@@ -131,9 +131,9 @@ Program::Program(Context const & context, std::string const & source) : backend_
         std::ifstream cached(fname, std::ios::binary);
         if (cached)
         {
-          std::size_t len;
+          size_t len;
           std::vector<char> buffer;
-          cached.read((char*)&len, sizeof(std::size_t));
+          cached.read((char*)&len, sizeof(size_t));
           buffer.resize(len);
           cached.read((char*)buffer.data(), std::streamsize(len));
           char* cbuffer = buffer.data();
@@ -144,7 +144,7 @@ Program::Program(Context const & context, std::string const & source) : backend_
         }
       }
 
-      std::size_t srclen = source.size();
+      size_t srclen = source.size();
       const char * csrc = source.c_str();
       h_.cl() = dispatch::clCreateProgramWithSource(context_.h_.cl(), 1, &csrc, &srclen, &err);
       try{
@@ -153,8 +153,8 @@ Program::Program(Context const & context, std::string const & source) : backend_
         if (cache_path.size())
         {
           std::ofstream cached(fname.c_str(),std::ios::binary);
-          std::vector<std::size_t> sizes = ocl::info<CL_PROGRAM_BINARY_SIZES>(h_.cl());
-          cached.write((char*)&sizes[0], sizeof(std::size_t));
+          std::vector<size_t> sizes = ocl::info<CL_PROGRAM_BINARY_SIZES>(h_.cl());
+          cached.write((char*)&sizes[0], sizeof(size_t));
           std::vector<unsigned char*> binaries = ocl::info<CL_PROGRAM_BINARIES>(h_.cl());
           cached.write((char*)binaries[0], std::streamsize(sizes[0]));
           for(unsigned char * ptr: binaries)

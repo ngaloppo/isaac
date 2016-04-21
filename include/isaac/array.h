@@ -28,7 +28,7 @@
 #include "isaac/driver/context.h"
 #include "isaac/driver/buffer.h"
 #include "isaac/driver/command_queue.h"
-#include "isaac/jit/syntax/expression/expression.h"
+#include "isaac/expression.h"
 #include "isaac/tools/cpp/tuple.hpp"
 
 namespace isaac

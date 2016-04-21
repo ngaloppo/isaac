@@ -164,7 +164,7 @@ array_base & array_base::operator=(array_base const & rhs)
 {
     if(min(shape_)==0) return *this;
     assert(dtype_ == rhs.dtype());
-    expression expression(*this, rhs, token(BINARY_ARITHMETIC, ASSIGN_TYPE), &context_, dtype_, shape_);
+    expression expression(*this, rhs, {BINARY_ARITHMETIC, ASSIGN_TYPE}, &context_, dtype_, shape_);
     runtime::execute(expression);
     return *this;
 }
@@ -173,7 +173,7 @@ array_base & array_base::operator=(scalar const & rhs)
 {
     if(min(shape_)==0) return *this;
     assert(dtype_ == rhs.dtype());
-    expression expression(*this, rhs, token(BINARY_ARITHMETIC, ASSIGN_TYPE), &context_, dtype_, shape_);
+    expression expression(*this, rhs, {BINARY_ARITHMETIC, ASSIGN_TYPE}, &context_, dtype_, shape_);
     runtime::execute(expression);
     return *this;
 }
@@ -183,7 +183,7 @@ array_base& array_base::operator=(runtime::launcher const & launcher)
 {
   if(min(shape_)==0) return *this;
   assert(dtype_ == launcher.tree().dtype());
-  expression expression(*this, launcher.tree(), token(BINARY_ARITHMETIC, ASSIGN_TYPE), &context_, dtype_, shape_);
+  expression expression(*this, launcher.tree(), {BINARY_ARITHMETIC, ASSIGN_TYPE}, &context_, dtype_, shape_);
   runtime::execute(runtime::launcher(expression, launcher));
   return *this;
 }
@@ -223,47 +223,47 @@ INSTANTIATE(double);
 
 
 expression array_base::operator-()
-{ return expression(*this, invalid_node(), token(UNARY_ARITHMETIC, SUB_TYPE), &context_, dtype_, shape_); }
+{ return expression(*this, invalid_node(), {UNARY_ARITHMETIC, SUB_TYPE}, &context_, dtype_, shape_); }
 
 expression array_base::operator!()
-{ return expression(*this, invalid_node(), token(UNARY_ARITHMETIC, NEGATE_TYPE), &context_, INT_TYPE, shape_); }
+{ return expression(*this, invalid_node(), {UNARY_ARITHMETIC, NEGATE_TYPE}, &context_, INT_TYPE, shape_); }
 
 //
 array_base & array_base::operator+=(scalar const & rhs)
-{ return *this = expression(*this, rhs, token(BINARY_ARITHMETIC, ADD_TYPE), &context_, dtype_, shape_); }
+{ return *this = expression(*this, rhs, {BINARY_ARITHMETIC, ADD_TYPE}, &context_, dtype_, shape_); }
 
 array_base & array_base::operator+=(array_base const & rhs)
-{ return *this = expression(*this, rhs, token(BINARY_ARITHMETIC, ADD_TYPE), &context_, dtype_, shape_); }
+{ return *this = expression(*this, rhs, {BINARY_ARITHMETIC, ADD_TYPE}, &context_, dtype_, shape_); }
 
 array_base & array_base::operator+=(expression const & rhs)
-{ return *this = expression(*this, rhs, token(BINARY_ARITHMETIC, ADD_TYPE), &rhs.context(), dtype_, shape_); }
+{ return *this = expression(*this, rhs, {BINARY_ARITHMETIC, ADD_TYPE}, &rhs.context(), dtype_, shape_); }
 //----
 array_base & array_base::operator-=(scalar const & rhs)
-{ return *this = expression(*this, rhs, token(BINARY_ARITHMETIC, SUB_TYPE), &context_, dtype_, shape_); }
+{ return *this = expression(*this, rhs, {BINARY_ARITHMETIC, SUB_TYPE}, &context_, dtype_, shape_); }
 
 array_base & array_base::operator-=(array_base const & rhs)
-{ return *this = expression(*this, rhs, token(BINARY_ARITHMETIC, SUB_TYPE), &context_, dtype_, shape_); }
+{ return *this = expression(*this, rhs, {BINARY_ARITHMETIC, SUB_TYPE}, &context_, dtype_, shape_); }
 
 array_base & array_base::operator-=(expression const & rhs)
-{ return *this = expression(*this, rhs, token(BINARY_ARITHMETIC, SUB_TYPE), &rhs.context(), dtype_, shape_); }
+{ return *this = expression(*this, rhs, {BINARY_ARITHMETIC, SUB_TYPE}, &rhs.context(), dtype_, shape_); }
 //----
 array_base & array_base::operator*=(scalar const & rhs)
-{ return *this = expression(*this, rhs, token(BINARY_ARITHMETIC, MULT_TYPE), &context_, dtype_, shape_); }
+{ return *this = expression(*this, rhs, {BINARY_ARITHMETIC, MULT_TYPE}, &context_, dtype_, shape_); }
 
 array_base & array_base::operator*=(array_base const & rhs)
-{ return *this = expression(*this, rhs, token(BINARY_ARITHMETIC, MULT_TYPE), &context_, dtype_, shape_); }
+{ return *this = expression(*this, rhs, {BINARY_ARITHMETIC, MULT_TYPE}, &context_, dtype_, shape_); }
 
 array_base & array_base::operator*=(expression const & rhs)
-{ return *this = expression(*this, rhs, token(BINARY_ARITHMETIC, MULT_TYPE), &rhs.context(), dtype_, shape_); }
+{ return *this = expression(*this, rhs, {BINARY_ARITHMETIC, MULT_TYPE}, &rhs.context(), dtype_, shape_); }
 //----
 array_base & array_base::operator/=(scalar const & rhs)
-{ return *this = expression(*this, rhs, token(BINARY_ARITHMETIC, DIV_TYPE), &context_, dtype_, shape_); }
+{ return *this = expression(*this, rhs, {BINARY_ARITHMETIC, DIV_TYPE}, &context_, dtype_, shape_); }
 
 array_base & array_base::operator/=(array_base const & rhs)
-{ return *this = expression(*this, rhs, token(BINARY_ARITHMETIC, DIV_TYPE), &context_, dtype_, shape_); }
+{ return *this = expression(*this, rhs, {BINARY_ARITHMETIC, DIV_TYPE}, &context_, dtype_, shape_); }
 
 array_base & array_base::operator/=(expression const & rhs)
-{ return *this = expression(*this, rhs, token(BINARY_ARITHMETIC, DIV_TYPE), &rhs.context(), dtype_, shape_); }
+{ return *this = expression(*this, rhs, {BINARY_ARITHMETIC, DIV_TYPE}, &rhs.context(), dtype_, shape_); }
 
 /*--- Indexing operators -----*/
 //---------------------------------------
@@ -522,30 +522,30 @@ expression broadcast(LHS_TYPE const & x, RHS_TYPE const & y, token const & op, n
 
 #define DEFINE_ELEMENT_BINARY_OPERATOR(OP, OPNAME, DTYPE) \
 expression OPNAME (array_base const & x, expression const & y) \
-{ return broadcast(x, y, token(BINARY_ARITHMETIC, OP), DTYPE); } \
+{ return broadcast(x, y, {BINARY_ARITHMETIC, OP}, DTYPE); } \
 \
 expression OPNAME (array_base const & x, array_base const & y) \
-{ return broadcast(x, y, token(BINARY_ARITHMETIC, OP), DTYPE); }\
+{ return broadcast(x, y, {BINARY_ARITHMETIC, OP}, DTYPE); }\
 \
 expression OPNAME (array_base const & x, scalar const & y) \
-{ return expression(x, y, token(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); }\
+{ return expression(x, y, {BINARY_ARITHMETIC, OP}, &x.context(), DTYPE, x.shape()); }\
 \
 \
 expression OPNAME (expression const & x, expression const & y) \
-{ return broadcast(x, y, token(BINARY_ARITHMETIC, OP), DTYPE); } \
+{ return broadcast(x, y, {BINARY_ARITHMETIC, OP}, DTYPE); } \
  \
 expression OPNAME (expression const & x, array_base const & y) \
-{ return broadcast(x, y, token(BINARY_ARITHMETIC, OP), DTYPE); } \
+{ return broadcast(x, y, {BINARY_ARITHMETIC, OP}, DTYPE); } \
 \
 expression OPNAME (expression const & x, scalar const & y) \
-{ return expression(x, y, token(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); } \
+{ return expression(x, y, {BINARY_ARITHMETIC, OP}, &x.context(), DTYPE, x.shape()); } \
 \
 \
 expression OPNAME (scalar const & y, expression const & x) \
-{ return expression(y, x, token(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); } \
+{ return expression(y, x, {BINARY_ARITHMETIC, OP}, &x.context(), DTYPE, x.shape()); } \
 \
 expression OPNAME (scalar const & y, array_base const & x) \
-{ return expression(y, x, token(BINARY_ARITHMETIC, OP), &x.context(), DTYPE, x.shape()); }\
+{ return expression(y, x, {BINARY_ARITHMETIC, OP}, &x.context(), DTYPE, x.shape()); }\
 \
 
 DEFINE_ELEMENT_BINARY_OPERATOR(ADD_TYPE, operator +, x.dtype())
@@ -573,10 +573,10 @@ DEFINE_ELEMENT_BINARY_OPERATOR(ELEMENT_NEQ_TYPE, operator !=, INT_TYPE)
 
 #define DEFINE_ELEMENT_UNARY_OPERATOR(OP, OPNAME) \
 expression OPNAME (array_base  const & x) \
-{ return expression(x, invalid_node(), token(UNARY_ARITHMETIC, OP), &x.context(), x.dtype(), x.shape()); }\
+{ return expression(x, invalid_node(), {UNARY_ARITHMETIC, OP}, &x.context(), x.dtype(), x.shape()); }\
 \
 expression OPNAME (expression const & x) \
-{ return expression(x, invalid_node(), token(UNARY_ARITHMETIC, OP), &x.context(), x.dtype(), x.shape()); }
+{ return expression(x, invalid_node(), {UNARY_ARITHMETIC, OP}, &x.context(), x.dtype(), x.shape()); }
 
 DEFINE_ELEMENT_UNARY_OPERATOR((x.dtype()==FLOAT_TYPE || x.dtype()==DOUBLE_TYPE)?FABS_TYPE:ABS_TYPE,  abs)
 DEFINE_ELEMENT_UNARY_OPERATOR(ACOS_TYPE, acos)
@@ -635,16 +635,16 @@ inline token_type casted(numeric_type dtype)
 }
 
 expression cast(array_base const & x, numeric_type dtype)
-{ return expression(x, invalid_node(), token(UNARY_ARITHMETIC, casted(dtype)), &x.context(), dtype, x.shape()); }
+{ return expression(x, invalid_node(), {UNARY_ARITHMETIC, casted(dtype)}, &x.context(), dtype, x.shape()); }
 
 expression cast(expression const & x, numeric_type dtype)
-{ return expression(x, invalid_node(), token(UNARY_ARITHMETIC, casted(dtype)), &x.context(), dtype, x.shape()); }
+{ return expression(x, invalid_node(), {UNARY_ARITHMETIC, casted(dtype)}, &x.context(), dtype, x.shape()); }
 
 /*--- Diag ----*/
 //-----------------------------------
 
 isaac::expression eye(int_t M, int_t N, isaac::numeric_type dtype, driver::Context const & ctx)
-{ return expression(scalar(1, dtype), scalar(0, dtype), token(UNARY_ARITHMETIC, DIAG_VECTOR_TYPE), &ctx, dtype, {M, N}); }
+{ return expression(scalar(1, dtype), scalar(0, dtype), {UNARY_ARITHMETIC, DIAG_VECTOR_TYPE}, &ctx, dtype, {M, N}); }
 
 array diag(array_base & x, int offset)
 {
@@ -657,7 +657,7 @@ array diag(array_base & x, int offset)
 
 
 isaac::expression zeros(tuple const & shape, isaac::numeric_type dtype, driver::Context  const & ctx)
-{ return expression(scalar(0, dtype), invalid_node(), token(UNARY_ARITHMETIC, ADD_TYPE), &ctx, dtype, shape); }
+{ return expression(scalar(0, dtype), invalid_node(), {UNARY_ARITHMETIC, ADD_TYPE}, &ctx, dtype, shape); }
 
 inline tuple flip(tuple const & shape)
 {
@@ -671,10 +671,10 @@ inline tuple flip(tuple const & shape)
 //-----------------------------------
 
 expression trans(array_base  const & x) \
-{ return expression(x, invalid_node(), token(UNARY_ARITHMETIC, TRANS_TYPE), &x.context(), x.dtype(), flip(x.shape())); }\
+{ return expression(x, invalid_node(), {UNARY_ARITHMETIC, TRANS_TYPE}, &x.context(), x.dtype(), flip(x.shape())); }\
 \
 expression trans(expression const & x) \
-{ return expression(x, invalid_node(), token(UNARY_ARITHMETIC, TRANS_TYPE), &x.context(), x.dtype(), flip(x.shape())); }
+{ return expression(x, invalid_node(), {UNARY_ARITHMETIC, TRANS_TYPE}, &x.context(), x.dtype(), flip(x.shape())); }
 
 ////---------------------------------------
 
@@ -686,11 +686,11 @@ expression OPNAME(array_base const & x, int_t axis)\
   if(axis < -1 || axis > (int_t)x.dim())\
     throw std::out_of_range("The axis entry is out of bounds");\
   else if(axis==-1)\
-    return expression(ravel(x), invalid_node(), token(REDUCE, OP), &x.context(), x.dtype(), {1});\
+    return expression(ravel(x), invalid_node(), {REDUCE, OP}, &x.context(), x.dtype(), {1});\
   else if(axis==0)\
-    return expression(x, invalid_node(), token(REDUCE_COLUMNS, OP), &x.context(), x.dtype(), {x.shape()[1]});\
+    return expression(x, invalid_node(), {REDUCE_COLUMNS, OP}, &x.context(), x.dtype(), {x.shape()[1]});\
   else\
-    return expression(x, invalid_node(), token(REDUCE_ROWS, OP), &x.context(), x.dtype(), {x.shape()[0]});\
+    return expression(x, invalid_node(), {REDUCE_ROWS, OP}, &x.context(), x.dtype(), {x.shape()[0]});\
 }\
 \
 expression OPNAME(expression const & x, int_t axis)\
@@ -698,11 +698,11 @@ expression OPNAME(expression const & x, int_t axis)\
   if(axis < -1 || axis > x.dim())\
     throw std::out_of_range("The axis entry is out of bounds");\
   if(axis==-1)\
-    return expression(ravel(x), invalid_node(), token(REDUCE, OP), &x.context(), x.dtype(), {1});\
+    return expression(ravel(x), invalid_node(), {REDUCE, OP}, &x.context(), x.dtype(), {1});\
   else if(axis==0)\
-    return expression(x, invalid_node(), token(REDUCE_COLUMNS, OP), &x.context(), x.dtype(), {x.shape()[1]});\
+    return expression(x, invalid_node(), {REDUCE_COLUMNS, OP}, &x.context(), x.dtype(), {x.shape()[1]});\
   else\
-    return expression(x, invalid_node(), token(REDUCE_ROWS, OP), &x.context(), x.dtype(), {x.shape()[0]});\
+    return expression(x, invalid_node(), {REDUCE_ROWS, OP}, &x.context(), x.dtype(), {x.shape()[0]});\
 }
 
 DEFINE_REDUCTION(ADD_TYPE, sum)
@@ -719,7 +719,7 @@ namespace detail
   expression matmatprod(array_base const & A, array_base const & B)
   {
     tuple shape{A.shape()[0], B.shape()[1]};
-    return expression(A, B, token(MATRIX_PRODUCT, MATRIX_PRODUCT_NN_TYPE), &A.context(), A.dtype(), shape);
+    return expression(A, B, {MATRIX_PRODUCT, MATRIX_PRODUCT_NN_TYPE}, &A.context(), A.dtype(), shape);
   }
 
   expression matmatprod(expression const & A, array_base const & B)
@@ -733,7 +733,7 @@ namespace detail
       type = MATRIX_PRODUCT_TN_TYPE;
     }
 
-    expression res(A, B, token(MATRIX_PRODUCT, type), &A.context(), A.dtype(), shape);
+    expression res(A, B, {MATRIX_PRODUCT, type}, &A.context(), A.dtype(), shape);
     expression::node & res_root = res[res.root()];
     if(A_trans) res_root.binary_operator.lhs = A_root.binary_operator.lhs;
     return res;
@@ -750,7 +750,7 @@ namespace detail
       type = MATRIX_PRODUCT_NT_TYPE;
     }
 
-    expression res(A, B, token(MATRIX_PRODUCT, type), &A.context(), A.dtype(), shape);
+    expression res(A, B, {MATRIX_PRODUCT, type}, &A.context(), A.dtype(), shape);
     expression::node & res_root = res[res.root()];
     if(B_trans) res_root.binary_operator.rhs = B_root.binary_operator.lhs;
     return res;
@@ -771,7 +771,7 @@ namespace detail
     else if(!A_trans && B_trans) type = MATRIX_PRODUCT_NT_TYPE;
     else type = MATRIX_PRODUCT_NN_TYPE;
 
-    expression res(A, B, token(MATRIX_PRODUCT, type), &A.context(), A.dtype(), shape);
+    expression res(A, B, {MATRIX_PRODUCT, type}, &A.context(), A.dtype(), shape);
     expression::node & res_root = res[res.root()];
     if(A_trans) res_root.binary_operator.lhs = A_root.binary_operator.lhs;
     if(B_trans) res_root.binary_operator.rhs = A.data().size() + B_root.binary_operator.lhs;
@@ -799,7 +799,7 @@ namespace detail
     }
     if(A_trans)
     {
-      expression tmp(A, reshape(x,{N,1}), token(BINARY_ARITHMETIC, ELEMENT_PROD_TYPE), &A.context(), A.dtype(), {N, M});
+      expression tmp(A, reshape(x,{N,1}), {BINARY_ARITHMETIC, ELEMENT_PROD_TYPE}, &A.context(), A.dtype(), {N, M});
       tmp[tmp[tmp.root()].binary_operator.lhs] = A_root;
       return sum(tmp, 0);
     }
@@ -812,10 +812,10 @@ namespace detail
 
 //Reshape
 expression reshape(array_base const & x, tuple const & shape)
-{  return expression(x, invalid_node(), token(UNARY_ARITHMETIC, RESHAPE_TYPE), &x.context(), x.dtype(), shape); }
+{  return expression(x, invalid_node(), {UNARY_ARITHMETIC, RESHAPE_TYPE}, &x.context(), x.dtype(), shape); }
 
 expression reshape(expression const & x, tuple const & shape)
-{  return expression(x, invalid_node(), token(UNARY_ARITHMETIC, RESHAPE_TYPE), &x.context(), x.dtype(), shape); }
+{  return expression(x, invalid_node(), {UNARY_ARITHMETIC, RESHAPE_TYPE}, &x.context(), x.dtype(), shape); }
 
 expression ravel(array_base const & x)
 { return reshape(x, {prod(x.shape())}); }
@@ -843,7 +843,7 @@ expression dot(LTYPE const & x, RTYPE const & y)\
     return zeros(rshape, dtype, context);\
   /*Empty result*/\
   if(xs.front()==0 || ys.back()==0)\
-    return expression(invalid_node(), invalid_node(), token(UNARY_ARITHMETIC, INVALID_TYPE), &context, dtype, {0});\
+    return expression(invalid_node(), invalid_node(), {UNARY_ARITHMETIC, INVALID_TYPE}, &context, dtype, {0});\
   /*AXPY*/\
   if(numgt1(xs)==0 || numgt1(ys)==0)\
     return x*y;\

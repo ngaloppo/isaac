@@ -25,7 +25,7 @@
 #include <map>
 #include <vector>
 #include <memory>
-#include "isaac/jit/syntax/expression/expression.h"
+#include "isaac/expression.h"
 #include "isaac/runtime/scheduler/strategies/strategy.h"
 
 namespace isaac

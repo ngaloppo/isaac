@@ -35,7 +35,7 @@ namespace tools
     {
         #ifdef _MSC_VER
             char* cache_path = 0;
-            std::size_t sz = 0;
+            size_t sz = 0;
             _dupenv_s(&cache_path, &sz, name);
         #else
             const char * cache_path = std::getenv(name);

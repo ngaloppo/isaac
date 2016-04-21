@@ -50,10 +50,10 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   driver::backend_type backend = device.backend();
   genstream stream(backend);
 
-  std::vector<std::size_t> assigned = symbolic::find(tree, [&](expression::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
-  std::vector<std::size_t> assigned_left;
-  std::vector<std::size_t> assigned_right;
-  for(std::size_t idx: assigned){
+  std::vector<size_t> assigned = symbolic::find(tree, [&](expression::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
+  std::vector<size_t> assigned_left;
+  std::vector<size_t> assigned_right;
+  for(size_t idx: assigned){
     assigned_left.push_back(tree[idx].binary_operator.lhs);
     assigned_right.push_back(tree[idx].binary_operator.rhs);
   }
@@ -81,7 +81,7 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
       for(symbolic::leaf* sym: symbolic::extract<symbolic::leaf>(tree, symbols, assigned_right, false))
         stream << sym->process("#scalartype #name = at(i, j);") << std::endl;
 
-      for(std::size_t idx: assigned)
+      for(size_t idx: assigned)
         stream << symbols.at(idx)->evaluate({{"leaf", "#name"}}) << ";" << std::endl;
 
       //Writes back

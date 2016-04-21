@@ -26,7 +26,7 @@
 #include "isaac/array.h"
 #include "isaac/runtime/execute.h"
 #include "isaac/runtime/instruction.h"
-#include "isaac/jit/syntax/expression/expression.h"
+#include "isaac/expression.h"
 #include "isaac/jit/syntax/expression/preset.h"
 
 namespace isaac
@@ -41,16 +41,6 @@ namespace runtime
       inline bool is_elementwise(expression_type type)
       { return type == ELEMENTWISE_1D || type == ELEMENTWISE_2D; }
 
-      /** @brief Optimizes the given expression tree */
-//      expression_type optimize(expression_type & tree, size_t idx)
-//      {
-//        expression::node & node = tree[idx];
-//        if(node.type==COMPOSITE_OPERATOR_TYPE)
-//        {
-//          //Remove useless reshape
-//          if(node.binary_operator.op.type==RESHAPE)
-//        }
-//      }
 
       expression_type parse(expression const & tree, breakpoints_t & bp){
         return parse(tree, tree.root(), bp);
@@ -131,8 +121,6 @@ namespace runtime
   {
     typedef isaac::array array;
     expression tree = c.tree();
-    /*----Optimize----*/
-//    detail::optimize(tree);
     /*----Process-----*/
     driver::Context const & context = tree.context();
     size_t rootidx = tree.root();

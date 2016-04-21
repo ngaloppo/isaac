@@ -113,7 +113,7 @@ void CommandQueue::enqueue(Kernel const & kernel, NDRange const & global, driver
   }
 }
 
-void CommandQueue::write(Buffer const & buffer, bool blocking, std::size_t offset, std::size_t size, void const* ptr)
+void CommandQueue::write(Buffer const & buffer, bool blocking, size_t offset, size_t size, void const* ptr)
 {
   switch(backend_)
   {
@@ -130,7 +130,7 @@ void CommandQueue::write(Buffer const & buffer, bool blocking, std::size_t offse
   }
 }
 
-void CommandQueue::read(Buffer const & buffer, bool blocking, std::size_t offset, std::size_t size, void* ptr)
+void CommandQueue::read(Buffer const & buffer, bool blocking, size_t offset, size_t size, void* ptr)
 {
   switch(backend_)
   {

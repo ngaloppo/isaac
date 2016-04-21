@@ -24,7 +24,7 @@
 
 #include <vector>
 
-#include "isaac/jit/syntax/expression/expression.h"
+#include "isaac/expression.h"
 #include "isaac/jit/generation/base.h"
 
 namespace isaac

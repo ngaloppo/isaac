@@ -23,7 +23,7 @@
 
 #include "isaac/array.h"
 #include "isaac/jit/syntax/engine/object.h"
-#include "isaac/jit/syntax/expression/expression.h"
+#include "isaac/expression.h"
 #include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
@@ -132,10 +132,6 @@ object const * node::rhs() const
 
 size_t node::root() const
 { return root_; }
-
-//
-sfor::sfor(unsigned int id, size_t root, token op, expression const & tree, symbols_table const & table) : object(tree.context(), to_string(tree[root].dtype), id), node(root, op, tree, table)
-{ add_base("sfor"); }
 
 //
 arithmetic_node::arithmetic_node(unsigned int id, size_t root, token op, expression const & tree, symbols_table const & table) : object(tree.context(), to_string(tree[root].dtype), id), node(root, op, tree, table), op_str_(to_string(op.type))

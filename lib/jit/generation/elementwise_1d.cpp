@@ -49,9 +49,9 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   driver::backend_type backend = device.backend();
   genstream stream(backend);
 
-  std::vector<std::size_t> assignments = symbolic::assignments(tree);
-  std::vector<std::size_t> assignments_lhs = symbolic::lhs_of(tree, assignments);
-  std::vector<std::size_t> assignments_rhs = symbolic::rhs_of(tree, assignments);
+  std::vector<size_t> assignments = symbolic::assignments(tree);
+  std::vector<size_t> assignments_lhs = symbolic::lhs_of(tree, assignments);
+  std::vector<size_t> assignments_rhs = symbolic::rhs_of(tree, assignments);
 
   switch(backend)
   {
@@ -67,15 +67,6 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
   stream.inc_tab();
 
   //Open user-provided for-loops
-  std::vector<symbolic::sfor*> sfors = symbolic::extract<symbolic::sfor>(tree, symbols);
-  for(symbolic::sfor* sym: sfors)
-    stream << sym->process("for(int #init ; #end ; #inc)") << std::endl;
-  if(sfors.size())
-  {
-    stream << "{" << std::endl;
-    stream.inc_tab();
-  }
-
   for_loop(stream, fetching_policy, simd_width, "i", "N", "$GLOBAL_IDX_0", "$GLOBAL_SIZE_0", [&](size_t simd_width)
   {
     std::string dtype = append_width("#scalartype",simd_width);

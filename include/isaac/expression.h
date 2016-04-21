@@ -145,30 +145,13 @@ enum token_type
   DIAG_MATRIX_TYPE,
   DIAG_VECTOR_TYPE,
   ACCESS_INDEX_TYPE,
-
-
-  PAIR_TYPE,
-
-  OPERATOR_FUSE,
-  Ssize_tTYPE,
 };
 
 struct token
 {
-  token();
-  token(token_family const & _family, token_type const & _type);
   token_family family;
   token_type type;
 };
-
-//
-std::string to_string(token_type type);
-bool is_assignment(token_type op);
-bool is_operator(token_type op);
-bool is_function(token_type op);
-bool is_cast(token_type op);
-bool is_indexing(token_type op);
-//
 
 enum node_type
 {
@@ -195,13 +178,11 @@ public:
     node(scalar const & x);
     node(array_base const & x);
     node(int_t lhs, token op, int_t rhs, numeric_type dtype, tuple const & shape);
-
     //Common
     node_type type;
     numeric_type dtype;
     tuple shape;
     tuple ld;
-
     //Type-specific
     union
     {
@@ -232,7 +213,7 @@ public:
   tuple shape() const;
   int_t dim() const;
   data_type const & data() const;
-  std::size_t root() const;
+  size_t root() const;
   driver::Context const & context() const;
   numeric_type const & dtype() const;
 
@@ -244,7 +225,7 @@ public:
 
 private:
   data_type tree_;
-  std::size_t root_;
+  size_t root_;
   driver::Context const * context_;
 };
 
@@ -253,6 +234,14 @@ std::string to_string(node_type const & f);
 std::string to_string(expression::node const & e);
 std::ostream & operator<<(std::ostream & os, expression::node const & s_node);
 std::string to_string(isaac::expression const & s);
+
+//
+std::string to_string(token_type type);
+bool is_assignment(token_type op);
+bool is_operator(token_type op);
+bool is_function(token_type op);
+bool is_cast(token_type op);
+bool is_indexing(token_type op);
 
 }
 

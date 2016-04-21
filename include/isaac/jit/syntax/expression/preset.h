@@ -23,7 +23,7 @@
 #define ISAAC_SYMBOLIC_PRESET_H_
 
 #include "isaac/common/expression_type.h"
-#include "isaac/jit/syntax/expression/expression.h"
+#include "isaac/expression.h"
 
 namespace isaac
 {

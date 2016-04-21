@@ -3,7 +3,7 @@
 
 #include <functional>
 #include <typeinfo>
-#include "isaac/jit/syntax/expression/expression.h"
+#include "isaac/expression.h"
 #include "isaac/jit/syntax/engine/object.h"
 
 namespace isaac

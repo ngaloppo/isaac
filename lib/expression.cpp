@@ -23,17 +23,12 @@
 #include <vector>
 #include "isaac/array.h"
 #include "isaac/scalar.h"
-#include "isaac/jit/syntax/expression/expression.h"
+#include "isaac/expression.h"
 #include "isaac/jit/syntax/expression/preset.h"
 #include "isaac/tools/cpp/string.hpp"
 
 namespace isaac
 {
-
-//Tokens
-token::token() {}
-
-token::token(token_family const & _family, token_type const & _type) : family(_family), type(_type){}
 
 std::string to_string(token_type type)
 {
@@ -254,7 +249,7 @@ expression::expression(node const & lhs, expression const & rhs, token const & o
 expression::expression(expression const & lhs, expression const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape):
   tree_(lhs.tree_.size() + rhs.tree_.size() + 1), root_(tree_.size()-1), context_(context)
 {  
-  std::size_t lsize = lhs.tree_.size();
+  size_t lsize = lhs.tree_.size();
   std::move(lhs.tree_.begin(), lhs.tree_.end(), tree_.begin());
   std::move(rhs.tree_.begin(), rhs.tree_.end(), tree_.begin() + lsize);
   tree_[root_] = node(lhs.root_, op, lsize + rhs.root_, dtype, shape);
@@ -269,7 +264,7 @@ expression::expression(expression const & lhs, expression const & rhs, token con
 expression::data_type const & expression::data() const
 { return tree_; }
 
-std::size_t expression::root() const
+size_t expression::root() const
 { return root_; }
 
 driver::Context const & expression::context() const
@@ -285,10 +280,10 @@ int_t expression::dim() const
 { return (int_t)shape().size(); }
 
 expression expression::operator-()
-{ return expression(*this,  invalid_node(), token(UNARY_ARITHMETIC, SUB_TYPE), context_, dtype(), shape()); }
+{ return expression(*this,  invalid_node(), {UNARY_ARITHMETIC, SUB_TYPE}, context_, dtype(), shape()); }
 
 expression expression::operator!()
-{ return expression(*this, invalid_node(), token(UNARY_ARITHMETIC, NEGATE_TYPE), context_, INT_TYPE, shape()); }
+{ return expression(*this, invalid_node(), {UNARY_ARITHMETIC, NEGATE_TYPE}, context_, INT_TYPE, shape()); }
 
 expression::node const & expression::operator[](size_t idx) const
 { return tree_[idx]; }

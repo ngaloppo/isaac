@@ -56,8 +56,8 @@ public:
   void enable_profiling();
   void disable_profiling();
   void enqueue(Kernel const & kernel, NDRange const & global, driver::NDRange const & local, std::vector<Event> const *, Event *event);
-  void write(Buffer const & buffer, bool blocking, std::size_t offset, std::size_t size, void const* ptr);
-  void read(Buffer const & buffer, bool blocking, std::size_t offset, std::size_t size, void* ptr);
+  void write(Buffer const & buffer, bool blocking, size_t offset, size_t size, void const* ptr);
+  void read(Buffer const & buffer, bool blocking, size_t offset, size_t size, void* ptr);
   bool operator==(CommandQueue const & other) const;
   bool operator<(CommandQueue const & other) const;
   handle_type& handle();

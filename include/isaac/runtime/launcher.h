@@ -22,7 +22,7 @@
 #ifndef _ISAAC_SYMBOLIC_HANDLER_H
 #define _ISAAC_SYMBOLIC_HANDLER_H
 
-#include "isaac/jit/syntax/expression/expression.h"
+#include "isaac/expression.h"
 #include "isaac/driver/event.h"
 
 namespace isaac

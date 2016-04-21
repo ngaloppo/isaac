@@ -124,7 +124,47 @@ void base::genstream::dec_tab()
   --tab_count_;
 }
 
-/* base */
+
+void base::compute_reduce_1d(genstream & os, std::string acc, std::string cur, token const & op)
+{
+  if (is_function(op.type))
+    os << acc << "=" << to_string(op.type) << "(" << acc << "," << cur << ");" << std::endl;
+  else
+    os << acc << "= (" << acc << ")" << to_string(op.type)  << "(" << cur << ");" << std::endl;
+}
+
+void base::compute_index_reduce_1d(genstream & os, std::string acc, std::string cur, std::string const & acc_value, std::string const & cur_value, token const & op)
+{
+  os << acc << " = " << cur_value << ">" << acc_value  << "?" << cur << ":" << acc << ";" << std::endl;
+  os << acc_value << "=";
+  if (op.type==ELEMENT_ARGFMAX_TYPE) os << "fmax";
+  if (op.type==ELEMENT_ARGMAX_TYPE) os << "max";
+  if (op.type==ELEMENT_ARGFMIN_TYPE) os << "fmin";
+  if (op.type==ELEMENT_ARGMIN_TYPE) os << "min";
+  os << "(" << acc_value << "," << cur_value << ");"<< std::endl;
+}
+
+std::string base::neutral_element(token const & op, driver::backend_type backend, std::string const & dtype)
+{
+  std::string INF = (backend==driver::OPENCL)?"INFINITY":"infinity<" + dtype + ">()";
+  std::string N_INF = "-" + INF;
+  switch (op.type)
+  {
+    case ADD_TYPE : return "0";
+    case MULT_TYPE : return "1";
+    case DIV_TYPE : return "1";
+    case ELEMENT_FMAX_TYPE : return N_INF;
+    case ELEMENT_ARGFMAX_TYPE : return N_INF;
+    case ELEMENT_MAX_TYPE : return N_INF;
+    case ELEMENT_ARGMAX_TYPE : return N_INF;
+    case ELEMENT_FMIN_TYPE : return INF;
+    case ELEMENT_ARGFMIN_TYPE : return INF;
+    case ELEMENT_MIN_TYPE : return INF;
+    case ELEMENT_ARGMIN_TYPE : return INF;
+    default: throw jit::code_generation_error("no neutral element known for the reduction operator " + tools::to_string(op.type));
+  }
+}
+
 base::base(size_t s, size_t ls0, size_t ls1):
   simd_width(s), local_size_0(ls0), local_size_1(ls1)
 {}
