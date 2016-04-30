@@ -50,13 +50,10 @@ std::string elementwise_2d::generate_impl(std::string const & suffix, expression
   driver::backend_type backend = device.backend();
   genstream stream(backend);
 
-  std::vector<size_t> assigned = symbolic::find(tree, [&](expression::node const & node){return node.type==COMPOSITE_OPERATOR_TYPE && is_assignment(node.binary_operator.op.type);});
-  std::vector<size_t> assigned_left;
-  std::vector<size_t> assigned_right;
-  for(size_t idx: assigned){
-    assigned_left.push_back(tree[idx].binary_operator.lhs);
-    assigned_right.push_back(tree[idx].binary_operator.rhs);
-  }
+  std::vector<size_t> assigned = symbolic::assignments(tree);
+  std::vector<size_t> assigned_left = symbolic::lhs_of(tree, assigned);
+  std::vector<size_t> assigned_right = symbolic::rhs_of(tree, assigned);
+
   switch(backend)
   {
     case driver::CUDA:

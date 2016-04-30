@@ -774,7 +774,7 @@ namespace detail
     expression res(A, B, {MATRIX_PRODUCT, type}, &A.context(), A.dtype(), shape);
     expression::node & res_root = res[res.root()];
     if(A_trans) res_root.binary_operator.lhs = A_root.binary_operator.lhs;
-    if(B_trans) res_root.binary_operator.rhs = A.data().size() + B_root.binary_operator.lhs;
+    if(B_trans) res_root.binary_operator.rhs = A.size() + B_root.binary_operator.lhs;
 
     return res;
   }
@@ -799,7 +799,7 @@ namespace detail
     }
     if(A_trans)
     {
-      expression tmp(A, reshape(x,{N,1}), {BINARY_ARITHMETIC, ELEMENT_PROD_TYPE}, &A.context(), A.dtype(), {N, M});
+      expression tmp(A, reshape(x,{N,1}), {BINARY_ARITHMETIC, MULT_TYPE}, &A.context(), A.dtype(), {N, M});
       tmp[tmp[tmp.root()].binary_operator.lhs] = A_root;
       return sum(tmp, 0);
     }

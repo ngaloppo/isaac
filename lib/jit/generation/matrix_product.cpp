@@ -684,9 +684,8 @@ namespace templates
 
   std::vector<int_t> matrix_product::infos(expression const & tree, symbolic::preset::matrix_product::args& arguments) const
   {
-    expression::data_type const & array = tree.data();
     size_t root = tree.root();
-    arguments = symbolic::preset::matrix_product::check(array, root);
+    arguments = symbolic::preset::matrix_product::check(tree, root);
     int_t M = arguments.C->shape[0];
     int_t N = arguments.C->shape[1];
     int_t K = (A_trans_=='T')?arguments.A->shape[0]:arguments.A->shape[1];

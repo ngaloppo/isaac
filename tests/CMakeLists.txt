@@ -22,9 +22,9 @@ else()
         add_isaac_test("api/cpp" ${NAME})
     endforeach()
     #runtime
-    foreach(NAME fusion)
-        add_isaac_test("runtime" ${NAME})
-    endforeach()
+    #foreach(NAME fusion)
+    #    add_isaac_test("runtime" ${NAME})
+    #endforeach()
     #runtime/scheduler
     foreach(NAME heft)
         add_isaac_test("runtime/scheduler" ${NAME})

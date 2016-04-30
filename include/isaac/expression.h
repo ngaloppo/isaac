@@ -33,7 +33,6 @@
 #include "isaac/tools/cpp/tuple.hpp"
 #include "isaac/scalar.h"
 
-
 namespace isaac
 {
 
@@ -46,7 +45,6 @@ class array_base;
 
 struct invalid_node{};
 
-/** @brief Optimization enum for grouping operations into unary or binary operations. Just for optimization of lookups. */
 enum token_family
 {
   INVALID_ = 0,
@@ -68,12 +66,9 @@ enum token_family
 enum token_type
 {
   INVALID_TYPE = 0,
-
   // unary operator
-  MINUS_TYPE,
   NEGATE_TYPE,
-
-  // unary expression
+  // cast
   CAST_BOOL_TYPE,
   CAST_CHAR_TYPE,
   CAST_UCHAR_TYPE,
@@ -86,7 +81,7 @@ enum token_type
   CAST_HALF_TYPE,
   CAST_FLOAT_TYPE,
   CAST_DOUBLE_TYPE,
-
+  // unary function
   ABS_TYPE,
   ACOS_TYPE,
   ASIN_TYPE,
@@ -105,11 +100,8 @@ enum token_type
   TAN_TYPE,
   TANH_TYPE,
   TRANS_TYPE,
-
-  // binary expression
+  //binary operator
   ASSIGN_TYPE,
-  INPLACE_ADD_TYPE,
-  INPLACE_SUB_TYPE,
   ADD_TYPE,
   SUB_TYPE,
   MULT_TYPE,
@@ -118,8 +110,6 @@ enum token_type
   ELEMENT_ARGFMIN_TYPE,
   ELEMENT_ARGMAX_TYPE,
   ELEMENT_ARGMIN_TYPE,
-  ELEMENT_PROD_TYPE,
-  ELEMENT_DIV_TYPE,
   ELEMENT_EQ_TYPE,
   ELEMENT_NEQ_TYPE,
   ELEMENT_GREATER_TYPE,
@@ -131,20 +121,16 @@ enum token_type
   ELEMENT_FMIN_TYPE,
   ELEMENT_MAX_TYPE,
   ELEMENT_MIN_TYPE,
-
-  //Products
+  //special
   OUTER_PROD_TYPE,
   MATRIX_PRODUCT_NN_TYPE,
   MATRIX_PRODUCT_TN_TYPE,
   MATRIX_PRODUCT_NT_TYPE,
   MATRIX_PRODUCT_TT_TYPE,
-
   //Access modifiers
   RESHAPE_TYPE,
-  SHIFT_TYPE,
   DIAG_MATRIX_TYPE,
-  DIAG_VECTOR_TYPE,
-  ACCESS_INDEX_TYPE,
+  DIAG_VECTOR_TYPE
 };
 
 struct token
@@ -183,6 +169,7 @@ public:
     numeric_type dtype;
     tuple shape;
     tuple ld;
+    int_t id;
     //Type-specific
     union
     {
@@ -209,39 +196,98 @@ public:
   expression(expression const & lhs, node const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
   expression(node const & lhs, expression const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
   expression(expression const & lhs, expression const & rhs, token const & op, driver::Context const * context, numeric_type const & dtype, tuple const & shape);
-
+  //Initialize
+  void init();
+  //Accessors
   tuple shape() const;
   int_t dim() const;
-  data_type const & data() const;
+  size_t size() const;
   size_t root() const;
   driver::Context const & context() const;
   numeric_type const & dtype() const;
-
+  //Operators
   node const & operator[](size_t) const;
   node & operator[](size_t);
-
   expression operator-();
   expression operator!();
-
 private:
   data_type tree_;
   size_t root_;
   driver::Context const * context_;
+  bool init_;
 };
+void init(expression & tree);
 
-//io
-std::string to_string(node_type const & f);
+//to_string
+std::string eval(token_type type);
+std::string to_string(token const & op);
 std::string to_string(expression::node const & e);
-std::ostream & operator<<(std::ostream & os, expression::node const & s_node);
 std::string to_string(isaac::expression const & s);
 
-//
-std::string to_string(token_type type);
-bool is_assignment(token_type op);
+//predicates
 bool is_operator(token_type op);
-bool is_function(token_type op);
-bool is_cast(token_type op);
 bool is_indexing(token_type op);
+
+//depth-first traversal
+template<class FUN>
+inline void traverse_dfs(expression const & tree, size_t root, FUN const & fun,
+                     std::function<bool(size_t)> const & recurse, size_t depth = 0)
+{
+  expression::node const & node = tree[root];
+  if (node.type==COMPOSITE_OPERATOR_TYPE && recurse(root))
+  {
+    size_t lhs = node.binary_operator.lhs;
+    size_t rhs = node.binary_operator.rhs;
+    if(tree[lhs].type!=INVALID_SUBTYPE)
+      traverse_dfs(tree, lhs, fun, recurse, depth+1);
+    if(tree[rhs].type!=INVALID_SUBTYPE)
+      traverse_dfs(tree, rhs, fun, recurse, depth+1);
+  }
+  fun(root, depth);
+}
+
+template<class FUN>
+inline void traverse_dfs(expression const & tree, size_t root, FUN const & fun)
+{
+  return traverse_dfs(tree, root, fun,  [](size_t){return true;});
+}
+
+template<class FUN>
+inline void traverse_dfs(expression const & tree, FUN const & fun)
+{
+  return traverse_dfs(tree, tree.root(), fun);
+}
+
+//breath-first traversal
+template<class FUN>
+inline void traverse_bfs(expression const & tree, size_t root, FUN const & fun,
+                     std::function<bool(size_t)> const & recurse, size_t depth)
+{
+  fun(root, depth);
+  expression::node const & node = tree[root];
+  if (node.type==COMPOSITE_OPERATOR_TYPE && recurse(root))
+  {
+    size_t lhs = node.binary_operator.lhs;
+    size_t rhs = node.binary_operator.rhs;
+    if(tree[lhs].type!=INVALID_SUBTYPE)
+      traverse_bfs(tree, lhs, fun, recurse, depth+1);
+    if(tree[rhs].type!=INVALID_SUBTYPE)
+      traverse_bfs(tree, rhs, fun, recurse, depth+1);
+  }
+}
+
+template<class FUN>
+inline void traverse_bfs(expression const & tree, size_t root, FUN const & fun)
+{
+  return traverse_bfs(tree, root, fun,  [](size_t){return true;}, 0);
+}
+
+template<class FUN>
+inline void traverse_bfs(expression const & tree, FUN const & fun)
+{
+  return traverse_bfs(tree, tree.root(), fun);
+}
+
 
 }
 

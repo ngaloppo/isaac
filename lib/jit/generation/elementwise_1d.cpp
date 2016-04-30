@@ -89,11 +89,6 @@ std::string elementwise_1d::generate_impl(std::string const & suffix, expression
       for(size_t s = 0 ; s < simd_width ; ++s)
           stream << sym->process("at(i+" + tools::to_string(s)+") = " + access_vector_type("#name", s, simd_width) + ";") << std::endl;
   });
-  //Close user-provided for-loops
-  if(sfors.size()){
-    stream.dec_tab();
-    stream << "}" << std::endl;
-  }
 
   stream.dec_tab();
   stream << "}" << std::endl;

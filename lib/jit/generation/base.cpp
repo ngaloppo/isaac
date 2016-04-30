@@ -127,10 +127,10 @@ void base::genstream::dec_tab()
 
 void base::compute_reduce_1d(genstream & os, std::string acc, std::string cur, token const & op)
 {
-  if (is_function(op.type))
-    os << acc << "=" << to_string(op.type) << "(" << acc << "," << cur << ");" << std::endl;
+  if (is_operator(op.type))
+    os << acc << "= (" << acc << ")" << eval(op.type)  << "(" << cur << ");" << std::endl;
   else
-    os << acc << "= (" << acc << ")" << to_string(op.type)  << "(" << cur << ");" << std::endl;
+    os << acc << "=" << eval(op.type) << "(" << acc << "," << cur << ");" << std::endl;
 }
 
 void base::compute_index_reduce_1d(genstream & os, std::string acc, std::string cur, std::string const & acc_value, std::string const & cur_value, token const & op)

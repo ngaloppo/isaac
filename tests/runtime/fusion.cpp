@@ -1,3 +1,5 @@
+#include "isaac/jit/compile.h"
+#include "isaac/jit/ir.h"
 #include "isaac/runtime/execute.h"
 #include "isaac/array.h"
 
@@ -14,8 +16,8 @@ int main()
   {\
     std::cout << NAME << "...";\
     sc::expression tree = SCEXPR;\
-    sc::runtime::detail::breakpoints_t breakpoints;\
-    sc::expression_type type = sc::runtime::detail::parse(tree, breakpoints);\
+    sc::jit::breakpoints_t breakpoints;\
+    sc::expression_type type = sc::jit::parse(tree, breakpoints);\
     if(!(type == RESULT_TYPE && breakpoints.size()==NTMP)){\
       std::cout << " [Failure!]" << std::endl;\
       nfail++;\
@@ -54,6 +56,6 @@ int main()
 
   /* Partially fused */
   ADD_TMP_TEST("da = sum(ax + by) + sum(z)", sc::ELEMENTWISE_1D, 2, sc::assign(da, sum(2*x + 3*u) + sum(z)));
-  ADD_TMP_TEST("x = sum(ax + by)*sum(aA + bB, 0)", sc::ELEMENTWISE_1D, 2, sc::assign(da, sum(2*x + 3*u) + sum(z)));
+  ADD_TMP_TEST("x = sum(ax + by)*sum(aA + bB, 0)", sc::ELEMENTWISE_1D, 2, sc::assign(da, sum(2*x + 3*u)*sum(4*A + 5*B)));
 
 }

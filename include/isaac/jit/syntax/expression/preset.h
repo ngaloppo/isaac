@@ -55,10 +55,10 @@ public:
         }
     };
 private:
-    static void handle_node( expression::data_type const &tree, size_t rootidx, args & a);
+    static void handle_node(expression const &tree, size_t rootidx, args & a);
 
 public:
-    static args check(expression::data_type const &tree, size_t rootidx);
+    static args check(expression const &tree, size_t rootidx);
 };
 
 }

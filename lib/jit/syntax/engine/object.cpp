@@ -134,7 +134,7 @@ size_t node::root() const
 { return root_; }
 
 //
-arithmetic_node::arithmetic_node(unsigned int id, size_t root, token op, expression const & tree, symbols_table const & table) : object(tree.context(), to_string(tree[root].dtype), id), node(root, op, tree, table), op_str_(to_string(op.type))
+arithmetic_node::arithmetic_node(unsigned int id, size_t root, token op, expression const & tree, symbols_table const & table) : object(tree.context(), to_string(tree[root].dtype), id), node(root, op, tree, table), op_str_(eval(op.type))
 { }
 
 //
@@ -145,10 +145,10 @@ std::string binary_arithmetic_node::evaluate(std::map<std::string, std::string> 
 {
   std::string arg0 = lhs_->evaluate(table);
   std::string arg1 = rhs_->evaluate(table);
-  if(is_function(op_.type))
-    return op_str_ + "(" + arg0 + ", " + arg1 + ")";
-  else
+  if(is_operator(op_.type))
     return "(" + arg0 + op_str_ + arg1 + ")";
+  else
+    return op_str_ + "(" + arg0 + ", " + arg1 + ")";
 }
 
 //

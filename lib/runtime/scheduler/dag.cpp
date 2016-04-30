@@ -3,6 +3,7 @@
 
 #include "isaac/array.h"
 #include "isaac/jit/syntax/engine/process.h"
+#include "isaac/expression.h"
 #include "isaac/runtime/scheduler/dag.h"
 #include "isaac/tools/cpp/string.hpp"
 
@@ -134,8 +135,8 @@ void dag::append(expression const & job, std::string const & name)
   names_.push_back(name.empty()?tools::to_string(newid):name);
   //Add dependencies;
   std::vector<expression::node const *> nread;
-  auto extractor = [&](size_t idx) { if(job[idx].type==DENSE_ARRAY_TYPE) nread.push_back(&job[idx]);};
-  symbolic::traverse(job, job[job.root()].binary_operator.rhs, extractor);
+  auto extractor = [&](size_t idx, size_t) { if(job[idx].type==DENSE_ARRAY_TYPE) nread.push_back(&job[idx]);};
+  traverse_dfs(job, job[job.root()].binary_operator.rhs, extractor);
   for(job_t previd = 0 ; previd < jobs_.size() ; ++previd){
     expression const & current = jobs_[previd];
     expression::node const & assignment = current[current.root()];

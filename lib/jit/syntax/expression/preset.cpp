@@ -30,7 +30,7 @@ namespace symbolic
 namespace preset
 {
 
-void matrix_product::handle_node(expression::data_type const & tree, size_t root, args & a)
+void matrix_product::handle_node(expression const & tree, size_t root, args & a)
 {
     expression::node const & node = tree[root];
     if(node.type != COMPOSITE_OPERATOR_TYPE)
@@ -74,7 +74,7 @@ void matrix_product::handle_node(expression::data_type const & tree, size_t root
     }
 }
 
-matrix_product::args matrix_product::check(expression::data_type const & tree, size_t root)
+matrix_product::args matrix_product::check(expression const & tree, size_t root)
 {
     expression::node const & node = tree[root];
     expression::node const & left = tree[node.binary_operator.lhs];

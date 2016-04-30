@@ -24,160 +24,21 @@
 #include <vector>
 #include <stdexcept>
 #include "isaac/array.h"
+#include "isaac/jit/compile.h"
+#include "isaac/jit/syntax/expression/preset.h"
 #include "isaac/runtime/execute.h"
 #include "isaac/runtime/instruction.h"
 #include "isaac/expression.h"
-#include "isaac/jit/syntax/expression/preset.h"
 
 namespace isaac
 {
-
 namespace runtime
 {
-
-  namespace detail
-  {
-
-      inline bool is_elementwise(expression_type type)
-      { return type == ELEMENTWISE_1D || type == ELEMENTWISE_2D; }
-
-
-      expression_type parse(expression const & tree, breakpoints_t & bp){
-        return parse(tree, tree.root(), bp);
-      }
-
-      /** @brief Parses the breakpoints for a given expression tree */
-      expression_type parse(expression const & tree, size_t idx, breakpoints_t & bp)
-      {
-        expression::node const & node = tree[idx];
-        if(node.type==COMPOSITE_OPERATOR_TYPE)
-        {
-          size_t lidx = node.binary_operator.lhs;
-          size_t ridx = node.binary_operator.rhs;
-          expression_type ltype = parse(tree, lidx, bp);
-          expression_type rtype = parse(tree, ridx, bp);
-          token const & op = node.binary_operator.op;
-          //Reduction
-          if(op.family==REDUCE || op.family==REDUCE_ROWS || op.family==REDUCE_COLUMNS)
-          {
-            if(!is_elementwise(ltype)) bp.push_back({lidx, ltype});
-            if(!is_elementwise(rtype)) bp.push_back({ridx, rtype});
-            if(op.family==REDUCE) return REDUCE_1D;
-            if(op.family==REDUCE_ROWS) return REDUCE_2D_ROWS;
-            if(op.family==REDUCE_COLUMNS) return REDUCE_2D_COLS;
-          }
-          //Matrix Product
-          if(op.family==MATRIX_PRODUCT)
-          {
-            if(tree[lidx].type!=DENSE_ARRAY_TYPE) bp.push_back({lidx, ltype});
-            if(tree[ridx].type!=DENSE_ARRAY_TYPE) bp.push_back({ridx, rtype});
-            if(op.type==MATRIX_PRODUCT_NN_TYPE) return MATRIX_PRODUCT_NN;
-            if(op.type==MATRIX_PRODUCT_TN_TYPE) return MATRIX_PRODUCT_TN;
-            if(op.type==MATRIX_PRODUCT_NT_TYPE) return MATRIX_PRODUCT_NT;
-            if(op.type==MATRIX_PRODUCT_TT_TYPE) return MATRIX_PRODUCT_TT;
-          }
-          //Arithmetic
-          if(op.family==UNARY_ARITHMETIC || op.family==BINARY_ARITHMETIC)
-          {
-            //Non-elementwise kernels are temporaries when reshaped
-            if(op.type==RESHAPE_TYPE && !is_elementwise(ltype))
-              bp.push_back({lidx, ltype});
-            else
-            {
-              //Matrix-Products are temporaries when not assigned
-              for(expression_type type: std::vector<expression_type>{MATRIX_PRODUCT_NN,MATRIX_PRODUCT_TN,MATRIX_PRODUCT_NT,MATRIX_PRODUCT_TT})
-              {
-                if(ltype==type)
-                  bp.push_back({lidx, ltype});
-                if(rtype==type && op.type!=ASSIGN_TYPE)
-                  bp.push_back({ridx, rtype});
-                if(rtype==type && op.type==ASSIGN_TYPE)
-                  return type;
-              }
-              //Reductions
-              for(expression_type type: std::vector<expression_type>{REDUCE_2D_ROWS, REDUCE_2D_COLS, REDUCE_1D})
-              {
-                if(ltype==type && ltype==rtype && tree[tree[lidx].binary_operator.lhs].shape == tree[tree[ridx].binary_operator.lhs].shape)
-                  return type;
-                if(ltype==type && !is_elementwise(rtype))
-                  bp.push_back({ridx, rtype});
-                if(!is_elementwise(ltype) && rtype==type)
-                  bp.push_back({lidx, ltype});
-                if((ltype==type && rtype==ELEMENTWISE_1D) || (ltype==ELEMENTWISE_1D && rtype==type))
-                  return type;
-              }
-            }
-        }
-      }
-      if(numgt1(node.shape)<=1)
-        return ELEMENTWISE_1D;
-      else
-        return ELEMENTWISE_2D;
-    }
-  }
-
-  /** @brief Executes a expression on the given models map*/
-  void execute(launcher const & c, implementation & impl)
-  {
-    typedef isaac::array array;
-    expression tree = c.tree();
-    /*----Process-----*/
-    driver::Context const & context = tree.context();
-    size_t rootidx = tree.root();
-    std::vector<std::shared_ptr<array> > temporaries;
-    expression_type final_type;
-    /*----Matrix Product-----*/
-    if(symbolic::preset::matrix_product::args args = symbolic::preset::matrix_product::check(tree.data(), rootidx)){
-        final_type = args.type;
-    }
-    /*----Default-----*/
-    else
-    {
-        expression::node & root = tree[rootidx];
-        expression::node & lhs = tree[root.binary_operator.lhs], &rhs = tree[root.binary_operator.rhs];
-        expression::node root_save = root, lhs_save = lhs, rhs_save = rhs;
-
-        detail::breakpoints_t breakpoints;
-        breakpoints.reserve(16);
-        /*----Parse required temporaries-----*/
-        final_type = detail::parse(tree, breakpoints);
-        std::set<size_t> found;
-        breakpoints.erase(std::remove_if(breakpoints.begin(), breakpoints.end(), [&](detail::breakpoints_t::value_type const & x){return !found.insert(x.first).second;}), breakpoints.end());
-        /*----Compute required temporaries----*/
-        for(auto current: breakpoints)
-        {
-          expression::node const & node = tree[current.first];
-          expression_type op = current.second;
-          std::shared_ptr<instruction> const & instr =  impl[{op, node.dtype}];
-
-          //Create temporary
-          std::shared_ptr<array> tmp = std::make_shared<array>(node.shape, node.dtype, context);
-          temporaries.push_back(tmp);
-
-          //Compute temporary
-          root.binary_operator.op.type = ASSIGN_TYPE;
-          root.shape = node.shape;
-          root.dtype = node.dtype;
-          lhs = expression::node(*tmp);
-          rhs = node;
-          instr->execute(tree, c.env(), c.opt());
-          //Update the expression tree
-          root = root_save;
-          lhs = lhs_save;
-          rhs = rhs_save;
-          tree[current.first] = expression::node(*tmp);
-        }
-    }
-
-    /*-----Compute final expression-----*/
-     impl[std::make_pair(final_type, tree[rootidx].dtype)]->execute(tree, c.env(), c.opt());
-  }
+  void execute(launcher const &, implementation &)
+  { }
 
   void execute(launcher const & c)
-  {
-    execute(c, backend::implementations::get(c.env().queue(c.tree().context())));
-  }
+  { execute(c, backend::implementations::get(c.env().queue(c.tree().context()))); }
 
 }
-
 }
